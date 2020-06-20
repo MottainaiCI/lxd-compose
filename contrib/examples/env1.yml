@@ -1,0 +1,92 @@
+--
+
+version: "1"
+
+# Choice the template engine to use.
+# Supported engines are:
+#   - mottainai (customized golang template engine)
+#   - jinja2 (use j2cli engine)
+template_engine:
+  engine: "jinja2"
+  # Additional template engine options
+  # opts: "--undefined"
+
+
+projects:
+
+  - name: "lxd-compose-example1"
+    description: "LXD Compose Example1"
+
+    # Define optional directory where retrieve the groups
+    # of the environment. The relative path is based on
+    # directory of the environment file.
+    #include_groups_dir:
+    #  - groups/group1.yml
+    #  - groups/group2.yml
+
+    # Environments files to use with engine. Supported files depends on
+    # template engine
+    #include_env_files:
+    #  - envs/file1.yml
+    #  - envs/file2.yml
+
+    # A fast way to define environments for template
+    envs:
+      - key: "key1"
+        value: "value1"
+      - key: "key2"
+        value: "value2"
+
+    groups:
+      - name: "group1"
+        description: "Description1"
+
+        # Define the LXD Remote to use and where
+        # create the environment.
+        connection: "local"
+        # Define the list of LXD Profile to use
+        # for create the containers
+        common_profiles:
+          - default
+
+        # Create the environment container as ephemeral or not.
+        ephemeral: true
+
+        # Image fetch options
+        #image_fetch_opts: "--copy-aliases --auto-update"
+
+        nodes:
+          - name: node1
+            image_source: "image1"
+            # By deafult it use remote images"
+            image_remote_server: "images"
+
+            # Define labels to node for particular configuration tasks.
+            # labels:
+            #  - label1
+
+            # Specify directory where build path of templates.
+            source_dir: "../"
+
+            # List of commands executed just after the creation of the
+            # container.
+            bootstrap_commands:
+              - echo "1"
+
+            # List of templates files to compiles before push the
+            # result inside container.
+            config_templates:
+              - source: files/template.j2
+                dst: files/myconf.conf
+
+            sync_resources:
+              - source: files/myconf.conf
+                dst: /etc/myapp/myconf.conf
+              - source: mylocal_repo
+                dst: /root/
+                push_opts: "-r"
+
+            sync_post_commands:
+              - systemctl start myapp
+
+
