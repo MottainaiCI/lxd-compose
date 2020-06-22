@@ -46,7 +46,7 @@ type LxdCProject struct {
 	IncludeGroupFiles []string `json:"include_groups_files,omitempty" yaml:"include_groups_files,omitempty"`
 	IncludeEnvFiles   []string `json:"include_env_files,omitempty" yaml:"include_env_files,omitempty"`
 
-	Environments []LxdCEnvVars `json:"envs,omitempty" yaml:"envs,omitempty"`
+	Environments []LxdCEnvVars `json:"vars,omitempty" yaml:"vars,omitempty"`
 
 	Groups []LxdCGroup `json:"groups" yaml:"groups"`
 }

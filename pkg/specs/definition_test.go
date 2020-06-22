@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Spec Tooling", func() {
+var _ = Describe("Specs Test", func() {
 
 	Context("Environment1", func() {
 

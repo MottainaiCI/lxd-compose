@@ -29,11 +29,10 @@ projects:
     #  - envs/file2.yml
 
     # A fast way to define environments for template
-    envs:
-      - key: "key1"
-        value: "value1"
-      - key: "key2"
-        value: "value2"
+    vars:
+      - envs:
+          key1: "value1"
+          key2: "value2"
 
     groups:
       - name: "group1"

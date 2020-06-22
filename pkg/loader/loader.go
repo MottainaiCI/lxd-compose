@@ -213,6 +213,12 @@ func loadExtraFiles(env *specs.LxdCEnvironment) error {
 					continue
 				}
 
+				if path.Ext(efile) != ".yml" {
+					fmt.Println("For project", proj.Name, "included env file", efile,
+						"will be used only with template compiler")
+					continue
+				}
+
 				content, err := ioutil.ReadFile(path.Join(envBaseDir, efile))
 				if err != nil {
 					fmt.Println("On read file", efile, ":", err.Error())
