@@ -3,6 +3,7 @@ module github.com/MottainaiCI/lxd-compose
 go 1.14
 
 require (
+	github.com/MottainaiCI/mottainai-cli v0.0.0-20190629163247-be90396f998d
 	github.com/MottainaiCI/mottainai-server v0.0.0-20200319175456-fc3c442fd4a6
 	github.com/fsouza/go-dockerclient v1.6.5 // indirect
 	github.com/jaypipes/ghw v0.6.1 // indirect
