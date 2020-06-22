@@ -1,5 +1,3 @@
---
-
 version: "1"
 
 # Choice the template engine to use.
@@ -20,7 +18,7 @@ projects:
     # Define optional directory where retrieve the groups
     # of the environment. The relative path is based on
     # directory of the environment file.
-    #include_groups_dir:
+    #include_groups_files:
     #  - groups/group1.yml
     #  - groups/group2.yml
 
@@ -67,6 +65,8 @@ projects:
 
             # Specify directory where build path of templates.
             source_dir: "../"
+
+            # entrypoint: "/bin/bash"
 
             # List of commands executed just after the creation of the
             # container.

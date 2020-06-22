@@ -58,6 +58,7 @@ func initConfig(config *specs.LxdComposeConfig) {
 	config.Viper.SetConfigName(specs.LXD_COMPOSE_CONFIGNAME)
 
 	config.Viper.SetTypeByDefaultValue(true)
+
 }
 
 func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
@@ -67,7 +68,10 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
 
-	//rootCmd.AddCommand()
+	rootCmd.AddCommand(
+		newPrintCommand(config),
+		newValidateCommand(config),
+	)
 }
 
 func Execute() {
@@ -91,13 +95,12 @@ func Execute() {
 			var err error
 			var v *viper.Viper = config.Viper
 
-			if v.Get("config") == "" {
-				fmt.Println("Missing configuration file")
-				os.Exit(1)
-			}
-
 			v.SetConfigType("yml")
-			v.SetConfigFile(v.Get("config").(string))
+			if v.Get("config") == "" {
+				config.Viper.AddConfigPath(".")
+			} else {
+				v.SetConfigFile(v.Get("config").(string))
+			}
 
 			// Parse configuration file
 			err = config.Unmarshal()

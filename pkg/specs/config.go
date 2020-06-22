@@ -23,6 +23,8 @@ package specs
 
 import (
 	v "github.com/spf13/viper"
+
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -31,14 +33,14 @@ const (
 )
 
 type LxdComposeConfig struct {
-	Viper *v.Viper
+	Viper *v.Viper `yaml:"-" json:"-"`
 
-	General         LxdCGeneral `mapstructure:"general"`
-	EnvironmentDirs []string    `mapstructure:"env_dirs,omitempty"`
+	General         LxdCGeneral `mapstructure:"general" json:"general,omitempty" yaml:"general,omitempty"`
+	EnvironmentDirs []string    `mapstructure:"env_dirs,omitempty" json:"env_dirs,omitempty" yaml:"env_dirs,omitempty"`
 }
 
 type LxdCGeneral struct {
-	Debug bool `mapstructure:"debug,omitempty"`
+	Debug bool `mapstructure:"debug,omitempty" json:"debug,omitempty" yaml:"debug,omitempty"`
 }
 
 func NewLxdComposeConfig(viper *v.Viper) *LxdComposeConfig {
@@ -46,7 +48,7 @@ func NewLxdComposeConfig(viper *v.Viper) *LxdComposeConfig {
 		viper = v.New()
 	}
 
-	GetDefault(viper)
+	GenDefault(viper)
 	return &LxdComposeConfig{Viper: viper}
 }
 
@@ -71,6 +73,10 @@ func (c *LxdComposeConfig) Unmarshal() error {
 	err = c.Viper.Unmarshal(&c)
 
 	return err
+}
+
+func (c *LxdComposeConfig) Yaml() ([]byte, error) {
+	return yaml.Marshal(c)
 }
 
 func GenDefault(viper *v.Viper) {

@@ -1,0 +1,7 @@
+general:
+  debug: true
+
+# Define the directories list where load
+# environments.
+# env_dirs:
+# - ./lxd-compose/envs
