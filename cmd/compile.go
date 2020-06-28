@@ -82,9 +82,9 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	pflags := cmd.Flags()
 	pflags.StringSliceVarP(&projects, "project", "p", []string{},
-		"Choice the list of the projects to compile.")
+		"Choice the list of the projects to compile. Default: all")
 	pflags.StringSliceVarP(&sources, "source-file", "f", []string{},
-		"Choice the list of the source file to compile.")
+		"Choice the list of the source file to compile. Default: all")
 
 	return cmd
 }
