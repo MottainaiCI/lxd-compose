@@ -7,7 +7,15 @@ version: "1"
 template_engine:
   engine: "jinja2"
   # Additional template engine options
-  # opts: "--undefined"
+  # opts:
+  #   - "--undefined"
+  # For jinja2 there are a lot filter in ansible package
+  # that could be loaded with:
+  opts:
+    # Enable to_yaml, to_json, etc.
+    - "--filters"
+    - "/usr/lib64/python3.6/site-packages/ansible/plugins/filter/core.py"
+
 
 
 projects:
@@ -63,7 +71,9 @@ projects:
             #  - label1
 
             # Specify directory where build path of templates.
-            source_dir: "../"
+            # Directory could be an absolute path or a relative path based
+            # on env base dir.
+            source_dir: "."
 
             # entrypoint: "/bin/bash"
 
@@ -76,14 +86,14 @@ projects:
             # result inside container.
             config_templates:
               - source: files/template.j2
-                dst: files/myconf.conf
+                dst: files/myconf.conf.yaml
 
             sync_resources:
-              - source: files/myconf.conf
-                dst: /etc/myapp/myconf.conf
-              - source: mylocal_repo
-                dst: /root/
-                push_opts: "-r"
+              - source: files/myconf.conf.yaml
+                dst: /etc/myapp/myconf.conf.yaml
+            #  - source: mylocal_repo
+            #    dst: /root/
+            #    push_opts: "-r"
 
             sync_post_commands:
               - systemctl start myapp

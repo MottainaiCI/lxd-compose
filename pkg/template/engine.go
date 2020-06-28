@@ -32,6 +32,7 @@ type LxdCTemplateCompiler interface {
 	CompileRaw(sourceContent string) (string, error)
 	GetEnvBaseDir() string
 	SetEnvBaseDir(string)
+	GetVars() *map[string]interface{}
 }
 
 type DefaultCompiler struct {
@@ -48,6 +49,9 @@ func (r *DefaultCompiler) InitVars() {
 			r.Vars[k] = v
 		}
 	}
+	// Init project variable
+	r.Vars["project"] = r.Project
+	r.Vars["env_base_dir"] = r.EnvBaseDir
 }
 
 func (r *DefaultCompiler) SetOpts(o []string) {
@@ -60,4 +64,8 @@ func (r *DefaultCompiler) GetEnvBaseDir() string {
 
 func (r *DefaultCompiler) SetEnvBaseDir(dir string) {
 	r.EnvBaseDir = dir
+}
+
+func (r *DefaultCompiler) GetVars() *map[string]interface{} {
+	return &r.Vars
 }

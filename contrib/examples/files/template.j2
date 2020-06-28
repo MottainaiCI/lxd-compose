@@ -1,0 +1,10 @@
+node:
+{{ node | to_nice_yaml(indent=2) | indent(2, true) }}
+
+project:
+{{ project | to_nice_yaml(indent=2) | indent(2, true) }}
+
+key1: {{ key1 }}
+key2: {{ key2 }}
+
+# vim: filetype=yaml

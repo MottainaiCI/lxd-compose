@@ -49,6 +49,26 @@ func (i *LxdCInstance) AddEnvironment(env specs.LxdCEnvironment) {
 	i.Environments = append(i.Environments, env)
 }
 
+func (i *LxdCInstance) GetEnvironments() *[]specs.LxdCEnvironment {
+	return &i.Environments
+}
+
+func (i *LxdCInstance) GetEnvByProjectName(name string) *specs.LxdCEnvironment {
+	for _, e := range i.Environments {
+		for _, p := range e.Projects {
+			if p.Name == name {
+				return &e
+			}
+		}
+	}
+
+	return nil
+}
+
+func (i *LxdCInstance) GetConfig() *specs.LxdComposeConfig {
+	return i.Config
+}
+
 func (i *LxdCInstance) Validate(ignoreError bool) error {
 	var ans error = nil
 	mproj := make(map[string]int, 0)

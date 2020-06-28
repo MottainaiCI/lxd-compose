@@ -35,8 +35,8 @@ type LxdCEnvironment struct {
 }
 
 type LxdCTemplateEngine struct {
-	Engine string `json:"engine" yaml:"engine"`
-	Opts   string `json:"opts,omitempty" yaml:"opts,omitempty"`
+	Engine string   `json:"engine" yaml:"engine"`
+	Opts   []string `json:"opts,omitempty" yaml:"opts,omitempty"`
 }
 
 type LxdCProject struct {
@@ -121,10 +121,28 @@ func EnvironmentFromYaml(data []byte, file string) (*LxdCEnvironment, error) {
 	return ans, nil
 }
 
+func (e *LxdCEnvironment) GetProjectByName(pName string) *LxdCProject {
+	for _, p := range e.Projects {
+		if p.Name == pName {
+			return &p
+		}
+	}
+
+	return nil
+}
+
+func (e *LxdCEnvironment) GetProjects() *[]LxdCProject {
+	return &e.Projects
+}
+
 func (p *LxdCProject) AddGroup(grp *LxdCGroup) {
 	p.Groups = append(p.Groups, *grp)
 }
 
 func (p *LxdCProject) AddEnvironment(e *LxdCEnvVars) {
 	p.Environments = append(p.Environments, *e)
+}
+
+func (p *LxdCProject) GetName() string {
+	return p.Name
 }
