@@ -25,9 +25,6 @@ linters:
     - gochecknoglobals
     - gocognit
     - goconst
-    - godot
     - gomnd
     - lll
-    - nestif
-    - testpackage
     - wsl

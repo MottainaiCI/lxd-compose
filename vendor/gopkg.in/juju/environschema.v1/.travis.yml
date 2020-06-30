@@ -1,0 +1,14 @@
+language: go
+os:
+  - linux
+go:
+  - "1.11.x"
+  - "1.12.x"
+env:
+  - GO111MODULE=on
+  
+go_import_path: gopkg.in/juju/environschema.v1
+
+script:
+  - go test ./...
+  - go mod tidy

@@ -2,19 +2,27 @@ module github.com/MottainaiCI/lxd-compose
 
 go 1.14
 
+replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.20200605210607-749178b8f80d+incompatible
+
 require (
 	github.com/MottainaiCI/mottainai-cli v0.0.0-20190629163247-be90396f998d
 	github.com/MottainaiCI/mottainai-server v0.0.0-20200319175456-fc3c442fd4a6
-	github.com/fsouza/go-dockerclient v1.6.5 // indirect
+	github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915 // indirect
+	github.com/gosexy/gettext v0.0.0-20160830220431-74466a0a0c4a // indirect
 	github.com/jaypipes/ghw v0.6.1 // indirect
-	github.com/mudler/luet v0.0.0-20200612174137-ee3b59348e36
-	github.com/onsi/ginkgo v1.12.1
-	github.com/onsi/gomega v1.10.0
+	github.com/juju/go4 v0.0.0-20160222163258-40d72ab9641a // indirect
+	github.com/juju/persistent-cookiejar v0.0.0-20171026135701-d5e5a8405ef9 // indirect
+	github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40
+	github.com/mudler/luet v0.0.0-20200627110200-764a09ce0c7c
+	github.com/olekukonko/tablewriter v0.0.4 // indirect
+	github.com/onsi/ginkgo v1.13.0
+	github.com/onsi/gomega v1.10.1
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
 	gopkg.in/clog.v1 v1.2.0 // indirect
+	gopkg.in/macaroon-bakery.v2 v2.2.0 // indirect
+	gopkg.in/retry.v1 v1.0.3 // indirect
+	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
 	gopkg.in/src-d/go-git.v4 v4.13.1 // indirect
-	gopkg.in/yaml.v2 v2.2.7
+	gopkg.in/yaml.v2 v2.3.0
 )
-
-replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.20200605210607-749178b8f80d+incompatible
