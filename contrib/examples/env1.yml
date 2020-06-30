@@ -16,7 +16,8 @@ template_engine:
     - "--filters"
     - "/usr/lib64/python3.6/site-packages/ansible/plugins/filter/core.py"
 
-
+# Override LXD_CONF_DIR. Default use $HOME/.config/lxc/
+# lxd_config_dir: ""
 
 projects:
 
@@ -75,7 +76,9 @@ projects:
             # on env base dir.
             source_dir: "."
 
-            # entrypoint: "/bin/bash"
+            # entrypoint:
+            #  - "/bin/bash"
+            #  - "-c"
 
             # List of commands executed just after the creation of the
             # container.

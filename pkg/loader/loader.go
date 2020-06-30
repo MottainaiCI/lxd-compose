@@ -65,6 +65,21 @@ func (i *LxdCInstance) GetEnvByProjectName(name string) *specs.LxdCEnvironment {
 	return nil
 }
 
+func (i *LxdCInstance) GetEnvProjGroupByNodeName(name string) (*specs.LxdCEnvironment, *specs.LxdCProject, *specs.LxdCGroup) {
+	for _, e := range i.Environments {
+		for _, p := range e.Projects {
+			for _, g := range p.Groups {
+				for _, n := range g.Nodes {
+					if n.Name == name {
+						return &e, &p, &g
+					}
+				}
+			}
+		}
+	}
+	return nil, nil, nil
+}
+
 func (i *LxdCInstance) GetConfig() *specs.LxdComposeConfig {
 	return i.Config
 }

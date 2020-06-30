@@ -26,8 +26,9 @@ import (
 )
 
 type LxdCEnvironment struct {
-	Version string `json:"version,omitempty" yaml:"version,omitempty"`
-	File    string `json:"-" yaml:"-"`
+	Version      string `json:"version,omitempty" yaml:"version,omitempty"`
+	File         string `json:"-" yaml:"-"`
+	LxdConfigDir string `json:"lxd_config_dir,omitempty" yaml:"lxd_config_dir,omitempty"`
 
 	TemplateEngine LxdCTemplateEngine `json:"template_engine,omitempty" yaml:"template_engine,omitempty"`
 
@@ -77,7 +78,7 @@ type LxdCNode struct {
 
 	SourceDir string `json:"source_dir,omitempty" yaml:"source_dir,omitempty"`
 
-	Entrypoint       string   `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
+	Entrypoint       []string `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
 	BootstrapCommand []string `json:"bootstrap_commands,omitempty" yaml:"bootstrap_commands,omitempty"`
 	SyncPostCommands []string `json:"sync_post_commands,omitempty" yaml:"sync_post_commands,omitempty"`
 
