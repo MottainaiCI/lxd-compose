@@ -29,6 +29,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"strings"
 
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
@@ -95,12 +96,26 @@ func (e *LxdCExecutor) Setup() error {
 	}
 
 	if len(e.Endpoint) > 0 {
-		client, err = lxd.ConnectLXDUnix(e.Endpoint, nil)
-		if err != nil {
-			return errors.New("Endpoint:" + e.Endpoint + " Error: " + err.Error())
+
+		fmt.Println("Using endpoint " + e.Endpoint + "...")
+
+		// Unix socket
+		if strings.HasPrefix(e.Endpoint, "unix:") {
+			client, err = lxd.ConnectLXDUnix(strings.TrimPrefix(strings.TrimPrefix(e.Endpoint, "unix:"), "//"), nil)
+			if err != nil {
+				return errors.New("Endpoint:" + e.Endpoint + " Error: " + err.Error())
+			}
+
+		} else {
+			client, err = e.LxdConfig.GetContainerServer(e.Endpoint)
+			if err != nil {
+				return errors.New("Endpoint:" + e.Endpoint + " Error: " + err.Error())
+			}
+
+			// Force use of local. Is this needed??
+			e.LxdConfig.DefaultRemote = e.Endpoint
 		}
-		// Force use of local
-		e.LxdConfig.DefaultRemote = "local"
+
 	} else {
 		if len(e.LxdConfig.DefaultRemote) > 0 {
 			// POST: If is present default I use default as main ContainerServer
@@ -126,7 +141,7 @@ func (e *LxdCExecutor) Setup() error {
 	return nil
 }
 
-func (e *LxdCExecutor) CreateContainer(name, fingerprint string, profiles []string) error {
+func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, profiles []string) error {
 	if name == "" {
 		return errors.New("Invalid container name")
 	}
@@ -134,7 +149,7 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint string, profiles []stri
 	// Check if container is already present. TODO
 
 	// Pull image
-	imageFingerprint, err := e.PullImage(fingerprint)
+	imageFingerprint, err := e.PullImage(fingerprint, imageServer)
 
 	fmt.Println(">> Creating container " + name + "...")
 	err = e.LaunchContainer(name, imageFingerprint, profiles)
