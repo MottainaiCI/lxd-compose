@@ -22,6 +22,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package specs
 
 import (
+	"encoding/json"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -146,4 +148,26 @@ func (p *LxdCProject) AddEnvironment(e *LxdCEnvVars) {
 
 func (p *LxdCProject) GetName() string {
 	return p.Name
+}
+
+func (p *LxdCProject) GetEnvsMap() map[string]string {
+	ans := map[string]string{}
+
+	for _, e := range p.Environments {
+		for k, v := range e.EnvVars {
+			switch v.(type) {
+			case int:
+				ans[k] = string(v.(int))
+			case string:
+				ans[k] = v.(string)
+			default:
+				data, err := json.Marshal(v)
+				if err == nil {
+					ans[k] = string(data)
+				}
+			}
+		}
+	}
+
+	return ans
 }

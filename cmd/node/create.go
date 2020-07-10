@@ -24,7 +24,6 @@ package cmd_node
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/MottainaiCI/lxd-compose/pkg/executor"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
@@ -33,18 +32,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
+func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "exec node [command]",
-		Short: "Execute a command to a node or a list of nodes.",
-		Args:  cobra.MinimumNArgs(2),
+		Use:   "create node1 node2",
+		Short: "Create one or more nodes.",
+		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
-
+			endpoint, _ := cmd.Flags().GetString("endpoint")
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
-			endpoint, _ := cmd.Flags().GetString("endpoint")
 
 			err := composer.LoadEnvironments()
 			if err != nil {
@@ -52,33 +50,37 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			node := args[0]
-			commands := args[1:]
+			nodes := args[0:]
 
-			fmt.Println("node ", node)
-			fmt.Println("command ", commands)
+			for _, n := range nodes {
 
-			env, proj, grp, nodeConf := composer.GetEntitiesByNodeName(node)
-			if env == nil {
-				fmt.Println("Node not found")
-				os.Exit(1)
+				env, _, grp, nodeConf := composer.GetEntitiesByNodeName(n)
+				if env == nil {
+					fmt.Println("Skipped node", n)
+					continue
+				}
+
+				if endpoint == "" {
+					endpoint = grp.Connection
+				}
+
+				executor := executor.NewLxdCExecutor(endpoint, confdir,
+					nodeConf.Entrypoint, grp.Ephemeral)
+				err = executor.Setup()
+				if err != nil {
+					fmt.Println("Error on setup executor:" + err.Error() + "\n")
+					os.Exit(1)
+				}
+
+				// Create container
+				fmt.Println("Creating ... ", n)
+				err := executor.CreateContainer(n, nodeConf.ImageSource, nodeConf.ImageRemoteServer, grp.CommonProfiles)
+				if err != nil {
+					fmt.Println("Error on create container "+n+":", err.Error())
+					os.Exit(1)
+				}
+
 			}
-
-			if endpoint == "" {
-				endpoint = grp.Connection
-			}
-
-			executor := executor.NewLxdCExecutor(endpoint, confdir, nodeConf.Entrypoint, grp.Ephemeral)
-			err = executor.Setup()
-			if err != nil {
-				fmt.Println("Error on setup executor:" + err.Error() + "\n")
-				os.Exit(1)
-			}
-			envs := proj.GetEnvsMap()
-			envs["HOME"] = "/"
-			res, err := executor.RunCommand(node, strings.Join(commands, " "), envs)
-
-			os.Exit(res)
 		},
 	}
 

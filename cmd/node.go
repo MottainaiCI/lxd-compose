@@ -36,6 +36,7 @@ func newNodeCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	}
 
 	cmd.AddCommand(
+		NewCreateCommand(config),
 		NewExecCommand(config),
 	)
 
