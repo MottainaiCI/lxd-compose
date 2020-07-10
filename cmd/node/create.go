@@ -39,6 +39,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 
+			bootstrap, _ := cmd.Flags().GetBool("bootstrap-commands")
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
 			endpoint, _ := cmd.Flags().GetString("endpoint")
 			// Create Instance
@@ -54,7 +55,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			for _, n := range nodes {
 
-				env, _, grp, nodeConf := composer.GetEntitiesByNodeName(n)
+				env, proj, grp, nodeConf := composer.GetEntitiesByNodeName(n)
 				if env == nil {
 					fmt.Println("Skipped node", n)
 					continue
@@ -74,12 +75,27 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 				// Create container
 				fmt.Println("Creating ... ", n)
-				err := executor.CreateContainer(n, nodeConf.ImageSource, nodeConf.ImageRemoteServer, grp.CommonProfiles)
+				err := executor.CreateContainer(n, nodeConf.ImageSource,
+					nodeConf.ImageRemoteServer, grp.CommonProfiles)
 				if err != nil {
 					fmt.Println("Error on create container "+n+":", err.Error())
 					os.Exit(1)
 				}
 
+				envs := proj.GetEnvsMap()
+				if _, ok := envs["HOME"]; !ok {
+					envs["HOME"] = "/"
+				}
+
+				if bootstrap && len(nodeConf.BootstrapCommand) > 0 {
+					for _, cmds := range nodeConf.BootstrapCommand {
+						res, err := executor.RunCommand(n, cmds, envs)
+						if err != nil {
+							fmt.Println("Error " + err.Error())
+							os.Exit(res)
+						}
+					}
+				}
 			}
 		},
 	}
@@ -87,6 +103,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags := cmd.Flags()
 	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
+	pflags.BoolP("bootstrap-commands", "b", false, "Execute bootstrap commands")
 
 	return cmd
 }
