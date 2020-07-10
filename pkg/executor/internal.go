@@ -334,7 +334,7 @@ func (e *LxdCExecutor) AddAlias2Image(fingerprint string, alias lxd_api.ImageAli
 	return server.CreateImageAlias(aliasPost)
 }
 
-func (e *LxdCExecutor) PullImage(imageAlias string) (string, error) {
+func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, error) {
 	var err error
 	var imageFingerprint, remote_name string
 	var remote lxd.ImageServer
@@ -342,7 +342,7 @@ func (e *LxdCExecutor) PullImage(imageAlias string) (string, error) {
 	fmt.Println("Searching image: " + imageAlias)
 
 	// Find image hashing id
-	imageFingerprint, remote, remote_name, err = e.FindImage(imageAlias)
+	imageFingerprint, remote, remote_name, err = e.FindImage(imageAlias, imageRemoteServer)
 	if err != nil {
 		return "", err
 	}
@@ -399,7 +399,7 @@ func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
 	return nil
 }
 
-func (l *LxdCExecutor) FindImage(image string) (string, lxd.ImageServer, string, error) {
+func (l *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.ImageServer, string, error) {
 	var err error
 	var tmp_srv, srv lxd.ImageServer
 	var img, tmp_img *lxd_api.Image
@@ -407,6 +407,11 @@ func (l *LxdCExecutor) FindImage(image string) (string, lxd.ImageServer, string,
 	var srv_name string = ""
 
 	for remote, server := range l.LxdConfig.Remotes {
+
+		if imageRemoteServer != "" && remote != imageRemoteServer {
+			continue
+		}
+
 		tmp_srv, err = l.LxdConfig.GetImageServer(remote)
 		if err != nil {
 			err = nil
