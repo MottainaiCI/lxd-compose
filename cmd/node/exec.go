@@ -75,7 +75,10 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 			envs := proj.GetEnvsMap()
-			envs["HOME"] = "/"
+			if _, ok := envs["HOME"]; !ok {
+				envs["HOME"] = "/"
+			}
+
 			res, err := executor.RunCommand(node, strings.Join(commands, " "), envs)
 
 			os.Exit(res)
