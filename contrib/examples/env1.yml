@@ -63,7 +63,7 @@ projects:
 
         nodes:
           - name: node1
-            image_source: "image1"
+            image_source: "alpine/3.12"
             # By deafult it use remote images"
             image_remote_server: "images"
 
@@ -74,11 +74,11 @@ projects:
             # Specify directory where build path of templates.
             # Directory could be an absolute path or a relative path based
             # on env base dir.
-            source_dir: "."
+            # source_dir: "."
 
-            # entrypoint:
-            #  - "/bin/bash"
-            #  - "-c"
+            entrypoint:
+              - "/bin/sh"
+              - "-c"
 
             # List of commands executed just after the creation of the
             # container.
@@ -92,11 +92,13 @@ projects:
                 dst: files/myconf.conf.yaml
 
             sync_resources:
+              # source: File or directory to push
+              # dst: File or directory target. For directory is needed "/" at the end
               - source: files/myconf.conf.yaml
                 dst: /etc/myapp/myconf.conf.yaml
-            #  - source: mylocal_repo
-            #    dst: /root/
-            #    push_opts: "-r"
+
+              - source: files/
+                dst: /etc/myapp2/
 
             sync_post_commands:
               - systemctl start myapp

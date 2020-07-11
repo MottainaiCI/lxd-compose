@@ -23,6 +23,7 @@ package specs
 
 import (
 	"encoding/json"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -96,7 +97,6 @@ type LxdCConfigTemplate struct {
 type LxdCSyncResource struct {
 	Source      string `json:"source" yaml:"source"`
 	Destination string `json:"dst" yaml:"dst"`
-	Recursive   bool   `json:"recursive,omitempty" yaml:"recursive,omitempty"`
 }
 
 func GroupFromYaml(data []byte) (*LxdCGroup, error) {
@@ -170,4 +170,11 @@ func (p *LxdCProject) GetEnvsMap() map[string]string {
 	}
 
 	return ans
+}
+
+func (n *LxdCNode) IsSourcePathRelative() bool {
+	if filepath.IsAbs(n.SourceDir) {
+		return true
+	}
+	return false
 }
