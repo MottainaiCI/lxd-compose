@@ -101,6 +101,6 @@ projects:
                 dst: /etc/myapp2/
 
             sync_post_commands:
-              - systemctl start myapp
+              - echo "Start app"
 
 
