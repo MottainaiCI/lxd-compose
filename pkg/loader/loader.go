@@ -92,6 +92,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 	dupProjs := 0
 	dupNodes := 0
 	dupGroups := 0
+	wrongHooks := 0
 
 	// Check for duplicated project name
 	for _, env := range i.Environments {
@@ -111,8 +112,26 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 				mproj[proj.Name] = 1
 			}
 
-			// Check groups
+			// Check project's hooks events
+			for _, h := range proj.Hooks {
+				if h.Event == "pre-project" || h.Event == "post-project" ||
+					h.Event == "pre-group" || h.Event == "post-group" {
+					if h.Node != "*" && h.Node != "" && h.Node != "host" {
+						fmt.Println("On project " + proj.Name + " is present an hook " +
+							"for node " + h.Node + ". Values admitted are: *|host|empty/null")
 
+						wrongHooks++
+
+						if !ignoreError {
+							return errors.New("Invalid hook for node " + h.Node +
+								" on project " + proj.Name)
+						}
+					}
+
+				}
+			}
+
+			// Check groups
 			for _, grp := range proj.Groups {
 
 				if _, isPresent := mgroups[grp.Name]; isPresent {
@@ -128,6 +147,29 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 					mgroups[grp.Name] = 1
 				}
 
+				// Check group's hooks events
+				if len(grp.Hooks) > 0 {
+					for _, h := range grp.Hooks {
+						if h.Event != "pre-node-creation" &&
+							h.Event != "post-node-creation" &&
+							h.Event != "pre-node-sync" &&
+							h.Event != "post-node-sync" &&
+							h.Event != "pre-group" &&
+							h.Event != "post-group" {
+
+							wrongHooks++
+
+							fmt.Println("Found invalid hook of type " + h.Event +
+								" on group " + grp.Name)
+
+							if !ignoreError {
+								return errors.New("Invalid hook " + h.Event + " on group " + grp.Name)
+							}
+						}
+
+					}
+				}
+
 				for _, node := range grp.Nodes {
 
 					if _, isPresent := mnodes[node.Name]; isPresent {
@@ -141,6 +183,34 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 
 					} else {
 						mnodes[node.Name] = 1
+					}
+
+					if len(node.Hooks) > 0 {
+						for _, h := range node.Hooks {
+							if h.Node != "" {
+								fmt.Println("Invalid hook on node " + node.Name + " with node field valorized.")
+								wrongHooks++
+								if !ignoreError {
+									return errors.New("Invalid hook on node " + node.Name)
+								}
+							}
+
+							if h.Event != "pre-node-creation" &&
+								h.Event != "post-node-creation" &&
+								h.Event != "pre-node-sync" &&
+								h.Event != "post-node-sync" {
+
+								wrongHooks++
+
+								fmt.Println("Found invalid hook of type " + h.Event +
+									" on node " + node.Name)
+
+								if !ignoreError {
+									return errors.New("Invalid hook " + h.Event + " on node " + node.Name)
+								}
+							}
+						}
+
 					}
 
 				}
