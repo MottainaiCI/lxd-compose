@@ -86,7 +86,6 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	}
 
 	pflags := cmd.Flags()
-	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 
 	return cmd

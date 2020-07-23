@@ -33,13 +33,14 @@ import (
 )
 
 func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
+
 	var cmd = &cobra.Command{
 		Use:   "create node1 node2",
 		Short: "Create one or more nodes.",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 
-			bootstrap, _ := cmd.Flags().GetBool("bootstrap-commands")
+			postCreationHooks, _ := cmd.Flags().GetBool("hooks")
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
 			endpoint, _ := cmd.Flags().GetString("endpoint")
 			// Create Instance
@@ -87,12 +88,27 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					envs["HOME"] = "/"
 				}
 
-				if bootstrap && len(nodeConf.BootstrapCommand) > 0 {
-					for _, cmds := range nodeConf.BootstrapCommand {
-						res, err := executor.RunCommand(n, cmds, envs)
-						if err != nil {
-							fmt.Println("Error " + err.Error())
-							os.Exit(res)
+				if postCreationHooks {
+					hooks := nodeConf.GetAllHooks("post-node-creation")
+					for _, h := range hooks {
+						if len(h.Commands) > 0 {
+							if h.For(n) {
+								for _, cmds := range h.Commands {
+									res, err := executor.RunCommand(n, cmds, envs)
+									if err != nil {
+										fmt.Println("Error " + err.Error())
+										os.Exit(res)
+									}
+								}
+							} else {
+								for _, cmds := range h.Commands {
+									res, err := executor.RunHostCommand(cmds, envs)
+									if err != nil {
+										fmt.Println("Error " + err.Error())
+										os.Exit(res)
+									}
+								}
+							}
 						}
 					}
 				}
@@ -101,9 +117,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	}
 
 	pflags := cmd.Flags()
-	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
-	pflags.BoolP("bootstrap-commands", "b", false, "Execute bootstrap commands")
+	pflags.BoolP("hooks", "b", false, "Execute post-node-creation hooks")
 
 	return cmd
 }

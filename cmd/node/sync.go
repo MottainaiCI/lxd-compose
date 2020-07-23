@@ -42,7 +42,7 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			syncSourceDir := ""
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
-			syncPostCmds, _ := cmd.Flags().GetBool("sync-post-commands")
+			syncPostCmds, _ := cmd.Flags().GetBool("hooks")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -113,11 +113,18 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					envs["HOME"] = "/"
 				}
 
-				for _, cmds := range nodeConf.SyncPostCommands {
-					res, err := executor.RunCommand(node, cmds, envs)
-					if err != nil {
-						fmt.Println("Error " + err.Error())
-						os.Exit(res)
+				hooks := nodeConf.GetHooks("post-node-sync")
+				if len(hooks) > 0 {
+					for _, h := range hooks {
+						if len(h.Commands) > 0 {
+							for _, cmds := range h.Commands {
+								res, err := executor.RunCommand(node, cmds, envs)
+								if err != nil {
+									fmt.Println("Error " + err.Error())
+									os.Exit(res)
+								}
+							}
+						}
 					}
 				}
 
@@ -127,9 +134,8 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	}
 
 	pflags := cmd.Flags()
-	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
-	pflags.Bool("sync-post-commands", false, "Execute sync post commands")
+	pflags.Bool("hooks", false, "Execute post-node-sync hooks.")
 
 	return cmd
 }
