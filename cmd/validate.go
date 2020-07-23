@@ -45,7 +45,7 @@ func newValidateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			err := composer.LoadEnvironments()
 			if err != nil {
-				fmt.Println("Error on load environments:", err.Error(), "\n")
+				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
 			}
 
