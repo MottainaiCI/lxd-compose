@@ -324,3 +324,7 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string) (i
 
 	return res, err
 }
+
+func (e *LxdCExecutor) GetContainerList() ([]string, error) {
+	return e.LxdClient.GetContainerNames()
+}
