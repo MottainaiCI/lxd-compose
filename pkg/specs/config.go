@@ -40,7 +40,8 @@ type LxdComposeConfig struct {
 }
 
 type LxdCGeneral struct {
-	Debug bool `mapstructure:"debug,omitempty" json:"debug,omitempty" yaml:"debug,omitempty"`
+	Debug      bool   `mapstructure:"debug,omitempty" json:"debug,omitempty" yaml:"debug,omitempty"`
+	LxdConfDir string `mapstructure:"lxd_confdir,omitempty" yaml:"lxd_confdir,omitempty"`
 }
 
 func NewLxdComposeConfig(viper *v.Viper) *LxdComposeConfig {
@@ -81,6 +82,7 @@ func (c *LxdComposeConfig) Yaml() ([]byte, error) {
 
 func GenDefault(viper *v.Viper) {
 	viper.SetDefault("general.debug", false)
+	viper.SetDefault("general.lxd_confdir", "")
 	viper.SetDefault("env_dirs", []string{"./lxd-compose/envs"})
 }
 

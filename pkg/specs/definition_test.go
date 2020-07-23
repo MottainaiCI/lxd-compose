@@ -92,6 +92,12 @@ common_profiles:
 
 ephemeral: false
 
+hooks:
+  - event: pre-node-creation
+    commands:
+     - echo 1
+     - echo 2
+
 nodes:
 - name: "node1"
   image_source: "sabayon"
@@ -113,10 +119,20 @@ nodes:
 						ImageSource: "sabayon",
 					},
 				},
+				Hooks: []LxdCHook{
+					LxdCHook{
+						Event: "pre-node-creation",
+						Commands: []string{
+							"echo 1",
+							"echo 2",
+						},
+					},
+				},
 			}
 
 			Expect(err).Should(BeNil())
 			Expect(grp).To(Equal(expected_grp))
+			Expect(len(grp.Hooks)).To(Equal(1))
 		})
 
 	})

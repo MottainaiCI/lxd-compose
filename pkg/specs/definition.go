@@ -22,9 +22,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package specs
 
 import (
-	"encoding/json"
-	"path/filepath"
-
 	"gopkg.in/yaml.v2"
 )
 
@@ -36,6 +33,14 @@ type LxdCEnvironment struct {
 	TemplateEngine LxdCTemplateEngine `json:"template_engine,omitempty" yaml:"template_engine,omitempty"`
 
 	Projects []LxdCProject `json:"projects" yaml:"projects"`
+}
+
+type LxdCHook struct {
+	Event    string   `json:"event" yaml:"event"`
+	Node     string   `json:"node" yaml:"node"`
+	Commands []string `json:"commands,omitempty" yaml:"commands,omitempty"`
+	Out2Var  string   `json:"out2var,omitempty" yaml:"out2var,omitempty"`
+	Err2Var  string   `json:"err2var,omitempty" yaml:"err2var,omitempty"`
 }
 
 type LxdCTemplateEngine struct {
@@ -53,6 +58,9 @@ type LxdCProject struct {
 	Environments []LxdCEnvVars `json:"vars,omitempty" yaml:"vars,omitempty"`
 
 	Groups []LxdCGroup `json:"groups" yaml:"groups"`
+
+	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
+	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
 type LxdCGroup struct {
@@ -63,9 +71,10 @@ type LxdCGroup struct {
 	CommonProfiles []string `json:"common_profiles,omitempty" yaml:"common_profiles,omitempty"`
 	Ephemeral      bool     `json:"ephemeral,omitempty" yaml:"ephemeral,omitempty"`
 
-	ImageFetchOptions []string `json:"image_fetch_opts,omitempty" yaml:"image_fetch_opts,omitempty"`
-
 	Nodes []LxdCNode `json:"nodes" yaml:"nodes"`
+
+	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
+	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
 type LxdCEnvVars struct {
@@ -81,12 +90,12 @@ type LxdCNode struct {
 
 	SourceDir string `json:"source_dir,omitempty" yaml:"source_dir,omitempty"`
 
-	Entrypoint       []string `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
-	BootstrapCommand []string `json:"bootstrap_commands,omitempty" yaml:"bootstrap_commands,omitempty"`
-	SyncPostCommands []string `json:"sync_post_commands,omitempty" yaml:"sync_post_commands,omitempty"`
+	Entrypoint []string `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
 
 	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 	SyncResources   []LxdCSyncResource   `json:"sync_resources,omitempty" yaml:"sync_resources,omitempty"`
+
+	Hooks []LxdCHook `json:"hooks" yaml:"hooks"`
 }
 
 type LxdCConfigTemplate struct {
@@ -99,82 +108,10 @@ type LxdCSyncResource struct {
 	Destination string `json:"dst" yaml:"dst"`
 }
 
-func GroupFromYaml(data []byte) (*LxdCGroup, error) {
-	ans := &LxdCGroup{}
-	if err := yaml.Unmarshal(data, ans); err != nil {
-		return nil, err
-	}
-	return ans, nil
-}
-
 func EnvVarsFromYaml(data []byte) (*LxdCEnvVars, error) {
 	ans := &LxdCEnvVars{}
 	if err := yaml.Unmarshal(data, ans); err != nil {
 		return nil, err
 	}
 	return ans, nil
-}
-
-func EnvironmentFromYaml(data []byte, file string) (*LxdCEnvironment, error) {
-	ans := &LxdCEnvironment{}
-	if err := yaml.Unmarshal(data, ans); err != nil {
-		return nil, err
-	}
-	ans.File = file
-	return ans, nil
-}
-
-func (e *LxdCEnvironment) GetProjectByName(pName string) *LxdCProject {
-	for _, p := range e.Projects {
-		if p.Name == pName {
-			return &p
-		}
-	}
-
-	return nil
-}
-
-func (e *LxdCEnvironment) GetProjects() *[]LxdCProject {
-	return &e.Projects
-}
-
-func (p *LxdCProject) AddGroup(grp *LxdCGroup) {
-	p.Groups = append(p.Groups, *grp)
-}
-
-func (p *LxdCProject) AddEnvironment(e *LxdCEnvVars) {
-	p.Environments = append(p.Environments, *e)
-}
-
-func (p *LxdCProject) GetName() string {
-	return p.Name
-}
-
-func (p *LxdCProject) GetEnvsMap() map[string]string {
-	ans := map[string]string{}
-
-	for _, e := range p.Environments {
-		for k, v := range e.EnvVars {
-			switch v.(type) {
-			case int:
-				ans[k] = string(v.(int))
-			case string:
-				ans[k] = v.(string)
-			default:
-				data, err := json.Marshal(v)
-				if err == nil {
-					ans[k] = string(data)
-				}
-			}
-		}
-	}
-
-	return ans
-}
-
-func (n *LxdCNode) IsSourcePathRelative() bool {
-	if filepath.IsAbs(n.SourceDir) {
-		return true
-	}
-	return false
 }
