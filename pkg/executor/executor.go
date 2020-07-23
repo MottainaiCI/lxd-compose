@@ -25,15 +25,22 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/user"
 	"path"
 	"strings"
 
+	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
+
+	"golang.org/x/sys/unix"
+
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
 	lxd_api "github.com/lxc/lxd/shared/api"
+	"github.com/lxc/lxd/shared/termios"
 )
 
 type LxdCExecutor struct {
@@ -150,6 +157,10 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, pr
 
 	// Pull image
 	imageFingerprint, err := e.PullImage(fingerprint, imageServer)
+	if err != nil {
+		fmt.Println("Error on pull image " + fingerprint + " from remote " + imageServer)
+		return err
+	}
 
 	fmt.Println(">> Creating container " + name + "...")
 	err = e.LaunchContainer(name, imageFingerprint, profiles)
@@ -165,11 +176,21 @@ func (e *LxdCExecutor) DeleteContainer(name string) error {
 	return e.CleanUpContainer(name)
 }
 
-func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string]string) (int, error) {
+func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser) (int, error) {
 	entrypoint := []string{"/bin/bash", "-c"}
 	if len(e.Entrypoint) > 0 {
 		entrypoint = e.Entrypoint
 	}
+
+	if outBuffer == nil {
+		return 1, errors.New("Invalid outBuffer")
+	}
+	if errBuffer == nil {
+		return 1, errors.New("Invalid errBuffer")
+	}
+
+	// I'm only in Linux/Unix system.
+	width, height, err := termios.GetSize(unix.Stdout)
 
 	cmdList := append(entrypoint, command)
 	// Prepare the command
@@ -178,13 +199,15 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 		WaitForWS:   true,
 		Interactive: false,
 		Environment: envs,
+		Width:       width,
+		Height:      height,
 	}
 
 	execArgs := lxd.ContainerExecArgs{
 		// Disable stdin
 		Stdin:   ioutil.NopCloser(bytes.NewReader(nil)),
-		Stdout:  os.Stdout,
-		Stderr:  os.Stderr,
+		Stdout:  outBuffer,
+		Stderr:  errBuffer,
 		Control: nil,
 		//Control:  handler,
 		DataDone: make(chan bool),
@@ -226,4 +249,78 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 	}
 
 	return ans, nil
+}
+
+func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string]string) (int, error) {
+	var outBuffer, errBuffer bytes.Buffer
+
+	res, err := e.RunCommandWithOutput(containerName, command, envs,
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+
+	if err == nil {
+		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+	}
+
+	return res, err
+}
+
+func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser) (int, error) {
+	ans := 1
+
+	// TODO: check if it's needed use entrypoint.
+
+	if outBuffer == nil {
+		return 1, errors.New("Invalid outBuffer")
+	}
+	if errBuffer == nil {
+		return 1, errors.New("Invalid errBuffer")
+	}
+
+	cmds := strings.Split(command, " ")
+
+	hostCommand := exec.Command(cmds[0], cmds[1:]...)
+
+	fmt.Println(fmt.Sprintf("========> Host Commands: %s", command))
+
+	// Convert envs to array list
+	elist := os.Environ()
+	for k, v := range envs {
+		elist = append(elist, k+"="+v)
+	}
+
+	hostCommand.Stdout = outBuffer
+	hostCommand.Stderr = errBuffer
+	hostCommand.Env = elist
+
+	err := hostCommand.Start()
+	if err != nil {
+		fmt.Println("Error on start command: " + err.Error())
+		return 1, err
+	}
+
+	err = hostCommand.Wait()
+	if err != nil {
+		fmt.Println("Error on waiting command: " + err.Error())
+		return 1, err
+	}
+
+	ans = hostCommand.ProcessState.ExitCode()
+	fmt.Println(fmt.Sprintf("========> Execution Exit with value (%d)", ans))
+
+	return ans, nil
+}
+
+func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string) (int, error) {
+	var outBuffer, errBuffer bytes.Buffer
+
+	res, err := e.RunHostCommandWithOutput(command, envs,
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+
+	if err == nil {
+		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+	}
+
+	return res, err
 }
