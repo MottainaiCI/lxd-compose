@@ -23,13 +23,12 @@ package executor
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	lxd "github.com/lxc/lxd/client"
 	lxd_utils "github.com/lxc/lxd/lxc/utils"
 	lxd_api "github.com/lxc/lxd/shared/api"
-	//"github.com/lxc/lxd/shared/ioprogress"
-	//lxd_units "github.com/lxc/lxd/shared/units"
 )
 
 func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []string) error {
@@ -148,22 +147,6 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 		fmt.Sprintf("Container %s is already stopped!", name)
 		return nil
 	}
-
-	/*
-		if l.Config.GetGeneral().Debug {
-			// Permit logging with details about profiles and container
-			// configurations only in debug mode.
-			l.Report(fmt.Sprintf(
-				"Trying to execute action %s to container %s: %v",
-				action, name, container,
-			))
-		} else {
-			l.Report(fmt.Sprintf(
-				"Executing action %s to container %s...",
-				action, name,
-			))
-		}
-	*/
 
 	req := lxd_api.ContainerStatePut{
 		Action:   action,
@@ -338,13 +321,20 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 	var err error
 	var imageFingerprint, remote_name string
 	var remote lxd.ImageServer
+	var noRemoteImageFound = false
 
 	fmt.Println("Searching image: " + imageAlias)
 
 	// Find image hashing id
 	imageFingerprint, remote, remote_name, err = e.FindImage(imageAlias, imageRemoteServer)
 	if err != nil {
-		return "", err
+		noRemoteImageFound = true
+		if strings.Contains(imageAlias, "/") {
+			// Is not a fingerprint alias. I can't ensure right image.
+			return "", err
+		}
+		// POST: Try to se if there a local image with the fingerprint
+		imageFingerprint = imageAlias
 	}
 
 	if imageFingerprint == imageAlias {
@@ -356,6 +346,11 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 	// Check if image is already present locally else we receive an error.
 	image, _, _ := e.LxdClient.GetImage(imageFingerprint)
 	if image == nil {
+		if noRemoteImageFound {
+			// No local image found. I return error.
+			return "", err
+		}
+
 		// NOTE: In concurrency could be happens that different image that
 		//       share same aliases generate reset of aliases but
 		//       if I work with fingerprint after FindImage I can ignore
@@ -372,6 +367,7 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 		err = e.DownloadImage(imageFingerprint, remote)
 	} else {
 		fmt.Println("Image " + imageFingerprint + " already present.")
+		err = nil
 	}
 
 	return imageFingerprint, err
