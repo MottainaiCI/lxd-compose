@@ -153,7 +153,16 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, pr
 		return errors.New("Invalid container name")
 	}
 
-	// Check if container is already present. TODO
+	// Check if container is already present.
+	isPresent, err := e.IsPresentContainer(name)
+	if err != nil {
+		return err
+	}
+
+	if isPresent {
+		fmt.Println(">> Container " + name + " already present. Nothing to do.")
+		return nil
+	}
 
 	// Pull image
 	imageFingerprint, err := e.PullImage(fingerprint, imageServer)
@@ -327,4 +336,22 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string) (i
 
 func (e *LxdCExecutor) GetContainerList() ([]string, error) {
 	return e.LxdClient.GetContainerNames()
+}
+
+func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
+	ans := false
+	list, err := e.GetContainerList()
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, c := range list {
+		if c == containerName {
+			ans = true
+			break
+		}
+	}
+
+	return ans, nil
 }
