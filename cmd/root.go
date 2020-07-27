@@ -65,10 +65,14 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	var pflags = rootCmd.PersistentFlags()
 
 	pflags.StringP("config", "c", "", "LXD Compose configuration file")
+	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
+	config.Viper.BindPFlag("general.lxd_confdir", pflags.Lookup("lxd-config-dir"))
 
 	rootCmd.AddCommand(
+		newApplyCommand(config),
+		newDestroyCommand(config),
 		newPrintCommand(config),
 		newValidateCommand(config),
 		newCompileCommand(config),
