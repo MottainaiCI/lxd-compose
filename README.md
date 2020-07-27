@@ -1,4 +1,4 @@
-# LXD Console
+# LXD Compose
 
 **lxd-compose** supply a way to deploy a complex environment to an LXD Cluster or LXD standalone installation.
 
