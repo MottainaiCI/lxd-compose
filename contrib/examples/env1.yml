@@ -37,6 +37,29 @@ projects:
     #  - envs/file1.yml
     #  - envs/file2.yml
 
+    # hooks:
+      # event values are
+      # - pre-group
+      # - post-group
+      # - pre-node-creation
+      # - post-node-creation
+      # - pre-node-sync
+      # - post-node-sync
+      # - pre-project
+      # - post-project
+      #
+      #- event: pre-group
+      #  node: "xx"
+      #
+      # node field contains name of the node
+      # where execute the hook else all nodes of all groups if
+      # not set.
+      # Special value "host" means execute command locally.
+      #
+      #  commands:
+      #    - echo "1"
+
+
     # A fast way to define environments for template
     vars:
       - envs:
@@ -54,16 +77,28 @@ projects:
         # for create the containers
         common_profiles:
           - default
+          - net-mottainai0
 
         # Create the environment container as ephemeral or not.
         ephemeral: true
 
-        # Image fetch options
-        #image_fetch_opts: "--copy-aliases --auto-update"
+        # hooks:
+        #   ....
+        # event values are
+        # - pre-group
+        # - post-group
+        # - pre-node-creation
+        # - post-node-creation
+        # - pre-node-sync
+        # - post-node-sync
+        #
+        # config_templates:
+        #   ....
 
         nodes:
           - name: node1
             image_source: "alpine/3.12"
+            #image_source: "20d2712090d1"
             # By deafult it use remote images"
             image_remote_server: "images"
 
@@ -82,8 +117,18 @@ projects:
 
             # List of commands executed just after the creation of the
             # container.
-            bootstrap_commands:
-              - echo "1"
+            hooks:
+
+              - event: post-node-creation
+                node: "host"
+                commands:
+                  - echo "Run host command"
+              - event: post-node-creation
+                commands:
+                  - echo "1"
+              - event: post-node-sync
+                commands:
+                  - echo "Start app"
 
             # List of templates files to compiles before push the
             # result inside container.
@@ -99,8 +144,5 @@ projects:
 
               - source: files/
                 dst: /etc/myapp2/
-
-            sync_post_commands:
-              - echo "Start app"
 
 
