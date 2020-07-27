@@ -19,6 +19,18 @@ template_engine:
 # Override LXD_CONF_DIR. Default use $HOME/.config/lxc/
 # lxd_config_dir: ""
 
+# Define the list of LXD Profiles used by all projects.
+# This profiles are not mandatory. An user could create and
+# handle his profiles without define the list here.
+#profiles:
+#  - name: "profile1"
+#    description: "xxx"
+    # config and devices are field like describe here: https://godoc.org/github.com/lxc/lxd/shared/api#ProfilePut
+#    config:
+      # map[string]string 
+#    devices:
+      # map[string]map[string]string
+
 projects:
 
   - name: "lxd-compose-example1"
