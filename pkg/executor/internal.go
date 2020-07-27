@@ -373,28 +373,6 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 	return imageFingerprint, err
 }
 
-func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
-	var err error
-
-	err = e.DoAction2Container(containerName, "stop")
-	if err != nil {
-		fmt.Println("Error on stop container: " + err.Error())
-		return err
-	}
-
-	if !e.Ephemeral {
-		// Delete container
-		currOper, err := e.LxdClient.DeleteContainer(containerName)
-		if err != nil {
-			fmt.Println("Error on delete container: " + err.Error())
-			return err
-		}
-		_ = e.waitOperation(currOper, nil)
-	}
-
-	return nil
-}
-
 func (l *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.ImageServer, string, error) {
 	var err error
 	var tmp_srv, srv lxd.ImageServer

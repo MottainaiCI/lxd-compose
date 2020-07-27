@@ -274,6 +274,28 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 	return res, err
 }
 
+func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar, errVar string, envs *map[string]string) (int, error) {
+	var outBuffer, errBuffer bytes.Buffer
+
+	res, err := e.RunCommandWithOutput(containerName, command, *envs,
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+
+	if err == nil {
+
+		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+
+		if outVar != "" {
+			(*envs)[outVar] = outBuffer.String()
+		}
+		if errVar != "" {
+			(*envs)[errVar] = errBuffer.String()
+		}
+	}
+
+	return res, err
+}
+
 func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser) (int, error) {
 	ans := 1
 
@@ -334,6 +356,28 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string) (i
 	return res, err
 }
 
+func (e *LxdCExecutor) RunHostCommandWithOutput4Var(command, outVar, errVar string, envs *map[string]string) (int, error) {
+	var outBuffer, errBuffer bytes.Buffer
+
+	res, err := e.RunHostCommandWithOutput(command, *envs,
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+
+	if err == nil {
+
+		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+
+		if outVar != "" {
+			(*envs)[outVar] = outBuffer.String()
+		}
+		if errVar != "" {
+			(*envs)[errVar] = errBuffer.String()
+		}
+	}
+
+	return res, err
+}
+
 func (e *LxdCExecutor) GetContainerList() ([]string, error) {
 	return e.LxdClient.GetContainerNames()
 }
@@ -354,4 +398,26 @@ func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
 	}
 
 	return ans, nil
+}
+
+func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
+	var err error
+
+	err = e.DoAction2Container(containerName, "stop")
+	if err != nil {
+		fmt.Println("Error on stop container: " + err.Error())
+		return err
+	}
+
+	if !e.Ephemeral {
+		// Delete container
+		currOper, err := e.LxdClient.DeleteContainer(containerName)
+		if err != nil {
+			fmt.Println("Error on delete container: " + err.Error())
+			return err
+		}
+		_ = e.waitOperation(currOper, nil)
+	}
+
+	return nil
 }
