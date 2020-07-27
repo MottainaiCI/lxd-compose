@@ -114,21 +114,19 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 
 			// Check project's hooks events
 			for _, h := range proj.Hooks {
-				if h.Event == "pre-project" || h.Event == "post-project" ||
-					h.Event == "pre-group" || h.Event == "post-group" {
-					if h.Node != "*" && h.Node != "" && h.Node != "host" {
-						fmt.Println("On project " + proj.Name + " is present an hook " +
-							"for node " + h.Node + ". Values admitted are: *|host|empty/null")
+				if (h.Event == "pre-project" || h.Event == "pre-group") && h.Node != "host" {
+					fmt.Println("On project " + proj.Name + " is present an hook " +
+						h.Event + " for node " + h.Node + ". Only node host is admitted.")
 
-						wrongHooks++
+					wrongHooks++
 
-						if !ignoreError {
-							return errors.New("Invalid hook for node " + h.Node +
-								" on project " + proj.Name)
-						}
+					if !ignoreError {
+						return errors.New("Invalid hook for node " + h.Node +
+							" on project " + proj.Name)
 					}
 
 				}
+
 			}
 
 			// Check groups

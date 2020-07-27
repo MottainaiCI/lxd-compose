@@ -21,7 +21,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package specs
 
-import ()
+import (
+	"github.com/jinzhu/copier"
+)
 
 func getHooks(hooks *[]LxdCHook, event string) []LxdCHook {
 	return getHooks4Nodes(hooks, event, "")
@@ -54,4 +56,30 @@ func (h *LxdCHook) For(node string) bool {
 		return true
 	}
 	return false
+}
+
+func (h *LxdCHook) Clone() *LxdCHook {
+	ans := LxdCHook{}
+	copier.Copy(&ans, h)
+	return &ans
+}
+
+func (h *LxdCHook) SetNode(node string) {
+	h.Node = node
+}
+
+func FilterHooks4Node(hooks *[]LxdCHook, node string) []LxdCHook {
+	ans := []LxdCHook{}
+
+	if hooks != nil {
+		for _, h := range *hooks {
+			if h.For(node) {
+				nh := h.Clone()
+				nh.SetNode(node)
+				ans = append(ans, *nh)
+			}
+		}
+	}
+
+	return ans
 }
