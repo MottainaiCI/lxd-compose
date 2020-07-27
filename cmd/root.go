@@ -41,6 +41,14 @@ Mottainai - LXD Compose Integrator`
 	LXD_COMPOSE_VERSION = `0.1.0`
 )
 
+// Build time and commit information. This code is get from: https://github.com/mudler/luet/
+//
+// ⚠️ WARNING: should only be set by "-ldflags".
+var (
+	BuildTime   string
+	BuildCommit string
+)
+
 func initConfig(config *specs.LxdComposeConfig) {
 	// Set env variable
 	config.Viper.SetEnvPrefix(specs.LXD_COMPOSE_ENV_PREFIX)
@@ -88,7 +96,7 @@ func Execute() {
 
 	var rootCmd = &cobra.Command{
 		Short:        cliName,
-		Version:      LXD_COMPOSE_VERSION,
+		Version:      fmt.Sprintf("%s-g%s %s", LXD_COMPOSE_VERSION, BuildCommit, BuildTime),
 		Args:         cobra.OnlyValidArgs,
 		SilenceUsage: true,
 		PreRun: func(cmd *cobra.Command, args []string) {
