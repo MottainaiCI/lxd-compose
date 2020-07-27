@@ -249,8 +249,12 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 			fmt.Println("Creating node " + node.Name + "...")
 
+			profiles := []string{}
+			profiles = append(profiles, group.CommonProfiles...)
+			profiles = append(profiles, node.Profiles...)
+
 			err := executor.CreateContainer(node.Name, node.ImageSource,
-				node.ImageRemoteServer, group.CommonProfiles)
+				node.ImageRemoteServer, profiles)
 			if err != nil {
 				fmt.Println("Error on create container " + node.Name + ":" + err.Error())
 				return err

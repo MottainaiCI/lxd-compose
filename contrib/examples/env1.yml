@@ -115,6 +115,11 @@ projects:
               - "/bin/sh"
               - "-c"
 
+            # Define the list of LXD Profile to use in additional
+            # to group profiles for create the containers
+            # profiles:
+            #  - mynode-profile
+
             # List of commands executed just after the creation of the
             # container.
             hooks:
