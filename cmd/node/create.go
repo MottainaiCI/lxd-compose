@@ -89,27 +89,11 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				}
 
 				if postCreationHooks {
-					hooks := nodeConf.GetAllHooks("post-node-creation")
-					for _, h := range hooks {
-						if len(h.Commands) > 0 {
-							if h.For(n) {
-								for _, cmds := range h.Commands {
-									res, err := executor.RunCommand(n, cmds, envs)
-									if err != nil {
-										fmt.Println("Error " + err.Error())
-										os.Exit(res)
-									}
-								}
-							} else {
-								for _, cmds := range h.Commands {
-									res, err := executor.RunHostCommand(cmds, envs)
-									if err != nil {
-										fmt.Println("Error " + err.Error())
-										os.Exit(res)
-									}
-								}
-							}
-						}
+					hooks := composer.GetNodeHooks4Event("post-node-creation", proj, grp, nodeConf)
+					err := composer.ProcessHooks(&hooks, executor, proj, grp)
+					if err != nil {
+						fmt.Println("Error " + err.Error())
+						os.Exit(1)
 					}
 				}
 			}
@@ -118,7 +102,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
-	pflags.BoolP("hooks", "b", false, "Execute post-node-creation hooks")
+	pflags.Bool("hooks", false, "Execute post-node-creation hooks")
 
 	return cmd
 }
