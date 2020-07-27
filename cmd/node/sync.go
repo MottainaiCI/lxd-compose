@@ -72,10 +72,6 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println("Error on setup executor:" + err.Error() + "\n")
 				os.Exit(1)
 			}
-			envs := proj.GetEnvsMap()
-			if _, ok := envs["HOME"]; !ok {
-				envs["HOME"] = "/"
-			}
 
 			if len(nodeConf.SyncResources) == 0 {
 				fmt.Println("No resources to sync available.")
@@ -108,24 +104,11 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			if syncPostCmds {
-				envs := proj.GetEnvsMap()
-				if _, ok := envs["HOME"]; !ok {
-					envs["HOME"] = "/"
-				}
-
-				hooks := nodeConf.GetHooks("post-node-sync")
-				if len(hooks) > 0 {
-					for _, h := range hooks {
-						if len(h.Commands) > 0 {
-							for _, cmds := range h.Commands {
-								res, err := executor.RunCommand(node, cmds, envs)
-								if err != nil {
-									fmt.Println("Error " + err.Error())
-									os.Exit(res)
-								}
-							}
-						}
-					}
+				hooks := composer.GetNodeHooks4Event("post-node-sync", proj, grp, nodeConf)
+				err := composer.ProcessHooks(&hooks, executor, proj, grp)
+				if err != nil {
+					fmt.Println("Error " + err.Error())
+					os.Exit(1)
 				}
 
 			}
