@@ -85,6 +85,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newValidateCommand(config),
 		newCompileCommand(config),
 		newNodeCommand(config),
+		newProfileCommand(config),
 	)
 }
 
