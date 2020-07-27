@@ -30,7 +30,7 @@ import (
 
 func newNodeCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "node [command [OPTIONS]",
+		Use:   "node [command] [OPTIONS]",
 		Short: "Execute specific node operations.",
 		Args:  cobra.NoArgs,
 	}
