@@ -22,6 +22,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package specs
 
 import (
+	"errors"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -51,4 +53,20 @@ func (e *LxdCEnvironment) GetProjectByName(pName string) *LxdCProject {
 
 func (e *LxdCEnvironment) GetProjects() *[]LxdCProject {
 	return &e.Projects
+}
+
+func (e *LxdCEnvironment) GetProfiles() *[]LxdCProfile {
+	return &e.Profiles
+}
+
+func (e *LxdCEnvironment) GetProfile(name string) (LxdCProfile, error) {
+	ans := LxdCProfile{}
+
+	for _, prof := range e.Profiles {
+		if prof.Name == name {
+			return prof, nil
+		}
+	}
+
+	return ans, errors.New("Profile " + name + " not available.")
 }

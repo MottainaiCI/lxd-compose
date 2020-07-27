@@ -33,6 +33,15 @@ type LxdCEnvironment struct {
 	TemplateEngine LxdCTemplateEngine `json:"template_engine,omitempty" yaml:"template_engine,omitempty"`
 
 	Projects []LxdCProject `json:"projects" yaml:"projects"`
+
+	Profiles []LxdCProfile `json:"profiles,omitempty" yaml:"profiles,omitempty"`
+}
+
+type LxdCProfile struct {
+	Name        string                       `json:"name" yaml:"name"`
+	Description string                       `json:"description" yaml:"description"`
+	Config      map[string]string            `json:"config" yaml:"config"`
+	Devices     map[string]map[string]string `json:"devices" yaml:"devices"`
 }
 
 type LxdCHook struct {
