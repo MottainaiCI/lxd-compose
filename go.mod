@@ -10,15 +10,17 @@ require (
 	github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915 // indirect
 	github.com/gosexy/gettext v0.0.0-20160830220431-74466a0a0c4a // indirect
 	github.com/jaypipes/ghw v0.6.1 // indirect
+	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/juju/go4 v0.0.0-20160222163258-40d72ab9641a // indirect
 	github.com/juju/persistent-cookiejar v0.0.0-20171026135701-d5e5a8405ef9 // indirect
 	github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40
-	github.com/mudler/luet v0.0.0-20200627110200-764a09ce0c7c
+	github.com/mudler/luet v0.0.0-20200717204249-ffa6fc3829d2
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
-	github.com/onsi/ginkgo v1.13.0
+	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
+	golang.org/x/sys v0.0.0-20200727154430-2d971f7391a4
 	gopkg.in/clog.v1 v1.2.0 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.2.0 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
