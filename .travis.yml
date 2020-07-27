@@ -1,0 +1,18 @@
+language: go
+services:
+  - docker
+go:
+  - "1.14"
+env:
+  - "GO15VENDOREXPERIMENT=1"
+before_install:
+  - make deps
+script:
+  - make multiarch-build test-integration test-coverage
+after_success:
+  - |
+      if [ -n "$TRAVIS_TAG" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+        git config --global user.name "Deployer" && git config --global user.email foo@bar.com
+        go get github.com/tcnksm/ghr
+        ghr -u geaaru -r lxd-compose --replace $TRAVIS_TAG release/
+      fi
