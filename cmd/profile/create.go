@@ -126,10 +126,22 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 						}
 
 						for _, prof := range profiles {
-							err := executor.CreateProfile(prof)
+
+							isPresent, err := executor.IsPresentProfile(prof.Name)
 							if err != nil {
-								fmt.Println("Error on create profile " + prof.Name + ": " + err.Error())
+								fmt.Println("Error on check if profile " + prof.Name + " is already present: " +
+									err.Error())
 								os.Exit(1)
+							}
+
+							if !isPresent {
+								err := executor.CreateProfile(prof)
+								if err != nil {
+									fmt.Println("Error on create profile " + prof.Name + ": " + err.Error())
+									os.Exit(1)
+								}
+							} else {
+								fmt.Println("Profile " + prof.Name + " already present. Nothing to do.")
 							}
 						}
 
