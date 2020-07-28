@@ -104,6 +104,11 @@ func CompileGroupFiles(group *specs.LxdCGroup, compiler LxdCTemplateCompiler, op
 		targets = group.ConfigTemplates
 	}
 
+	envBaseAbs, err := filepath.Abs(compiler.GetEnvBaseDir())
+	if err != nil {
+		return err
+	}
+
 	// Set node key with current group
 	(*compiler.GetVars())["group"] = group
 
@@ -112,7 +117,7 @@ func CompileGroupFiles(group *specs.LxdCGroup, compiler LxdCTemplateCompiler, op
 		if filepath.IsAbs(s.Destination) {
 			destFile = s.Destination
 		} else {
-			destFile = compiler.GetEnvBaseDir()
+			destFile = filepath.Join(envBaseAbs, s.Destination)
 		}
 
 		err := compiler.Compile(sourceFile, destFile)
@@ -146,12 +151,17 @@ func CompileProjectFiles(proj *specs.LxdCProject, compiler LxdCTemplateCompiler,
 	// Set node key with current proj
 	(*compiler.GetVars())["project"] = proj
 
+	envBaseAbs, err := filepath.Abs(compiler.GetEnvBaseDir())
+	if err != nil {
+		return err
+	}
+
 	for _, s := range targets {
-		sourceFile = filepath.Join(compiler.GetEnvBaseDir(), s.Source)
+		sourceFile = filepath.Join(envBaseAbs, s.Source)
 		if filepath.IsAbs(s.Destination) {
 			destFile = s.Destination
 		} else {
-			destFile = compiler.GetEnvBaseDir()
+			destFile = filepath.Join(envBaseAbs, s.Destination)
 		}
 
 		err := compiler.Compile(sourceFile, destFile)
@@ -196,10 +206,18 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 		}
 	}
 
+	envBaseAbs, err := filepath.Abs(compiler.GetEnvBaseDir())
+	if err != nil {
+		return err
+	}
+
 	if filepath.IsAbs(node.SourceDir) {
-		baseDir = node.SourceDir
+		baseDir, err = filepath.Abs(node.SourceDir)
+		if err != nil {
+			return err
+		}
 	} else {
-		baseDir = filepath.Join(compiler.GetEnvBaseDir(), node.SourceDir)
+		baseDir = filepath.Join(envBaseAbs, node.SourceDir)
 	}
 
 	for _, s := range targets {
