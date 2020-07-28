@@ -38,6 +38,12 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Use:   "sync [node]",
 		Short: "Sync node files.",
 		Args:  cobra.MaximumNArgs(1),
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				fmt.Println("Missing node name param")
+				os.Exit(1)
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 
 			syncSourceDir := ""
