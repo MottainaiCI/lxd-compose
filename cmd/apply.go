@@ -27,7 +27,6 @@ import (
 
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
-	template "github.com/MottainaiCI/lxd-compose/pkg/template"
 
 	"github.com/spf13/cobra"
 )
@@ -62,13 +61,6 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				env := composer.GetEnvByProjectName(proj)
 				if env == nil {
 					fmt.Println("Project " + proj + " not found")
-					os.Exit(1)
-				}
-
-				// Compile files
-				err := template.CompileProjectFiles(composer, proj, template.CompilerOpts{Sources: nil})
-				if err != nil {
-					fmt.Println("Error on compile project files: " + err.Error())
 					os.Exit(1)
 				}
 

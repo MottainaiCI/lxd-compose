@@ -56,17 +56,25 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			if len(projects) > 0 {
 				for _, proj := range projects {
-					err := template.CompileProjectFiles(composer, proj, opts)
+
+					env := composer.GetEnvByProjectName(proj)
+					if env == nil {
+						fmt.Println("Project " + proj + " not found")
+						os.Exit(1)
+					}
+
+					err := template.CompileAllProjectFiles(env, proj, opts)
 					if err != nil {
 						fmt.Println("Error on compile files of the project " +
 							proj + ":" + err.Error() + "\n")
 						os.Exit(1)
 					}
+
 				}
 			} else {
 				for _, env := range *composer.GetEnvironments() {
 					for _, proj := range *env.GetProjects() {
-						err := template.CompileAllProjectFiles(composer, proj.GetName(), opts)
+						err := template.CompileAllProjectFiles(&env, proj.GetName(), opts)
 						if err != nil {
 							fmt.Println("Error on compile files of the project " +
 								proj.GetName() + ":" + err.Error() + "\n")

@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 )
 
@@ -35,11 +34,8 @@ type CompilerOpts struct {
 	Sources []string
 }
 
-func CompileAllProjectFiles(instance *loader.LxdCInstance, pName string, opts CompilerOpts) error {
+func NewProjectTemplateCompiler(env *specs.LxdCEnvironment, proj *specs.LxdCProject) (LxdCTemplateCompiler, error) {
 	var compiler LxdCTemplateCompiler
-
-	env := instance.GetEnvByProjectName(pName)
-	proj := env.GetProjectByName(pName)
 
 	switch env.TemplateEngine.Engine {
 	case "jinja2":
@@ -47,15 +43,26 @@ func CompileAllProjectFiles(instance *loader.LxdCInstance, pName string, opts Co
 	case "mottainai":
 		compiler = NewMottainaiCompiler(proj)
 	default:
-		return errors.New("Invalid template engine " + env.TemplateEngine.Engine)
+		return compiler, errors.New("Invalid template engine " + env.TemplateEngine.Engine)
 	}
 
 	compiler.SetEnvBaseDir(filepath.Dir(env.File))
 	compiler.SetOpts(env.TemplateEngine.Opts)
 	compiler.InitVars()
 
+	return compiler, nil
+}
+
+func CompileAllProjectFiles(env *specs.LxdCEnvironment, pName string, opts CompilerOpts) error {
+
+	proj := env.GetProjectByName(pName)
+	compiler, err := NewProjectTemplateCompiler(env, proj)
+	if err != nil {
+		return err
+	}
+
 	// Compile project files
-	err := CompileProjectFiles(proj, compiler, opts)
+	err = CompileProjectFiles(proj, compiler, opts)
 	if err != nil {
 		return err
 	}

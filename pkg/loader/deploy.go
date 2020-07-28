@@ -28,6 +28,7 @@ import (
 
 	"github.com/MottainaiCI/lxd-compose/pkg/executor"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
+	"github.com/MottainaiCI/lxd-compose/pkg/template"
 )
 
 func (i *LxdCInstance) GetNodeHooks4Event(event string, proj *specs.LxdCProject, group *specs.LxdCGroup, node *specs.LxdCNode) []specs.LxdCHook {
@@ -71,9 +72,20 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	// Execute pre-project hooks
 	err := i.ProcessHooks(&preProjHooks, executor, proj, nil)
 
+	compiler, err := template.NewProjectTemplateCompiler(env, proj)
+	if err != nil {
+		return err
+	}
+
+	// Compiler project files
+	err = template.CompileProjectFiles(proj, compiler, template.CompilerOpts{})
+	if err != nil {
+		return err
+	}
+
 	for _, grp := range proj.Groups {
 
-		err := i.ApplyGroup(&grp, proj, env)
+		err := i.ApplyGroup(&grp, proj, env, compiler)
 		if err != nil {
 			return err
 		}
@@ -196,7 +208,7 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 	return nil
 }
 
-func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProject, env *specs.LxdCEnvironment) error {
+func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProject, env *specs.LxdCEnvironment, compiler template.LxdCTemplateCompiler) error {
 
 	// Initialize executor
 	executor := executor.NewLxdCExecutor(group.Connection,
@@ -215,6 +227,12 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 	// Run pre-group hooks
 	err = i.ProcessHooks(&preGroupHooks, executor, proj, group)
+	if err != nil {
+		return err
+	}
+
+	// Compile group templates
+	err = template.CompileGroupFiles(group, compiler, template.CompilerOpts{})
 	if err != nil {
 		return err
 	}
@@ -275,6 +293,12 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 		// Run pre-node-sync hooks
 		err = i.ProcessHooks(&preSyncHooks, executor, proj, group)
+		if err != nil {
+			return err
+		}
+
+		// Compile node templates
+		err = template.CompileNodeFiles(node, compiler, template.CompilerOpts{})
 		if err != nil {
 			return err
 		}
