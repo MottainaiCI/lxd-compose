@@ -95,7 +95,7 @@ type LxdCNode struct {
 	ImageSource       string `json:"image_source" yaml:"image_source"`
 	ImageRemoteServer string `json:"image_remote_server,omitempty" yaml:"image_remote_server,omitempty"`
 
-	Labels []string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 
 	SourceDir string `json:"source_dir,omitempty" yaml:"source_dir,omitempty"`
 

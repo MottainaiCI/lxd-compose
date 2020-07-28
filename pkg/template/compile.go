@@ -190,6 +190,12 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 	// Set node key with current node
 	(*compiler.GetVars())["node"] = node
 
+	if len(node.Labels) > 0 {
+		for k, v := range node.Labels {
+			(*compiler.GetVars())[k] = v
+		}
+	}
+
 	if filepath.IsAbs(node.SourceDir) {
 		baseDir = node.SourceDir
 	} else {
