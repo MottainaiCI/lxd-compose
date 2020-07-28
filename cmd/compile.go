@@ -66,7 +66,7 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			} else {
 				for _, env := range *composer.GetEnvironments() {
 					for _, proj := range *env.GetProjects() {
-						err := template.CompileProjectFiles(composer, proj.GetName(), opts)
+						err := template.CompileAllProjectFiles(composer, proj.GetName(), opts)
 						if err != nil {
 							fmt.Println("Error on compile files of the project " +
 								proj.GetName() + ":" + err.Error() + "\n")

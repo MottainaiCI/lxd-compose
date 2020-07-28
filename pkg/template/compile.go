@@ -35,7 +35,7 @@ type CompilerOpts struct {
 	Sources []string
 }
 
-func CompileProjectFiles(instance *loader.LxdCInstance, pName string, opts CompilerOpts) error {
+func CompileAllProjectFiles(instance *loader.LxdCInstance, pName string, opts CompilerOpts) error {
 	var compiler LxdCTemplateCompiler
 
 	env := instance.GetEnvByProjectName(pName)
@@ -54,14 +54,105 @@ func CompileProjectFiles(instance *loader.LxdCInstance, pName string, opts Compi
 	compiler.SetOpts(env.TemplateEngine.Opts)
 	compiler.InitVars()
 
+	// Compile project files
+	err := CompileProjectFiles(proj, compiler, opts)
+	if err != nil {
+		return err
+	}
+
 	// TODO: parallel elaboration
 	for _, group := range proj.Groups {
+
+		// Compile group files
+		err = CompileGroupFiles(&group, compiler, opts)
+		if err != nil {
+			return err
+		}
+
 		for _, node := range group.Nodes {
 			err := CompileNodeFiles(node, compiler, opts)
 			if err != nil {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func CompileGroupFiles(group *specs.LxdCGroup, compiler LxdCTemplateCompiler, opts CompilerOpts) error {
+	var sourceFile, destFile string
+	var targets []specs.LxdCConfigTemplate = []specs.LxdCConfigTemplate{}
+
+	if len(opts.Sources) > 0 {
+		for _, s := range opts.Sources {
+			for _, ct := range group.ConfigTemplates {
+				if strings.HasPrefix(ct.Source, s) {
+					targets = append(targets, ct)
+					break
+				}
+			}
+		}
+	} else {
+		targets = group.ConfigTemplates
+	}
+
+	// Set node key with current group
+	(*compiler.GetVars())["group"] = group
+
+	for _, s := range targets {
+		sourceFile = filepath.Join(compiler.GetEnvBaseDir(), s.Source)
+		if filepath.IsAbs(s.Destination) {
+			destFile = s.Destination
+		} else {
+			destFile = compiler.GetEnvBaseDir()
+		}
+
+		err := compiler.Compile(sourceFile, destFile)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(" " + sourceFile + " -> " + destFile + " OK")
+	}
+
+	return nil
+}
+
+func CompileProjectFiles(proj *specs.LxdCProject, compiler LxdCTemplateCompiler, opts CompilerOpts) error {
+	var sourceFile, destFile string
+	var targets []specs.LxdCConfigTemplate = []specs.LxdCConfigTemplate{}
+
+	if len(opts.Sources) > 0 {
+		for _, s := range opts.Sources {
+			for _, ct := range proj.ConfigTemplates {
+				if strings.HasPrefix(ct.Source, s) {
+					targets = append(targets, ct)
+					break
+				}
+			}
+		}
+	} else {
+		targets = proj.ConfigTemplates
+	}
+
+	// Set node key with current proj
+	(*compiler.GetVars())["project"] = proj
+
+	for _, s := range targets {
+		sourceFile = filepath.Join(compiler.GetEnvBaseDir(), s.Source)
+		if filepath.IsAbs(s.Destination) {
+			destFile = s.Destination
+		} else {
+			destFile = compiler.GetEnvBaseDir()
+		}
+
+		err := compiler.Compile(sourceFile, destFile)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(" " + sourceFile + " -> " + destFile + " OK")
 	}
 
 	return nil
@@ -100,7 +191,11 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 
 	for _, s := range targets {
 		sourceFile = filepath.Join(baseDir, s.Source)
-		destFile = filepath.Join(baseDir, s.Destination)
+		if filepath.IsAbs(s.Destination) {
+			destFile = s.Destination
+		} else {
+			destFile = filepath.Join(baseDir, s.Destination)
+		}
 
 		err := compiler.Compile(sourceFile, destFile)
 		if err != nil {
