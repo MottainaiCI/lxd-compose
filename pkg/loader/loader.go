@@ -23,11 +23,11 @@ package loader
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"path"
 	"regexp"
 
+	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
 	helpers "github.com/mudler/luet/pkg/helpers"
@@ -35,14 +35,27 @@ import (
 
 type LxdCInstance struct {
 	Config       *specs.LxdComposeConfig
+	Logger       *log.LxdCLogger
 	Environments []specs.LxdCEnvironment
 }
 
 func NewLxdCInstance(config *specs.LxdComposeConfig) *LxdCInstance {
-	return &LxdCInstance{
+	ans := &LxdCInstance{
 		Config:       config,
+		Logger:       log.NewLxdCLogger(config),
 		Environments: make([]specs.LxdCEnvironment, 0),
 	}
+
+	// Initialize logging
+	if config.GetLogging().EnableLogFile && config.GetLogging().Path != "" {
+		err := ans.Logger.InitLogger2File()
+		if err != nil {
+			ans.Logger.Fatal("Error on initialize logfile")
+		}
+	}
+	ans.Logger.SetAsDefault()
+
+	return ans
 }
 
 func (i *LxdCInstance) AddEnvironment(env specs.LxdCEnvironment) {
@@ -104,7 +117,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 					return errors.New("Duplicated project " + proj.Name)
 				}
 
-				fmt.Println("Found duplicated project " + proj.Name)
+				i.Logger.Warning("Found duplicated project " + proj.Name)
 
 				dupProjs++
 
@@ -115,7 +128,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 			// Check project's hooks events
 			for _, h := range proj.Hooks {
 				if (h.Event == "pre-project" || h.Event == "pre-group") && h.Node != "host" {
-					fmt.Println("On project " + proj.Name + " is present an hook " +
+					i.Logger.Warning("On project " + proj.Name + " is present an hook " +
 						h.Event + " for node " + h.Node + ". Only node host is admitted.")
 
 					wrongHooks++
@@ -137,7 +150,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 						return errors.New("Duplicated group " + grp.Name)
 					}
 
-					fmt.Println("Found duplicated group " + grp.Name)
+					i.Logger.Warning("Found duplicated group " + grp.Name)
 
 					dupGroups++
 
@@ -157,7 +170,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 
 							wrongHooks++
 
-							fmt.Println("Found invalid hook of type " + h.Event +
+							i.Logger.Warning("Found invalid hook of type " + h.Event +
 								" on group " + grp.Name)
 
 							if !ignoreError {
@@ -175,7 +188,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 							return errors.New("Duplicated node " + node.Name)
 						}
 
-						fmt.Println("Found duplicated node " + node.Name)
+						i.Logger.Warning("Found duplicated node " + node.Name)
 
 						dupNodes++
 
@@ -186,7 +199,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 					if len(node.Hooks) > 0 {
 						for _, h := range node.Hooks {
 							if h.Node != "" {
-								fmt.Println("Invalid hook on node " + node.Name + " with node field valorized.")
+								i.Logger.Warning("Invalid hook on node " + node.Name + " with node field valorized.")
 								wrongHooks++
 								if !ignoreError {
 									return errors.New("Invalid hook on node " + node.Name)
@@ -200,7 +213,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 
 								wrongHooks++
 
-								fmt.Println("Found invalid hook of type " + h.Event +
+								i.Logger.Warning("Found invalid hook of type " + h.Event +
 									" on node " + node.Name)
 
 								if !ignoreError {
@@ -230,11 +243,11 @@ func (i *LxdCInstance) LoadEnvironments() error {
 	}
 
 	for _, edir := range i.Config.GetEnvironmentDirs() {
-		fmt.Println("Checking directory", edir, "...")
+		i.Logger.Debug("Checking directory", edir, "...")
 
 		files, err := ioutil.ReadDir(edir)
 		if err != nil {
-			fmt.Println("Skip dir", edir, ":", err.Error())
+			i.Logger.Debug("Skip dir", edir, ":", err.Error())
 			continue
 		}
 
@@ -244,25 +257,25 @@ func (i *LxdCInstance) LoadEnvironments() error {
 			}
 
 			if !regexConfs.MatchString(file.Name()) {
-				fmt.Println("File", file.Name(), "skipped.")
+				i.Logger.Debug("File", file.Name(), "skipped.")
 				continue
 			}
 
 			content, err := ioutil.ReadFile(path.Join(edir, file.Name()))
 			if err != nil {
-				fmt.Println("On read file", file.Name(), ":", err.Error())
-				fmt.Println("File", file.Name(), "skipped.")
+				i.Logger.Debug("On read file", file.Name(), ":", err.Error())
+				i.Logger.Debug("File", file.Name(), "skipped.")
 				continue
 			}
 
 			env, err := specs.EnvironmentFromYaml(content, path.Join(edir, file.Name()))
 			if err != nil {
-				fmt.Println("On parse file", file.Name(), ":", err.Error())
-				fmt.Println("File", file.Name(), "skipped.")
+				i.Logger.Debug("On parse file", file.Name(), ":", err.Error())
+				i.Logger.Debug("File", file.Name(), "skipped.")
 				continue
 			}
 
-			err = loadExtraFiles(env)
+			err = i.loadExtraFiles(env)
 
 			i.AddEnvironment(*env)
 
@@ -273,7 +286,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 	return nil
 }
 
-func loadExtraFiles(env *specs.LxdCEnvironment) error {
+func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 	envBaseDir := path.Dir(env.File)
 
 	for _, proj := range env.Projects {
@@ -285,22 +298,22 @@ func loadExtraFiles(env *specs.LxdCEnvironment) error {
 			for _, gfile := range proj.IncludeGroupFiles {
 
 				if !helpers.Exists(path.Join(envBaseDir, gfile)) {
-					fmt.Println("For project", proj.Name, "included group file", gfile,
+					i.Logger.Warning("For project", proj.Name, "included group file", gfile,
 						"is not present.")
 					continue
 				}
 
 				content, err := ioutil.ReadFile(path.Join(envBaseDir, gfile))
 				if err != nil {
-					fmt.Println("On read file", gfile, ":", err.Error())
-					fmt.Println("File", gfile, "skipped.")
+					i.Logger.Debug("On read file", gfile, ":", err.Error())
+					i.Logger.Debug("File", gfile, "skipped.")
 					continue
 				}
 
 				grp, err := specs.GroupFromYaml(content)
 				if err != nil {
-					fmt.Println("On parse file", gfile, ":", err.Error())
-					fmt.Println("File", gfile, "skipped.")
+					i.Logger.Debug("On parse file", gfile, ":", err.Error())
+					i.Logger.Debug("File", gfile, "skipped.")
 					continue
 				}
 
@@ -311,28 +324,28 @@ func loadExtraFiles(env *specs.LxdCEnvironment) error {
 			for _, efile := range proj.IncludeEnvFiles {
 
 				if !helpers.Exists(path.Join(envBaseDir, efile)) {
-					fmt.Println("For project", proj.Name, "included env file", efile,
+					i.Logger.Warning("For project", proj.Name, "included env file", efile,
 						"is not present.")
 					continue
 				}
 
 				if path.Ext(efile) != ".yml" {
-					fmt.Println("For project", proj.Name, "included env file", efile,
+					i.Logger.Warning("For project", proj.Name, "included env file", efile,
 						"will be used only with template compiler")
 					continue
 				}
 
 				content, err := ioutil.ReadFile(path.Join(envBaseDir, efile))
 				if err != nil {
-					fmt.Println("On read file", efile, ":", err.Error())
-					fmt.Println("File", efile, "skipped.")
+					i.Logger.Debug("On read file", efile, ":", err.Error())
+					i.Logger.Debug("File", efile, "skipped.")
 					continue
 				}
 
 				evars, err := specs.EnvVarsFromYaml(content)
 				if err != nil {
-					fmt.Println("On parse file", efile, ":", err.Error())
-					fmt.Println("File", efile, "skipped.")
+					i.Logger.Debug("On parse file", efile, ":", err.Error())
+					i.Logger.Debug("File", efile, "skipped.")
 					continue
 				}
 

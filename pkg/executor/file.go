@@ -31,6 +31,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
+
 	lxd "github.com/lxc/lxd/client"
 	lxd_utils "github.com/lxc/lxd/lxc/utils"
 	lxd_shared "github.com/lxc/lxd/shared"
@@ -86,7 +88,7 @@ func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os
 			Type: "directory",
 		}
 
-		fmt.Println(fmt.Sprintf("Creating %s (%s)", cur, args.Type))
+		log.GetDefaultLogger().Debug(fmt.Sprintf("Creating %s (%s)", cur, args.Type))
 
 		err := e.LxdClient.CreateContainerFile(nameContainer, cur, args)
 		if err != nil {
@@ -184,7 +186,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 					Length: contentLength,
 					Handler: func(percent int64, speed int64) {
 
-						fmt.Println(fmt.Sprintf("%d%% (%s/s)", percent,
+						log.GetDefaultLogger().Info(fmt.Sprintf("%d%% (%s/s)", percent,
 							lxd_units.GetByteSizeString(speed, 2)))
 
 						progress.UpdateProgress(ioprogress.ProgressData{
@@ -195,7 +197,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 			}, args.Content)
 		}
 
-		fmt.Println(fmt.Sprintf("Pushing %s to %s (%s)", p, targetPath, args.Type))
+		log.GetDefaultLogger().Info(fmt.Sprintf("Pushing %s to %s (%s)", p, targetPath, args.Type))
 		err = e.LxdClient.CreateContainerFile(nameContainer, targetPath, args)
 		if err != nil {
 			if args.Type != "directory" {

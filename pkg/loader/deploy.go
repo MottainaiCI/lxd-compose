@@ -138,12 +138,12 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 			}
 
 			if err != nil {
-				fmt.Println("Error " + err.Error())
+				i.Logger.Error("Error " + err.Error())
 				return err
 			}
 
 			if res != 0 {
-				fmt.Println(fmt.Sprintf("Command result wrong (%d). Exiting.", res))
+				i.Logger.Error(fmt.Sprintf("Command result wrong (%d). Exiting.", res))
 				return errors.New("Error on execute command: " + cmds)
 			}
 
@@ -251,7 +251,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 		isPresent, err := executor.IsPresentContainer(node.Name)
 		if err != nil {
-			fmt.Println("Error on check if container " + node.Name + " is present: " + err.Error())
+			i.Logger.Error("Error on check if container " + node.Name + " is present: " + err.Error())
 			return err
 		}
 
@@ -265,7 +265,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 				return err
 			}
 
-			fmt.Println("Creating node " + node.Name + "...")
+			i.Logger.Info("Creating node " + node.Name + "...")
 
 			profiles := []string{}
 			profiles = append(profiles, group.CommonProfiles...)
@@ -274,7 +274,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			err := executor.CreateContainer(node.Name, node.ImageSource,
 				node.ImageRemoteServer, profiles)
 			if err != nil {
-				fmt.Println("Error on create container " + node.Name + ":" + err.Error())
+				i.Logger.Error("Error on create container " + node.Name + ":" + err.Error())
 				return err
 			}
 
@@ -315,15 +315,15 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 				syncSourceDir = filepath.Dir(env.File)
 			}
 
-			fmt.Println("For node "+node.Name+" using sync source basedir ", syncSourceDir)
+			i.Logger.Debug("For node "+node.Name+" using sync source basedir ", syncSourceDir)
 
 			for _, resource := range node.SyncResources {
 
-				fmt.Println("Syncing resource " + resource.Source + " => " + resource.Destination)
+				i.Logger.Info("Syncing resource " + resource.Source + " => " + resource.Destination)
 				err = executor.RecursivePushFile(node.Name, filepath.Join(syncSourceDir, resource.Source),
 					filepath.Dir(resource.Destination)+"/")
 				if err != nil {
-					fmt.Println("Error on sync " + resource.Source + ": " + err.Error())
+					i.Logger.Error("Error on sync " + resource.Source + ": " + err.Error())
 					return err
 				}
 			}

@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
+
 	lxd "github.com/lxc/lxd/client"
 	lxd_utils "github.com/lxc/lxd/lxc/utils"
 	lxd_api "github.com/lxc/lxd/shared/api"
@@ -134,17 +136,17 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 	container, _, err = e.LxdClient.GetContainer(name)
 	if err != nil {
 		if action == "stop" {
-			fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name)
+			log.GetDefaultLogger().Warning(fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
 			return nil
 		}
 		return err
 	}
 
 	if action == "start" && container.Status == "Started" {
-		fmt.Sprintf("Container %s is already started!", name)
+		log.GetDefaultLogger().Warning(fmt.Sprintf("Container %s is already started!", name))
 		return nil
 	} else if action == "stop" && container.Status == "Stopped" {
-		fmt.Sprintf("Container %s is already stopped!", name)
+		log.GetDefaultLogger().Warning(fmt.Sprintf("Container %s is already stopped!", name))
 		return nil
 	}
 
@@ -157,7 +159,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 
 	operation, err = e.LxdClient.UpdateContainerState(name, req, "")
 	if err != nil {
-		fmt.Println("Error on update container state: " + err.Error())
+		log.GetDefaultLogger().Error("Error on update container state: " + err.Error())
 		return err
 	}
 
@@ -167,7 +169,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 
 	_, err = operation.AddHandler(progress.UpdateOp)
 	if err != nil {
-		fmt.Println("Error on add handler to progress bar: " + err.Error())
+		log.GetDefaultLogger().Error("Error on add handler to progress bar: " + err.Error())
 		progress.Done("")
 		return err
 	}
@@ -175,14 +177,14 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 	err = e.waitOperation(operation, &progress)
 	progress.Done("")
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Error on stop container %s: %s", name, err))
+		log.GetDefaultLogger().Error(fmt.Sprintf("Error on stop container %s: %s", name, err))
 		return err
 	}
 
 	if action == "start" {
-		fmt.Println(fmt.Sprintf("Container %s is started!", name))
+		log.GetDefaultLogger().Info(fmt.Sprintf("Container %s is started!", name))
 	} else {
-		fmt.Println(fmt.Sprintf("Container %s is stopped!", name))
+		log.GetDefaultLogger().Info(fmt.Sprintf("Container %s is stopped!", name))
 	}
 
 	return nil
@@ -233,7 +235,7 @@ func (e *LxdCExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.Conta
 		aliasEntry, _, _ := server.GetImageAlias(alias.Name)
 		if aliasEntry != nil {
 			// TODO: See how handle correctly this use case
-			fmt.Println(fmt.Sprintf(
+			log.GetDefaultLogger().Info(fmt.Sprintf(
 				"Found old image %s with alias %s. I drop alias from it.",
 				aliasEntry.Target, alias.Name))
 
@@ -270,7 +272,7 @@ func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer
 	// (missing Cancel method) so DownloadImage is not s
 	remoteOperation, err := to.CopyImage(remote, *i, copyArgs)
 	if err != nil {
-		fmt.Println("Error on create copy image task " + err.Error())
+		log.GetDefaultLogger().Error("Error on create copy image task " + err.Error())
 		return err
 	}
 
@@ -289,7 +291,7 @@ func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer
 	err = e.waitOperation(remoteOperation, &progress)
 	progress.Done("")
 	if err != nil {
-		fmt.Println("Error on copy image " + err.Error())
+		log.GetDefaultLogger().Error("Error on copy image " + err.Error())
 		return err
 	}
 
@@ -299,7 +301,7 @@ func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer
 		e.AddAlias2Image(i.Fingerprint, alias, e.LxdClient)
 	}
 
-	fmt.Println(fmt.Sprintf("Image %s copy locally.", imageFingerprint))
+	log.GetDefaultLogger().Debug(fmt.Sprintf("Image %s copy locally.", imageFingerprint))
 
 	return nil
 }
@@ -323,7 +325,7 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 	var remote lxd.ImageServer
 	var noRemoteImageFound = false
 
-	fmt.Println("Searching image: " + imageAlias)
+	log.GetDefaultLogger().Info("Searching image: " + imageAlias)
 
 	// Find image hashing id
 	imageFingerprint, remote, remote_name, err = e.FindImage(imageAlias, imageRemoteServer)
@@ -338,9 +340,9 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 	}
 
 	if imageFingerprint == imageAlias {
-		fmt.Println("Use directly fingerprint " + imageAlias)
+		log.GetDefaultLogger().Info("Use directly fingerprint " + imageAlias)
 	} else {
-		fmt.Println("For image " + imageAlias + " found fingerprint " + imageFingerprint)
+		log.GetDefaultLogger().Info("For image " + imageAlias + " found fingerprint " + imageFingerprint)
 	}
 
 	// Check if image is already present locally else we receive an error.
@@ -360,13 +362,13 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 		err = e.DeleteImageAliases4Alias(imageAlias, e.LxdClient)
 
 		// Try to pull image to lxd instance
-		fmt.Println(fmt.Sprintf(
+		log.GetDefaultLogger().Info(fmt.Sprintf(
 			"Try to download image %s from remote %s...",
 			imageFingerprint, remote_name,
 		))
 		err = e.DownloadImage(imageFingerprint, remote)
 	} else {
-		fmt.Println("Image " + imageFingerprint + " already present.")
+		log.GetDefaultLogger().Info("Image " + imageFingerprint + " already present.")
 		err = nil
 	}
 
@@ -389,7 +391,8 @@ func (l *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.I
 		tmp_srv, err = l.LxdConfig.GetImageServer(remote)
 		if err != nil {
 			err = nil
-			fmt.Println(fmt.Sprintf(
+
+			log.GetDefaultLogger().Error(fmt.Sprintf(
 				"Error on retrieve ImageServer for remote %s at addr %s",
 				remote, server.Addr,
 			))

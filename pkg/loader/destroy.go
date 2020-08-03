@@ -23,7 +23,6 @@ package loader
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/MottainaiCI/lxd-compose/pkg/executor"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
@@ -60,7 +59,7 @@ func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProj
 		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral)
 	err := executor.Setup()
 	if err != nil {
-		fmt.Println("Error on initialize executor for group " + group.Name + ": " + err.Error())
+		i.Logger.Error("Error on initialize executor for group " + group.Name + ": " + err.Error())
 		return err
 	}
 
@@ -68,14 +67,14 @@ func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProj
 
 		isPresent, err := executor.IsPresentContainer(node.Name)
 		if err != nil {
-			fmt.Println("Error on check if container " + node.Name + " is present: " + err.Error())
+			i.Logger.Error("Error on check if container " + node.Name + " is present: " + err.Error())
 			return err
 		}
 
 		if isPresent {
 			err = executor.CleanUpContainer(node.Name)
 			if err != nil {
-				fmt.Println("Error on destroy container " + node.Name + ": " + err.Error())
+				i.Logger.Error("Error on destroy container " + node.Name + ": " + err.Error())
 				return err
 			}
 		}

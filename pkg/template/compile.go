@@ -23,10 +23,10 @@ package template
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 	"strings"
 
+	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 )
 
@@ -125,7 +125,7 @@ func CompileGroupFiles(group *specs.LxdCGroup, compiler LxdCTemplateCompiler, op
 			return err
 		}
 
-		fmt.Println(" " + sourceFile + " -> " + destFile + " OK")
+		log.GetDefaultLogger().Info(" " + sourceFile + " -> " + destFile + " OK")
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func CompileProjectFiles(proj *specs.LxdCProject, compiler LxdCTemplateCompiler,
 			return err
 		}
 
-		fmt.Println(" " + sourceFile + " -> " + destFile + " OK")
+		log.GetDefaultLogger().Info(" " + sourceFile + " -> " + destFile + " OK")
 	}
 
 	return nil
@@ -233,7 +233,7 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 			return err
 		}
 
-		fmt.Println(" " + sourceFile + " -> " + destFile + " OK")
+		log.GetDefaultLogger().Info(" " + sourceFile + " -> " + destFile + " OK")
 	}
 
 	return nil

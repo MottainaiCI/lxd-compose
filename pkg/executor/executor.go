@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
+	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
 	"golang.org/x/sys/unix"
@@ -96,7 +97,7 @@ func (e *LxdCExecutor) Setup() error {
 		e.ConfigDir = configDir
 	}
 	configPath := path.Join(e.ConfigDir, "/config.yml")
-	fmt.Println("Using LXD config file", configPath)
+	log.GetDefaultLogger().Debug("Using LXD config file", configPath)
 
 	e.LxdConfig, err = lxd_config.LoadConfig(configPath)
 	if err != nil {
@@ -105,7 +106,7 @@ func (e *LxdCExecutor) Setup() error {
 
 	if len(e.Endpoint) > 0 {
 
-		fmt.Println("Using endpoint " + e.Endpoint + "...")
+		log.GetDefaultLogger().Debug("Using endpoint " + e.Endpoint + "...")
 
 		// Unix socket
 		if strings.HasPrefix(e.Endpoint, "unix:") {
@@ -161,21 +162,21 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, pr
 	}
 
 	if isPresent {
-		fmt.Println(">> Container " + name + " already present. Nothing to do.")
+		log.GetDefaultLogger().Info(">> Container " + name + " already present. Nothing to do.")
 		return nil
 	}
 
 	// Pull image
 	imageFingerprint, err := e.PullImage(fingerprint, imageServer)
 	if err != nil {
-		fmt.Println("Error on pull image " + fingerprint + " from remote " + imageServer)
+		log.GetDefaultLogger().Error("Error on pull image " + fingerprint + " from remote " + imageServer)
 		return err
 	}
 
-	fmt.Println(">> Creating container " + name + "...")
+	log.GetDefaultLogger().Info(">> Creating container " + name + "...")
 	err = e.LaunchContainer(name, imageFingerprint, profiles)
 	if err != nil {
-		fmt.Println("Creating container error: " + err.Error())
+		log.GetDefaultLogger().Error("Creating container error: " + err.Error())
 		return err
 	}
 
@@ -223,19 +224,19 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 		DataDone: make(chan bool),
 	}
 
-	fmt.Println(fmt.Sprintf("========> Entrypoint: %s", entrypoint))
-	fmt.Println(fmt.Sprintf("========> Commands: %s", command))
+	log.GetDefaultLogger().Info(fmt.Sprintf("========> Entrypoint: %s", entrypoint))
+	log.GetDefaultLogger().Info(fmt.Sprintf("========> Commands: %s", command))
 	// Run the command in the container
 	currOper, err := e.LxdClient.ExecContainer(containerName, req, &execArgs)
 	if err != nil {
-		fmt.Println("Error on exec command: " + err.Error())
+		log.GetDefaultLogger().Error("Error on exec command: " + err.Error())
 		return 1, err
 	}
 
 	// Wait for the operation to complete
 	err = e.waitOperation(currOper, nil)
 	if err != nil {
-		fmt.Println("Error on waiting execution of commands: " + err.Error())
+		log.GetDefaultLogger().Error("Error on waiting execution of commands: " + err.Error())
 		return 1, err
 	}
 
@@ -250,10 +251,10 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 	// I consider it as an error.
 	if val, ok := opAPI.Metadata["return"]; ok {
 		ans = int(val.(float64))
-		fmt.Println(fmt.Sprintf("========> Execution Exit with value (%d)", ans))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Execution Exit with value (%d)", ans))
 
 	} else {
-		fmt.Println(fmt.Sprintf("========> Execution Interrupted (%v)",
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Execution Interrupted (%v)",
 			opAPI.Metadata))
 		ans = 1
 	}
@@ -268,8 +269,8 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
 
 	if err == nil {
-		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
-		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
 	}
 
 	return res, err
@@ -283,8 +284,8 @@ func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar, 
 
 	if err == nil {
 
-		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
-		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
 
 		if outVar != "" {
 			(*envs)[outVar] = outBuffer.String()
@@ -313,7 +314,7 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 
 	hostCommand := exec.Command(cmds[0], cmds[1:]...)
 
-	fmt.Println(fmt.Sprintf("========> Host Commands: %s", command))
+	log.GetDefaultLogger().Info(fmt.Sprintf("========> Host Commands: %s", command))
 
 	// Convert envs to array list
 	elist := os.Environ()
@@ -327,18 +328,18 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 
 	err := hostCommand.Start()
 	if err != nil {
-		fmt.Println("Error on start command: " + err.Error())
+		log.GetDefaultLogger().Error("Error on start command: " + err.Error())
 		return 1, err
 	}
 
 	err = hostCommand.Wait()
 	if err != nil {
-		fmt.Println("Error on waiting command: " + err.Error())
+		log.GetDefaultLogger().Error("Error on waiting command: " + err.Error())
 		return 1, err
 	}
 
 	ans = hostCommand.ProcessState.ExitCode()
-	fmt.Println(fmt.Sprintf("========> Execution Exit with value (%d)", ans))
+	log.GetDefaultLogger().Info(fmt.Sprintf("========> Execution Exit with value (%d)", ans))
 
 	return ans, nil
 }
@@ -350,8 +351,8 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string) (i
 		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
 
 	if err == nil {
-		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
-		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
 	}
 
 	return res, err
@@ -365,8 +366,8 @@ func (e *LxdCExecutor) RunHostCommandWithOutput4Var(command, outVar, errVar stri
 
 	if err == nil {
 
-		fmt.Println(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
-		fmt.Println(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Stdout:\n%s", outBuffer.String()))
+		log.GetDefaultLogger().Info(fmt.Sprintf("========> Sterr:\n%s", errBuffer.String()))
 
 		if outVar != "" {
 			(*envs)[outVar] = outBuffer.String()
@@ -406,7 +407,7 @@ func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
 
 	err = e.DoAction2Container(containerName, "stop")
 	if err != nil {
-		fmt.Println("Error on stop container: " + err.Error())
+		log.GetDefaultLogger().Error("Error on stop container: " + err.Error())
 		return err
 	}
 
@@ -414,7 +415,7 @@ func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
 		// Delete container
 		currOper, err := e.LxdClient.DeleteContainer(containerName)
 		if err != nil {
-			fmt.Println("Error on delete container: " + err.Error())
+			log.GetDefaultLogger().Error("Error on delete container: " + err.Error())
 			return err
 		}
 		_ = e.waitOperation(currOper, nil)
