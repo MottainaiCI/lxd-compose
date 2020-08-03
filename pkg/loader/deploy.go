@@ -66,7 +66,8 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 
 	// Create executor for host commands.
 	executor := executor.NewLxdCExecutor("local",
-		i.Config.GetGeneral().LxdConfDir, []string{}, true)
+		i.Config.GetGeneral().LxdConfDir, []string{}, true,
+		i.Config.GetLogging().CmdsOutput)
 	// Setup is not needed here.
 
 	// Execute pre-project hooks
@@ -212,7 +213,8 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 	// Initialize executor
 	executor := executor.NewLxdCExecutor(group.Connection,
-		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral)
+		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
+		i.Config.GetLogging().CmdsOutput)
 	err := executor.Setup()
 	if err != nil {
 		return err
@@ -265,8 +267,6 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 				return err
 			}
 
-			i.Logger.Info("Creating node " + node.Name + "...")
-
 			profiles := []string{}
 			profiles = append(profiles, group.CommonProfiles...)
 			profiles = append(profiles, node.Profiles...)
@@ -315,17 +315,36 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 				syncSourceDir = filepath.Dir(env.File)
 			}
 
-			i.Logger.Debug("For node "+node.Name+" using sync source basedir ", syncSourceDir)
+			i.Logger.Debug(i.Logger.Aurora.Bold(
+				i.Logger.Aurora.BrightCyan(
+					">>> [" + node.Name + "] Using sync source basedir " + syncSourceDir)))
 
-			for _, resource := range node.SyncResources {
+			nResources := len(node.SyncResources)
+			i.Logger.InfoC(
+				i.Logger.Aurora.Bold(
+					i.Logger.Aurora.BrightCyan(
+						fmt.Sprintf(">>> [%s] Syncing %d resources... - :bus:",
+							node.Name, nResources))))
 
-				i.Logger.Info("Syncing resource " + resource.Source + " => " + resource.Destination)
+			for idx, resource := range node.SyncResources {
+
+				i.Logger.DebugC(
+					i.Logger.Aurora.Italic(
+						i.Logger.Aurora.BrightCyan(
+							fmt.Sprintf(">>> [%s] %s => %s",
+								node.Name, resource.Source, resource.Destination))))
+
 				err = executor.RecursivePushFile(node.Name, filepath.Join(syncSourceDir, resource.Source),
 					filepath.Dir(resource.Destination)+"/")
 				if err != nil {
 					i.Logger.Error("Error on sync " + resource.Source + ": " + err.Error())
 					return err
 				}
+
+				i.Logger.InfoC(
+					i.Logger.Aurora.BrightCyan(
+						fmt.Sprintf(">>> [%s] - [%2d/%2d] %s - :check_mark:",
+							node.Name, idx+1, nResources, resource.Destination)))
 			}
 
 			// Retrieve post-node-sync hooks of the node from project

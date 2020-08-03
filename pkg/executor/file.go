@@ -137,6 +137,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 		}
 
 		var readCloser io.ReadCloser
+		logger := log.GetDefaultLogger()
 
 		if fInfo.IsDir() {
 			// Directory handling
@@ -186,8 +187,13 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 					Length: contentLength,
 					Handler: func(percent int64, speed int64) {
 
-						log.GetDefaultLogger().Info(fmt.Sprintf("%d%% (%s/s)", percent,
-							lxd_units.GetByteSizeString(speed, 2)))
+						if logger.Config.GetLogging().PushProgressBar {
+							logger.InfoC(
+								logger.Aurora.Italic(
+									logger.Aurora.BrightMagenta(
+										fmt.Sprintf("%d%% (%s/s)", percent,
+											lxd_units.GetByteSizeString(speed, 2)))))
+						}
 
 						progress.UpdateProgress(ioprogress.ProgressData{
 							Text: fmt.Sprintf("%d%% (%s/s)", percent,
@@ -197,7 +203,14 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 			}, args.Content)
 		}
 
-		log.GetDefaultLogger().Info(fmt.Sprintf("Pushing %s to %s (%s)", p, targetPath, args.Type))
+		if logger.Config.GetLogging().PushProgressBar {
+			logger.InfoC(
+				logger.Aurora.Italic(
+					logger.Aurora.BrightMagenta(
+						fmt.Sprintf(">>> [%s] Pushing %s -> %s (%s)",
+							nameContainer, p, targetPath, args.Type))))
+		}
+
 		err = e.LxdClient.CreateContainerFile(nameContainer, targetPath, args)
 		if err != nil {
 			if args.Type != "directory" {

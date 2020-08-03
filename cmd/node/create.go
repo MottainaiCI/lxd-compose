@@ -67,7 +67,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				}
 
 				executor := executor.NewLxdCExecutor(endpoint, confdir,
-					nodeConf.Entrypoint, grp.Ephemeral)
+					nodeConf.Entrypoint, grp.Ephemeral, config.GetLogging().CmdsOutput)
 				err = executor.Setup()
 				if err != nil {
 					fmt.Println("Error on setup executor:" + err.Error() + "\n")

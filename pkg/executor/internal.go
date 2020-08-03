@@ -132,21 +132,22 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 	var err error
 	var container *lxd_api.Container
 	var operation lxd.Operation
+	logger := log.GetDefaultLogger()
 
 	container, _, err = e.LxdClient.GetContainer(name)
 	if err != nil {
 		if action == "stop" {
-			log.GetDefaultLogger().Warning(fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
+			logger.Warning(fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
 			return nil
 		}
 		return err
 	}
 
 	if action == "start" && container.Status == "Started" {
-		log.GetDefaultLogger().Warning(fmt.Sprintf("Container %s is already started!", name))
+		logger.Warning(fmt.Sprintf("Container %s is already started!", name))
 		return nil
 	} else if action == "stop" && container.Status == "Stopped" {
-		log.GetDefaultLogger().Warning(fmt.Sprintf("Container %s is already stopped!", name))
+		logger.Warning(fmt.Sprintf("Container %s is already stopped!", name))
 		return nil
 	}
 
@@ -159,7 +160,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 
 	operation, err = e.LxdClient.UpdateContainerState(name, req, "")
 	if err != nil {
-		log.GetDefaultLogger().Error("Error on update container state: " + err.Error())
+		logger.Error("Error on update container state: " + err.Error())
 		return err
 	}
 
@@ -169,7 +170,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 
 	_, err = operation.AddHandler(progress.UpdateOp)
 	if err != nil {
-		log.GetDefaultLogger().Error("Error on add handler to progress bar: " + err.Error())
+		logger.Error("Error on add handler to progress bar: " + err.Error())
 		progress.Done("")
 		return err
 	}
@@ -177,14 +178,18 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 	err = e.waitOperation(operation, &progress)
 	progress.Done("")
 	if err != nil {
-		log.GetDefaultLogger().Error(fmt.Sprintf("Error on stop container %s: %s", name, err))
+		logger.Error(fmt.Sprintf("Error on stop container %s: %s", name, err))
 		return err
 	}
 
 	if action == "start" {
-		log.GetDefaultLogger().Info(fmt.Sprintf("Container %s is started!", name))
+		logger.InfoC(
+			logger.Aurora.Bold(logger.Aurora.BrightCyan(
+				">>> [" + name + "] - [started] :check_mark:")))
 	} else {
-		log.GetDefaultLogger().Info(fmt.Sprintf("Container %s is stopped!", name))
+		logger.InfoC(
+			logger.Aurora.Bold(logger.Aurora.BrightCyan(
+				">>> [" + name + "] - [stopped] :bomb:")))
 	}
 
 	return nil
@@ -235,7 +240,7 @@ func (e *LxdCExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.Conta
 		aliasEntry, _, _ := server.GetImageAlias(alias.Name)
 		if aliasEntry != nil {
 			// TODO: See how handle correctly this use case
-			log.GetDefaultLogger().Info(fmt.Sprintf(
+			log.GetDefaultLogger().Debug(fmt.Sprintf(
 				"Found old image %s with alias %s. I drop alias from it.",
 				aliasEntry.Target, alias.Name))
 
@@ -368,7 +373,7 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 		))
 		err = e.DownloadImage(imageFingerprint, remote)
 	} else {
-		log.GetDefaultLogger().Info("Image " + imageFingerprint + " already present.")
+		log.GetDefaultLogger().Debug("Image " + imageFingerprint + " already present.")
 		err = nil
 	}
 

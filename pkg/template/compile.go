@@ -23,6 +23,7 @@ package template
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -178,6 +179,7 @@ func CompileProjectFiles(proj *specs.LxdCProject, compiler LxdCTemplateCompiler,
 func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts CompilerOpts) error {
 	var sourceFile, destFile, baseDir string
 	var targets []specs.LxdCConfigTemplate = []specs.LxdCConfigTemplate{}
+	logger := log.GetDefaultLogger()
 
 	if len(opts.Sources) > 0 {
 		for _, s := range opts.Sources {
@@ -196,6 +198,10 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 	if len(targets) == 0 {
 		return nil
 	}
+
+	logger.InfoC(logger.Aurora.Bold(
+		logger.Aurora.BrightCyan(
+			fmt.Sprintf(">>> [%s] Compile %d resources... :icecream:", node.Name, len(targets)))))
 
 	// Set node key with current node
 	(*compiler.GetVars())["node"] = node
@@ -220,7 +226,7 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 		baseDir = filepath.Join(envBaseAbs, node.SourceDir)
 	}
 
-	for _, s := range targets {
+	for idx, s := range targets {
 		sourceFile = filepath.Join(baseDir, s.Source)
 		if filepath.IsAbs(s.Destination) {
 			destFile = s.Destination
@@ -228,12 +234,21 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 			destFile = filepath.Join(baseDir, s.Destination)
 		}
 
+		logger.DebugC(
+			logger.Aurora.Italic(
+				logger.Aurora.BrightCyan(
+					fmt.Sprintf(">>> [%s] Compiling %s -> %s :soup:",
+						node.Name, sourceFile, destFile))))
+
 		err := compiler.Compile(sourceFile, destFile)
 		if err != nil {
 			return err
 		}
 
-		log.GetDefaultLogger().Info(" " + sourceFile + " -> " + destFile + " OK")
+		logger.InfoC(
+			logger.Aurora.BrightCyan(
+				fmt.Sprintf(">>> [%s] - [%2d/%2d] %s :check_mark:",
+					node.Name, idx+1, len(targets), destFile)))
 	}
 
 	return nil
