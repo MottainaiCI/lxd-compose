@@ -64,8 +64,12 @@ github.com/fatih/color
 github.com/flosch/pongo2
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.6.4
+# github.com/fsouza/go-dockerclient v1.6.5
 github.com/fsouza/go-dockerclient
+# github.com/geaaru/time-master v0.0.0-20200801154724-b41fecc1f570
+## explicit
+github.com/geaaru/time-master/pkg/specs
+github.com/geaaru/time-master/pkg/time
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/go-ole/go-ole v1.2.4
@@ -123,6 +127,12 @@ github.com/julienschmidt/httprouter
 github.com/kevinburke/ssh_config
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
+# github.com/kyokomi/emoji v2.2.4+incompatible
+## explicit
+github.com/kyokomi/emoji
+# github.com/logrusorgru/aurora v2.0.3+incompatible
+## explicit
+github.com/logrusorgru/aurora
 # github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40
 ## explicit
 github.com/lxc/lxd/client
@@ -244,6 +254,18 @@ github.com/src-d/gcfg/types
 github.com/subosito/gotenv
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
+# go.uber.org/atomic v1.6.0
+go.uber.org/atomic
+# go.uber.org/multierr v1.5.0
+go.uber.org/multierr
+# go.uber.org/zap v1.15.0
+## explicit
+go.uber.org/zap
+go.uber.org/zap/buffer
+go.uber.org/zap/internal/bufferpool
+go.uber.org/zap/internal/color
+go.uber.org/zap/internal/exit
+go.uber.org/zap/zapcore
 # golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
