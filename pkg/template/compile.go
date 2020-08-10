@@ -114,7 +114,7 @@ func CompileGroupFiles(group *specs.LxdCGroup, compiler LxdCTemplateCompiler, op
 	(*compiler.GetVars())["group"] = group
 
 	for _, s := range targets {
-		sourceFile = filepath.Join(compiler.GetEnvBaseDir(), s.Source)
+		sourceFile = filepath.Join(envBaseAbs, s.Source)
 		if filepath.IsAbs(s.Destination) {
 			destFile = s.Destination
 		} else {
