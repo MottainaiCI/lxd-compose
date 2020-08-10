@@ -25,6 +25,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 	"regexp"
 
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
@@ -279,6 +280,8 @@ func (i *LxdCInstance) LoadEnvironments() error {
 
 			i.AddEnvironment(*env)
 
+			i.Logger.Debug("Loaded environment file " + env.File)
+
 		}
 
 	}
@@ -287,9 +290,12 @@ func (i *LxdCInstance) LoadEnvironments() error {
 }
 
 func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
-	envBaseDir := path.Dir(env.File)
+	envBaseDir, err := filepath.Abs(path.Dir(env.File))
+	if err != nil {
+		return err
+	}
 
-	for _, proj := range env.Projects {
+	for idx, proj := range env.Projects {
 
 		// Load external groups files
 		if len(proj.IncludeGroupFiles) > 0 {
@@ -317,9 +323,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					continue
 				}
 
-				proj.AddGroup(grp)
+				env.Projects[idx].AddGroup(grp)
 			}
 
+		}
+
+		if len(proj.IncludeEnvFiles) > 0 {
 			// Load external env vars files
 			for _, efile := range proj.IncludeEnvFiles {
 
@@ -328,6 +337,8 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 						"is not present.")
 					continue
 				}
+
+				i.Logger.Debug("Loaded environment file " + env.File)
 
 				if path.Ext(efile) != ".yml" {
 					i.Logger.Warning("For project", proj.Name, "included env file", efile,
@@ -349,7 +360,8 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					continue
 				}
 
-				proj.AddEnvironment(evars)
+				env.Projects[idx].AddEnvironment(evars)
+
 			}
 
 		}
