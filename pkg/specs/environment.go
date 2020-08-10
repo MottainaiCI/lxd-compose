@@ -42,9 +42,9 @@ func EnvironmentFromYaml(data []byte, file string) (*LxdCEnvironment, error) {
 }
 
 func (e *LxdCEnvironment) GetProjectByName(pName string) *LxdCProject {
-	for _, p := range e.Projects {
+	for idx, p := range e.Projects {
 		if p.Name == pName {
-			return &p
+			return &e.Projects[idx]
 		}
 	}
 
