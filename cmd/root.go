@@ -93,6 +93,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newCompileCommand(config),
 		newNodeCommand(config),
 		newProfileCommand(config),
+		newDiagnoseCommand(config),
 	)
 }
 
