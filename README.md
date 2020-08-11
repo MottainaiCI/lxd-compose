@@ -1,5 +1,7 @@
 # LXD Compose
 
+[![Build Status](https://travis-ci.com/MottainaiCI/lxd-compose.svg?branch=master)](https://travis-ci.com/MottainaiCI/lxd-compose)
+
 **lxd-compose** supply a way to deploy a complex environment to an LXD Cluster or LXD standalone installation.
 
 It permits to organize and trace all configuration steps of infrastructure and create test suites.
@@ -19,7 +21,7 @@ $> sudo luet install repository/mocaccino-extra
 $> sudo luet install app-emulation/lxd-compose
 ```
 
-### Upgrade the packages
+### Upgrade lxd-compose
 
 ```bash
 
