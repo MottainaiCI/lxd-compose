@@ -48,7 +48,7 @@ func (r *Jinja2Compiler) hasNotYamlEnvs() bool {
 	ans := false
 	if len(r.Project.IncludeEnvFiles) > 0 {
 		for _, file := range r.Project.IncludeEnvFiles {
-			if filepath.Ext(file) != ".yml" {
+			if filepath.Ext(file) != ".yml" && filepath.Ext(file) != ".yaml" {
 				ans = true
 				break
 			}
@@ -68,11 +68,17 @@ func (r *Jinja2Compiler) Compile(sourceFile, destFile string) error {
 	}
 	//defer os.RemoveAll(tmpdir)
 
+	envBaseDirAbs, err := filepath.Abs(r.EnvBaseDir)
+	if err != nil {
+		return err
+	}
 	hasNotYmlVars := r.hasNotYamlEnvs()
 
 	if hasNotYmlVars {
-		// Then i use the first file
-		dataFile = filepath.Join(r.EnvBaseDir, r.Project.IncludeEnvFiles[0])
+		// Then i use the first file.
+		// TODO: See if this is correct. We leave to j2cli the read this file.
+		// Loader ignore it now.
+		dataFile = filepath.Join(envBaseDirAbs, r.Project.IncludeEnvFiles[0])
 
 	} else {
 		// Create temporary source file from in memory map
