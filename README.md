@@ -8,7 +8,28 @@ All configuration files could be created at runtime through two different templa
 
 It's under heavy development phase and specification could be changed in the near future.
 
-## Deploy an environment
+## Installation
+
+**lxd-compose** is available as Mocaccino OS package and installable in every Linux
+distro through [luet](https://luet-lab.github.io/docs/) tool with these steps:
+
+```bash
+$> curl https://gist.githubusercontent.com/mudler/8b8d6c53c4669f4b9f9a72d1a2b92172/raw/e9d38b8e0702e7f1ef9a5db1bfa428add12a2d24/get_luet_root.sh | sudo sh
+$> sudo luet install repository/mocaccino-extra
+$> sudo luet install app-emulation/lxd-compose
+```
+
+### Upgrade the packages
+
+```bash
+
+$> sudo luet upgrade app-emulation/lxd-compose
+
+```
+
+## Getting Started
+
+### Deploy an environment
 
 ```bash
 
@@ -16,10 +37,37 @@ $> lxd-compose apply myproject
 
 ```
 
-## Destroy an environment 
+### Destroy an environment 
 
 ```bash
 
 $> lxd-compose destroy myproject
 
 ```
+
+### Validate environemnts
+
+
+```bash
+
+$> lxd-compose validate
+
+```
+
+### Create single node
+
+```bash
+
+$> lxd-compose node create node1 --hooks
+
+```
+
+### Diagnose loaded variables
+
+```bash
+
+$> lxd-compose diagnose vars project1
+
+```
+
+
