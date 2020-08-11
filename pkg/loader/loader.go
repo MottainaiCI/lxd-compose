@@ -323,6 +323,8 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					continue
 				}
 
+				i.Logger.Debug("For project " + proj.Name + " add group " + grp.Name)
+
 				env.Projects[idx].AddGroup(grp)
 			}
 
