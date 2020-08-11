@@ -29,6 +29,7 @@ import (
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 	"github.com/MottainaiCI/lxd-compose/pkg/template"
 
+	"encoding/json"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -45,6 +46,8 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+
+			jsonFormat, _ := cmd.Flags().GetBool("json")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -70,10 +73,25 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			out, err := yaml.Marshal(*compiler.GetVars())
-			if err != nil {
-				fmt.Println("Error on convert vars to yaml: " + err.Error())
-				os.Exit(1)
+			var out string
+
+			if jsonFormat {
+				data, err := json.Marshal(*compiler.GetVars())
+				if err != nil {
+					fmt.Println("Error on convert vars to JSON: " + err.Error())
+					os.Exit(1)
+				}
+
+				out = string(data)
+
+			} else {
+				data, err := yaml.Marshal(*compiler.GetVars())
+				if err != nil {
+					fmt.Println("Error on convert vars to yaml: " + err.Error())
+					os.Exit(1)
+				}
+
+				out = string(data)
 			}
 
 			fmt.Println(string(out))
@@ -82,8 +100,7 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	}
 
 	pflags := cmd.Flags()
-	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
-	pflags.Bool("hooks", false, "Execute post-node-sync hooks.")
+	pflags.Bool("json", false, "Dump variables in JSON format.")
 
 	return cmd
 }
