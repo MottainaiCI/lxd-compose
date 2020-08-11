@@ -1,6 +1,7 @@
 # LXD Compose
 
 [![Build Status](https://travis-ci.com/MottainaiCI/lxd-compose.svg?branch=master)](https://travis-ci.com/MottainaiCI/lxd-compose)
+[![Go Report Card](https://goreportcard.com/badge/github.com/MottainaiCI/lxd-compose)](https://goreportcard.com/report/github.com/MottainaiCI/lxd-compose)
 
 **lxd-compose** supply a way to deploy a complex environment to an LXD Cluster or LXD standalone installation.
 
