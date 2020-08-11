@@ -221,6 +221,10 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 
 	var syncSourceDir string
+	envBaseAbs, err := filepath.Abs(filepath.Dir(env.File))
+	if err != nil {
+		return err
+	}
 
 	// Retrieve pre-group hooks from project
 	preGroupHooks := proj.GetHooks4Nodes("pre-group", "host")
@@ -306,13 +310,13 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		if len(node.SyncResources) > 0 {
 			if node.SourceDir != "" {
 				if node.IsSourcePathRelative() {
-					syncSourceDir = filepath.Join(filepath.Dir(env.File), node.SourceDir)
+					syncSourceDir = filepath.Join(envBaseAbs, node.SourceDir)
 				} else {
 					syncSourceDir = node.SourceDir
 				}
 			} else {
 				// Use env file directory
-				syncSourceDir = filepath.Dir(env.File)
+				syncSourceDir = envBaseAbs
 			}
 
 			i.Logger.Debug(i.Logger.Aurora.Bold(
