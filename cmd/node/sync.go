@@ -85,15 +85,21 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(0)
 			}
 
+			envBaseAbs, err := filepath.Abs(filepath.Dir(env.File))
+			if err != nil {
+				fmt.Println("Error on retrieve environment base path: " + err.Error())
+				os.Exit(1)
+			}
+
 			if nodeConf.SourceDir != "" {
 				if nodeConf.IsSourcePathRelative() {
-					syncSourceDir = filepath.Join(filepath.Dir(env.File), nodeConf.SourceDir)
+					syncSourceDir = filepath.Join(envBaseAbs, nodeConf.SourceDir)
 				} else {
 					syncSourceDir = nodeConf.SourceDir
 				}
 			} else {
 				// Use env file directory
-				syncSourceDir = filepath.Dir(env.File)
+				syncSourceDir = envBaseAbs
 			}
 
 			fmt.Println("Using sync source basedir ", syncSourceDir)
