@@ -33,9 +33,9 @@ func (n *LxdCNode) Init() {
 
 func (n *LxdCNode) IsSourcePathRelative() bool {
 	if filepath.IsAbs(n.SourceDir) {
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 func (n *LxdCNode) GetHooks(event string) []LxdCHook {
