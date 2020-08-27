@@ -199,7 +199,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 
 					if len(node.Hooks) > 0 {
 						for _, h := range node.Hooks {
-							if h.Node != "" {
+							if h.Node != "" && h.Node != "host" {
 								i.Logger.Warning("Invalid hook on node " + node.Name + " with node field valorized.")
 								wrongHooks++
 								if !ignoreError {
@@ -340,7 +340,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					continue
 				}
 
-				i.Logger.Debug("Loaded environment file " + env.File)
+				i.Logger.Debug("Loaded variables file " + efile)
 
 				if path.Ext(efile) != ".yml" {
 					i.Logger.Warning("For project", proj.Name, "included env file", efile,
