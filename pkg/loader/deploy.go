@@ -339,7 +339,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 								node.Name, resource.Source, resource.Destination))))
 
 				err = executor.RecursivePushFile(node.Name, filepath.Join(syncSourceDir, resource.Source),
-					filepath.Dir(resource.Destination)+"/")
+					resource.Destination)
 				if err != nil {
 					i.Logger.Error("Error on sync " + resource.Source + ": " + err.Error())
 					return err

@@ -109,7 +109,7 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println("Syncing resource " + resource.Source + " => " + resource.Destination)
 
 				err = executor.RecursivePushFile(node, filepath.Join(syncSourceDir, resource.Source),
-					filepath.Dir(resource.Destination)+"/")
+					resource.Destination)
 				if err != nil {
 					fmt.Println("Error on sync " + resource.Source + ": " + err.Error())
 					os.Exit(1)

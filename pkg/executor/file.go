@@ -101,6 +101,8 @@ func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os
 
 // Based on code of lxc client tool https://github.com/lxc/lxd/blob/master/lxc/file.go
 func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) error {
+	var targetIsFile bool = true
+	var sourceIsFile bool = true
 
 	// Determine the target mode
 	mode := os.FileMode(0755)
@@ -117,6 +119,14 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 	sourceDir := filepath.Dir(filepath.Clean(source))
 	sourceLen := len(sourceDir)
 
+	if strings.HasSuffix(target, "/") {
+		targetIsFile = false
+	}
+
+	if strings.HasSuffix(source, "/") {
+		sourceIsFile = false
+	}
+
 	sendFile := func(p string, fInfo os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("Failed to walk path for %s: %s", p, err)
@@ -129,6 +139,11 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 
 		// Prepare for file transfer
 		targetPath := path.Join(target, filepath.ToSlash(p[sourceLen:]))
+
+		if p == source && targetIsFile && sourceIsFile {
+			targetPath = target
+		}
+
 		mode, uid, gid := lxd_shared.GetOwnerMode(fInfo)
 		args := lxd.ContainerFileArgs{
 			UID:  int64(uid),
