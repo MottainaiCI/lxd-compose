@@ -66,6 +66,10 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					endpoint = grp.Connection
 				}
 
+				if confdir == "" {
+					confdir = config.GetGeneral().LxdConfDir
+				}
+
 				executor := executor.NewLxdCExecutor(endpoint, confdir,
 					nodeConf.Entrypoint, grp.Ephemeral, config.GetLogging().CmdsOutput)
 				err = executor.Setup()
