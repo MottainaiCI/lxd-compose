@@ -209,6 +209,9 @@ func (e *LxdCExecutor) GetImage(image string, remote lxd.ImageServer) (*lxd_api.
 		// Check if exists an image with input alias
 		aliasEntry, _, err = remote.GetImageAlias(image)
 		if err != nil {
+			log.GetDefaultLogger().Debug(
+				fmt.Sprintf("On search image with alias %s receive from remote: %s",
+					image, err.Error()))
 			img = nil
 		} else {
 			// POST: Find image with alias and so I try to retrieve api.Image
@@ -340,7 +343,7 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 			// Is not a fingerprint alias. I can't ensure right image.
 			return "", err
 		}
-		// POST: Try to se if there a local image with the fingerprint
+		// POST: Try to see if there a local image with the fingerprint
 		imageFingerprint = imageAlias
 	}
 
@@ -390,9 +393,15 @@ func (l *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.I
 	for remote, server := range l.LxdConfig.Remotes {
 
 		if imageRemoteServer != "" && remote != imageRemoteServer {
+
+			log.GetDefaultLogger().Debug(fmt.Sprintf(
+				"Skipping remote %s. I will use %s.", remote, imageRemoteServer))
 			continue
 		}
 
+		log.GetDefaultLogger().Debug(fmt.Sprintf(
+			"Found remote %s. I will search the image %s",
+			remote, image))
 		tmp_srv, err = l.LxdConfig.GetImageServer(remote)
 		if err != nil {
 			err = nil
