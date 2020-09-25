@@ -237,7 +237,7 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 		logger.DebugC(
 			logger.Aurora.Italic(
 				logger.Aurora.BrightCyan(
-					fmt.Sprintf(">>> [%s] Compiling %s -> %s :soup:",
+					fmt.Sprintf(">>> [%s] Compiling %s -> %s :coffee:",
 						node.Name, sourceFile, destFile))))
 
 		err := compiler.Compile(sourceFile, destFile)
