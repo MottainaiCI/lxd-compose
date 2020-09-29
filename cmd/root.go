@@ -76,11 +76,14 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
 	pflags.Bool("cmds-output", config.Viper.GetBool("logging.cmds_output"),
 		"Show hooks commands output or not.")
+	pflags.BoolP("debug", "d", config.Viper.GetBool("general.debug"),
+		"Enable debug output.")
 
 	pflags.Bool("push-progress", config.Viper.GetBool("logging.push_progressbar"),
 		"Show sync files progress bar.")
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
+	config.Viper.BindPFlag("general.debug", pflags.Lookup("debug"))
 	config.Viper.BindPFlag("general.lxd_confdir", pflags.Lookup("lxd-config-dir"))
 	config.Viper.BindPFlag("logging.cmds_output", pflags.Lookup("cmds-output"))
 	config.Viper.BindPFlag("logging.push_progressbar", pflags.Lookup("push-progress"))
