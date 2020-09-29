@@ -66,7 +66,7 @@ func (r *Jinja2Compiler) Compile(sourceFile, destFile string) error {
 	if err != nil {
 		return err
 	}
-	//defer os.RemoveAll(tmpdir)
+	defer os.RemoveAll(tmpdir)
 
 	envBaseDirAbs, err := filepath.Abs(r.EnvBaseDir)
 	if err != nil {
