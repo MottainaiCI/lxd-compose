@@ -70,6 +70,14 @@ projects:
       #
       #  commands:
       #    - echo "1"
+      #
+      # Get stdout of the commands and store it to a project
+      # environment. Optional parameter.
+      #  out2var: "myvar1"
+      #
+      # Get stderr of the commands and store it to a project
+      # environment. Optional parameter.
+      #  err2var: "myvar2"
 
 
     # A fast way to define environments for template
