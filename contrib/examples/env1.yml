@@ -14,7 +14,7 @@ template_engine:
   opts:
     # Enable to_yaml, to_json, etc.
     - "--filters"
-    - "/usr/lib64/python3.6/site-packages/ansible/plugins/filter/core.py"
+    - "/usr/lib/python3.7/site-packages/ansible/plugins/filter/core.py"
 
 # Override LXD_CONF_DIR. Default use $HOME/.config/lxc/
 # lxd_config_dir: ""
@@ -154,6 +154,22 @@ projects:
               - event: post-node-sync
                 commands:
                   - echo "Start app"
+                out2var: "myvar"
+              - event: post-node-sync
+                commands:
+                  - echo "${myvar}"
+              - event: post-node-sync
+                node: "host"
+                commands:
+                  - echo "HOST ${myvar}"
+                  - echo "${myvar}"
+              - event: post-node-sync
+                node: "host"
+                entrypoint:
+                  - /bin/bash
+                  - -c
+                commands:
+                  - echo "${myvar}" > /tmp/lxd-compose-var
 
             # List of templates files to compiles before push the
             # result inside container.
