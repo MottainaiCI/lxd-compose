@@ -45,11 +45,12 @@ type LxdCProfile struct {
 }
 
 type LxdCHook struct {
-	Event    string   `json:"event" yaml:"event"`
-	Node     string   `json:"node" yaml:"node"`
-	Commands []string `json:"commands,omitempty" yaml:"commands,omitempty"`
-	Out2Var  string   `json:"out2var,omitempty" yaml:"out2var,omitempty"`
-	Err2Var  string   `json:"err2var,omitempty" yaml:"err2var,omitempty"`
+	Event      string   `json:"event" yaml:"event"`
+	Node       string   `json:"node" yaml:"node"`
+	Commands   []string `json:"commands,omitempty" yaml:"commands,omitempty"`
+	Out2Var    string   `json:"out2var,omitempty" yaml:"out2var,omitempty"`
+	Err2Var    string   `json:"err2var,omitempty" yaml:"err2var,omitempty"`
+	Entrypoint []string `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
 }
 
 type LxdCTemplateEngine struct {

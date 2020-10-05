@@ -193,10 +193,13 @@ func (e *LxdCExecutor) DeleteContainer(name string) error {
 	return e.CleanUpContainer(name)
 }
 
-func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser) (int, error) {
+func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error) {
 	entrypoint := []string{"/bin/bash", "-c"}
 	if len(e.Entrypoint) > 0 {
 		entrypoint = e.Entrypoint
+	}
+	if len(entryPoint) > 0 {
+		entrypoint = entryPoint
 	}
 
 	if outBuffer == nil {
@@ -281,12 +284,13 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 	return ans, nil
 }
 
-func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string]string) (int, error) {
+func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string]string, entryPoint []string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 
 	res, err := e.RunCommandWithOutput(containerName, command, envs,
-		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer),
+		entryPoint)
 
 	if err == nil {
 
@@ -306,12 +310,13 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 	return res, err
 }
 
-func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar, errVar string, envs *map[string]string) (int, error) {
+func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar, errVar string, envs *map[string]string, entryPoint []string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 
 	res, err := e.RunCommandWithOutput(containerName, command, *envs,
-		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer),
+		entryPoint)
 
 	if err == nil {
 
@@ -338,10 +343,17 @@ func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar, 
 	return res, err
 }
 
-func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser) (int, error) {
+func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error) {
 	ans := 1
 
-	// TODO: check if it's needed use entrypoint.
+	entrypoint := []string{"/bin/bash", "-c"}
+	if len(e.Entrypoint) > 0 {
+		entrypoint = e.Entrypoint
+	}
+
+	if len(entryPoint) > 0 {
+		entrypoint = entryPoint
+	}
 
 	if outBuffer == nil {
 		return 1, errors.New("Invalid outBuffer")
@@ -350,12 +362,15 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 		return 1, errors.New("Invalid errBuffer")
 	}
 
-	cmds := strings.Split(command, " ")
+	cmds := append(entrypoint, command)
 
 	hostCommand := exec.Command(cmds[0], cmds[1:]...)
 
 	logger := log.GetDefaultLogger()
 
+	logger.DebugC(logger.Aurora.Bold(
+		logger.Aurora.BrightYellow(
+			fmt.Sprintf("   :house_with_garden: - entrypoint: %s", entrypoint))))
 	logger.InfoC(logger.Aurora.Bold(
 		logger.Aurora.BrightYellow("   :house_with_garden: - " + command)))
 
@@ -389,12 +404,13 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 	return ans, nil
 }
 
-func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string) (int, error) {
+func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string, entryPoint []string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 
 	res, err := e.RunHostCommandWithOutput(command, envs,
-		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer),
+		entryPoint)
 
 	if err == nil {
 		if e.ShowCmdsOutput && len(outBuffer.String()) > 0 {
@@ -413,12 +429,13 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string) (i
 	return res, err
 }
 
-func (e *LxdCExecutor) RunHostCommandWithOutput4Var(command, outVar, errVar string, envs *map[string]string) (int, error) {
+func (e *LxdCExecutor) RunHostCommandWithOutput4Var(command, outVar, errVar string, envs *map[string]string, entryPoint []string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 
 	res, err := e.RunHostCommandWithOutput(command, *envs,
-		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer))
+		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer),
+		entryPoint)
 
 	if err == nil {
 
