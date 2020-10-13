@@ -103,14 +103,16 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 }
 
 func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.LxdCExecutor, proj *specs.LxdCProject, group *specs.LxdCGroup) error {
-	var err error
 	var res int
 	nodes := []specs.LxdCNode{}
 	storeVar := false
 
 	if len(*hooks) > 0 {
 
-		envs := proj.GetEnvsMap()
+		envs, err := proj.GetEnvsMap()
+		if err != nil {
+			return err
+		}
 		if _, ok := envs["HOME"]; !ok {
 			envs["HOME"] = "/"
 		}

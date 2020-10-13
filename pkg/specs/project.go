@@ -22,7 +22,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package specs
 
 import (
-	"encoding/json"
+	"fmt"
+
+	"github.com/ghodss/yaml"
+	"github.com/icza/dyno"
 )
 
 func (p *LxdCProject) Init() {
@@ -47,7 +50,7 @@ func (p *LxdCProject) GetName() string {
 	return p.Name
 }
 
-func (p *LxdCProject) GetEnvsMap() map[string]string {
+func (p *LxdCProject) GetEnvsMap() (map[string]string, error) {
 	ans := map[string]string{}
 
 	for _, e := range p.Environments {
@@ -58,15 +61,24 @@ func (p *LxdCProject) GetEnvsMap() map[string]string {
 			case string:
 				ans[k] = v.(string)
 			default:
-				data, err := json.Marshal(v)
-				if err == nil {
-					ans[k] = string(data)
+				m := dyno.ConvertMapI2MapS(v)
+				y, err := yaml.Marshal(m)
+				if err != nil {
+					return ans, fmt.Errorf("Error on convert var %s to yaml: %s",
+						k, err.Error())
 				}
+
+				data, err := yaml.YAMLToJSON(y)
+				if err != nil {
+					return ans, fmt.Errorf("Error on convert var %s to json: %s",
+						k, err.Error())
+				}
+				ans[k] = string(data)
 			}
 		}
 	}
 
-	return ans
+	return ans, nil
 }
 
 func (p *LxdCProject) GetHooks(event string) []LxdCHook {
