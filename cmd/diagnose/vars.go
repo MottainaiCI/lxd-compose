@@ -29,7 +29,8 @@ import (
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 	"github.com/MottainaiCI/lxd-compose/pkg/template"
 
-	"encoding/json"
+	yamlgo "github.com/ghodss/yaml"
+	"github.com/icza/dyno"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -76,7 +77,17 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			var out string
 
 			if jsonFormat {
-				data, err := json.Marshal(*compiler.GetVars())
+
+				// TODO: Found the issue present on yaml/yamlgo libs
+				m := dyno.ConvertMapI2MapS(*compiler.GetVars()).(map[string]interface{})
+				y, err := yaml.Marshal(m)
+				//y, err := yaml.Marshal(*proj)
+				if err != nil {
+					fmt.Println("Error on convert vars to yaml: " + err.Error())
+					os.Exit(1)
+				}
+				//data, err := json.Marshal(proj)
+				data, err := yamlgo.YAMLToJSON(y)
 				if err != nil {
 					fmt.Println("Error on convert vars to JSON: " + err.Error())
 					os.Exit(1)
@@ -85,7 +96,8 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				out = string(data)
 
 			} else {
-				data, err := yaml.Marshal(*compiler.GetVars())
+				m := dyno.ConvertMapI2MapS(*compiler.GetVars())
+				data, err := yaml.Marshal(m)
 				if err != nil {
 					fmt.Println("Error on convert vars to yaml: " + err.Error())
 					os.Exit(1)
@@ -95,7 +107,6 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			fmt.Println(string(out))
-
 		},
 	}
 
