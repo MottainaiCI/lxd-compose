@@ -92,7 +92,11 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					os.Exit(1)
 				}
 
-				envs := proj.GetEnvsMap()
+				envs, err := proj.GetEnvsMap()
+				if err != nil {
+					fmt.Println("Error on convert variables in envs:" + err.Error() + "\n")
+					os.Exit(1)
+				}
 				if _, ok := envs["HOME"]; !ok {
 					envs["HOME"] = "/"
 				}
