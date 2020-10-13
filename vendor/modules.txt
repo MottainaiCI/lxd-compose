@@ -65,12 +65,10 @@ github.com/flosch/pongo2
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.6.5
-github.com/fsouza/go-dockerclient
-# github.com/geaaru/time-master v0.0.0-20200801154724-b41fecc1f570
 ## explicit
-github.com/geaaru/time-master/pkg/specs
-github.com/geaaru/time-master/pkg/time
+github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
+## explicit
 github.com/ghodss/yaml
 # github.com/go-ole/go-ole v1.2.4
 github.com/go-ole/go-ole
@@ -99,6 +97,9 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
+# github.com/icza/dyno v0.0.0-20200205103839-49cb13720835
+## explicit
+github.com/icza/dyno
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
 # github.com/jaypipes/ghw v0.6.1
@@ -173,8 +174,6 @@ github.com/nxadm/tail/ratelimiter
 github.com/nxadm/tail/util
 github.com/nxadm/tail/watch
 github.com/nxadm/tail/winfile
-# github.com/olekukonko/tablewriter v0.0.4
-## explicit
 # github.com/onsi/ginkgo v1.14.0
 ## explicit
 github.com/onsi/ginkgo

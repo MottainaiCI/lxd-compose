@@ -8,8 +8,10 @@ require (
 	github.com/MottainaiCI/mottainai-cli v0.0.0-20190629163247-be90396f998d
 	github.com/MottainaiCI/mottainai-server v0.0.0-20200319175456-fc3c442fd4a6
 	github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915 // indirect
-	github.com/geaaru/time-master v0.0.0-20200801154724-b41fecc1f570
+	github.com/fsouza/go-dockerclient v1.6.5 // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/gosexy/gettext v0.0.0-20160830220431-74466a0a0c4a // indirect
+	github.com/icza/dyno v0.0.0-20200205103839-49cb13720835
 	github.com/jaypipes/ghw v0.6.1 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/juju/go4 v0.0.0-20160222163258-40d72ab9641a // indirect
@@ -18,7 +20,6 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40
 	github.com/mudler/luet v0.0.0-20200717204249-ffa6fc3829d2
-	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/spf13/cobra v1.0.0
