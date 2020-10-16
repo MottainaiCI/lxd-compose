@@ -109,20 +109,20 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 
 	if len(*hooks) > 0 {
 
-		envs, err := proj.GetEnvsMap()
-		if err != nil {
-			return err
-		}
-		if _, ok := envs["HOME"]; !ok {
-			envs["HOME"] = "/"
-		}
-
 		runSingleCmd := func(h *specs.LxdCHook, node, cmds string) error {
 
 			if h.Out2Var != "" || h.Err2Var != "" {
 				storeVar = true
 			} else {
 				storeVar = false
+			}
+
+			envs, err := proj.GetEnvsMap()
+			if err != nil {
+				return err
+			}
+			if _, ok := envs["HOME"]; !ok {
+				envs["HOME"] = "/"
 			}
 
 			if h.Node == "host" {
@@ -132,6 +132,26 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 					res, err = executor.RunHostCommand(cmds, envs, h.Entrypoint)
 				}
 			} else {
+
+				if node != "" {
+					_, _, _, nodeEntity := i.GetEntitiesByNodeName(node)
+					if nodeEntity == nil {
+						return errors.New("Error on retrieve node object for name " + node)
+					}
+
+					json, err := nodeEntity.ToJson()
+					if err != nil {
+						return err
+					}
+					envs["node"] = json
+
+					if len(nodeEntity.Labels) > 0 {
+						for k, v := range nodeEntity.Labels {
+							envs[k] = v
+						}
+					}
+				}
+
 				if storeVar {
 					res, err = executor.RunCommandWithOutput4Var(node, cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint)
 				} else {
@@ -189,7 +209,7 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 								executor.Entrypoint = []string{}
 							}
 
-							err = runSingleCmd(&h, node.Name, cmds)
+							err := runSingleCmd(&h, node.Name, cmds)
 							if err != nil {
 								return err
 							}

@@ -128,7 +128,9 @@ projects:
 
             # Define labels to node for particular configuration tasks.
             # labels:
-            #  - label1
+            #  label1: value1
+            labels:
+              mynode_data1: "data1"
 
             # Specify directory where build path of templates.
             # Directory could be an absolute path or a relative path based
@@ -155,6 +157,16 @@ projects:
               - event: post-node-creation
                 commands:
                   - echo "1"
+
+              # Print node json
+              - event: post-node-creation
+                commands:
+                  - apk add curl
+                  - curl --no-progress-meter https://get.mocaccino.org/luet/get_luet_root.sh | sh
+                  - luet install repository/mocaccino-extra
+                  - luet install utils/jq
+                  - echo "${node}" | jq
+
               - event: post-node-sync
                 commands:
                   - echo "Start app"
@@ -168,6 +180,11 @@ projects:
               - event: post-node-sync
                 commands:
                   - echo "${obj}"
+              # Print label key"
+              - event: post-node-sync
+                commands:
+                  - echo "${mynode_data1}"
+
               - event: post-node-sync
                 node: "host"
                 commands:
