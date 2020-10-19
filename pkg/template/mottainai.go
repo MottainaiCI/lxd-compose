@@ -23,6 +23,8 @@ package template
 
 import (
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
@@ -49,6 +51,12 @@ func (r *MottainaiCompiler) Compile(sourceFile, destFile string) error {
 	}
 
 	dstData, err := r.CompileRaw(string(sourceData))
+	if err != nil {
+		return err
+	}
+
+	dir := filepath.Dir(destFile)
+	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return err
 	}
