@@ -57,7 +57,7 @@ func (p *LxdCProject) GetEnvsMap() (map[string]string, error) {
 		for k, v := range e.EnvVars {
 			switch v.(type) {
 			case int:
-				ans[k] = string(v.(int))
+				ans[k] = fmt.Sprintf("%d", v.(int))
 			case string:
 				ans[k] = v.(string)
 			default:
