@@ -195,6 +195,8 @@ projects:
                 entrypoint:
                   - /bin/bash
                   - -c
+                flags:
+                  - flag1
                 commands:
                   - echo "${myvar}" > /tmp/lxd-compose-var
 
