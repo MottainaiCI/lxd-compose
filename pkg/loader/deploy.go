@@ -196,7 +196,14 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 
 		for _, h := range *hooks {
 
+			// Check if hooks must be processed
+			if !h.ToProcess(i.FlagsEnabled, i.FlagsDisabled) {
+				i.Logger.Debug("Skipped hooks ", h)
+				continue
+			}
+
 			if h.Commands != nil && len(h.Commands) > 0 {
+
 				for _, cmds := range h.Commands {
 					switch h.Node {
 					case "", "*":
@@ -373,15 +380,15 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 							node.Name, idx+1, nResources, resource.Destination)))
 			}
 
-			// Retrieve post-node-sync hooks of the node from project
-			postSyncHooks := i.GetNodeHooks4Event("post-node-sync", proj, group, &node)
+		}
 
-			// Run post-node-sync hooks
-			err = i.ProcessHooks(&postSyncHooks, executor, proj, group)
-			if err != nil {
-				return err
-			}
+		// Retrieve post-node-sync hooks of the node from project
+		postSyncHooks := i.GetNodeHooks4Event("post-node-sync", proj, group, &node)
 
+		// Run post-node-sync hooks
+		err = i.ProcessHooks(&postSyncHooks, executor, proj, group)
+		if err != nil {
+			return err
 		}
 
 	}

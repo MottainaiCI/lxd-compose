@@ -68,6 +68,48 @@ func (h *LxdCHook) SetNode(node string) {
 	h.Node = node
 }
 
+func (h *LxdCHook) ToProcess(enabledFlags, disabledFlags []string) bool {
+	ans := true
+
+	if len(h.Flags) == 0 {
+		return true
+	}
+
+	if len(disabledFlags) > 0 {
+		// Check if the flag is present
+		for _, df := range disabledFlags {
+			if h.ContainsFlag(df) {
+				return false
+			}
+		}
+	}
+
+	if len(enabledFlags) > 0 {
+		for _, ef := range enabledFlags {
+			if h.ContainsFlag(ef) {
+				return true
+			}
+		}
+		ans = false
+	}
+
+	return ans
+}
+
+func (h *LxdCHook) ContainsFlag(flag string) bool {
+	ans := false
+	if len(h.Flags) > 0 {
+		for _, f := range h.Flags {
+			if f == flag {
+				ans = true
+				break
+			}
+		}
+	}
+
+	return ans
+}
+
 func FilterHooks4Node(hooks *[]LxdCHook, node string) []LxdCHook {
 	ans := []LxdCHook{}
 

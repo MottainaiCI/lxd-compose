@@ -32,6 +32,9 @@ import (
 )
 
 func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var enabledFlags []string
+	var disabledFlags []string
+
 	var cmd = &cobra.Command{
 		Use:   "apply [list-of-projects]",
 		Short: "Deploy projects.",
@@ -51,6 +54,9 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
 			}
+
+			composer.SetFlagsDisabled(disabledFlags)
+			composer.SetFlagsEnabled(enabledFlags)
 
 			projects := args[0:]
 
@@ -75,6 +81,12 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			fmt.Println("All done.")
 		},
 	}
+
+	flags := cmd.Flags()
+	flags.StringSliceVar(&enabledFlags, "enable-flag", []string{},
+		"Run hooks of only specified flags.")
+	flags.StringSliceVar(&disabledFlags, "disable-flag", []string{},
+		"Disable execution of the hooks with the specified flags.")
 
 	return cmd
 }

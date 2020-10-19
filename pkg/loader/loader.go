@@ -35,9 +35,11 @@ import (
 )
 
 type LxdCInstance struct {
-	Config       *specs.LxdComposeConfig
-	Logger       *log.LxdCLogger
-	Environments []specs.LxdCEnvironment
+	Config        *specs.LxdComposeConfig
+	Logger        *log.LxdCLogger
+	Environments  []specs.LxdCEnvironment
+	FlagsDisabled []string
+	FlagsEnabled  []string
 }
 
 func NewLxdCInstance(config *specs.LxdComposeConfig) *LxdCInstance {
@@ -65,6 +67,21 @@ func (i *LxdCInstance) AddEnvironment(env specs.LxdCEnvironment) {
 
 func (i *LxdCInstance) GetEnvironments() *[]specs.LxdCEnvironment {
 	return &i.Environments
+}
+
+func (i *LxdCInstance) GetFlagsEnabled() []string  { return i.FlagsEnabled }
+func (i *LxdCInstance) GetFlagsDisabled() []string { return i.FlagsDisabled }
+func (i *LxdCInstance) SetFlagsEnabled(flags []string) {
+	i.FlagsEnabled = flags
+}
+func (i *LxdCInstance) SetFlagsDisabled(flags []string) {
+	i.FlagsDisabled = flags
+}
+func (i *LxdCInstance) AddFlagEnabled(flag string) {
+	i.FlagsEnabled = append(i.FlagsEnabled, flag)
+}
+func (i *LxdCInstance) AddFlagDisabled(flag string) {
+	i.FlagsDisabled = append(i.FlagsDisabled, flag)
 }
 
 func (i *LxdCInstance) GetEnvByProjectName(name string) *specs.LxdCEnvironment {
