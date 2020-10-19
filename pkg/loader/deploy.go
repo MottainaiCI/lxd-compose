@@ -361,14 +361,21 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 			for idx, resource := range node.SyncResources {
 
+				var sourcePath string
+
+				if filepath.IsAbs(resource.Source) {
+					sourcePath = resource.Source
+				} else {
+					sourcePath = filepath.Join(syncSourceDir, resource.Source)
+				}
+
 				i.Logger.DebugC(
 					i.Logger.Aurora.Italic(
 						i.Logger.Aurora.BrightCyan(
 							fmt.Sprintf(">>> [%s] %s => %s",
 								node.Name, resource.Source, resource.Destination))))
 
-				err = executor.RecursivePushFile(node.Name, filepath.Join(syncSourceDir, resource.Source),
-					resource.Destination)
+				err = executor.RecursivePushFile(node.Name, sourcePath, resource.Destination)
 				if err != nil {
 					i.Logger.Error("Error on sync " + resource.Source + ": " + err.Error())
 					return err
