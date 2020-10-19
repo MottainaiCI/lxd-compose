@@ -380,6 +380,10 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 		elist = append(elist, k+"="+v)
 	}
 
+	if e.ConfigDir != "" {
+		elist = append(elist, fmt.Sprintf("LXD_CONF=%s", e.ConfigDir))
+	}
+
 	hostCommand.Stdout = outBuffer
 	hostCommand.Stderr = errBuffer
 	hostCommand.Env = elist
@@ -412,18 +416,16 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string, en
 		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer),
 		entryPoint)
 
-	if err == nil {
-		if e.ShowCmdsOutput && len(outBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightYellow(
-					fmt.Sprintf(">>> [stdout]\n%s", outBuffer.String()))))
-		}
+	if e.ShowCmdsOutput && len(outBuffer.String()) > 0 {
+		logger.Info(logger.Aurora.Bold(
+			logger.Aurora.BrightYellow(
+				fmt.Sprintf(">>> [stdout]\n%s", outBuffer.String()))))
+	}
 
-		if e.ShowCmdsOutput && len(errBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightRed(
-					fmt.Sprintf(">>> [stderr]\n%s", errBuffer.String()))))
-		}
+	if e.ShowCmdsOutput && len(errBuffer.String()) > 0 {
+		logger.Info(logger.Aurora.Bold(
+			logger.Aurora.BrightRed(
+				fmt.Sprintf(">>> [stderr]\n%s", errBuffer.String()))))
 	}
 
 	return res, err
