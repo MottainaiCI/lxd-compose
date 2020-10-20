@@ -18,10 +18,14 @@ package template
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"reflect"
+	"sort"
+	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"gopkg.in/yaml.v2"
 )
 
@@ -38,10 +42,9 @@ func (tem *Template) DrawFromFile(file string) (string, error) {
 	}
 	return tem.Draw(string(dat))
 }
-func (tem *Template) AppendValue(k, v string) {
+func (tem *Template) AppendValue(k string, v interface{}) {
 	if _, ok := tem.Values[k]; !ok {
 		tem.Values[k] = v
-
 	}
 }
 func (tem *Template) LoadValuesFromFile(file string) error {
@@ -72,8 +75,8 @@ func (tem *Template) LoadValues(raw string) error {
 	return nil
 }
 
-func (tem *Template) ReadValues(raw string) (map[string]map[string]string, error) {
-	m := make(map[string]map[string]string)
+func (tem *Template) ReadValues(raw string) (map[string]map[string]interface{}, error) {
+	m := make(map[string]map[string]interface{})
 
 	err := yaml.Unmarshal([]byte(raw), &m)
 	if err != nil {
@@ -84,53 +87,85 @@ func (tem *Template) ReadValues(raw string) (map[string]map[string]string, error
 }
 
 func (tem *Template) Draw(raw string) (string, error) {
-
-	tf := template.FuncMap{
-		"isInt": func(i interface{}) bool {
-			v := reflect.ValueOf(i)
-			switch v.Kind() {
-			case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
-				return true
-			default:
-				return false
-			}
-		},
-		"isString": func(i interface{}) bool {
-			v := reflect.ValueOf(i)
-			switch v.Kind() {
-			case reflect.String:
-				return true
-			default:
-				return false
-			}
-		},
-		"isSlice": func(i interface{}) bool {
-			v := reflect.ValueOf(i)
-			switch v.Kind() {
-			case reflect.Slice:
-				return true
-			default:
-				return false
-			}
-		},
-		"isArray": func(i interface{}) bool {
-			v := reflect.ValueOf(i)
-			switch v.Kind() {
-			case reflect.Array:
-				return true
-			default:
-				return false
-			}
-		},
-		"isMap": func(i interface{}) bool {
-			v := reflect.ValueOf(i)
-			switch v.Kind() {
-			case reflect.Map:
-				return true
-			default:
-				return false
-			}
-		},
+	tf := sprig.TxtFuncMap()
+	tf["isInt"] = func(i interface{}) bool {
+		v := reflect.ValueOf(i)
+		switch v.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+			return true
+		default:
+			return false
+		}
+	}
+	tf["isString"] = func(i interface{}) bool {
+		v := reflect.ValueOf(i)
+		switch v.Kind() {
+		case reflect.String:
+			return true
+		default:
+			return false
+		}
+	}
+	tf["isSlice"] = func(i interface{}) bool {
+		v := reflect.ValueOf(i)
+		switch v.Kind() {
+		case reflect.Slice:
+			return true
+		default:
+			return false
+		}
+	}
+	tf["isArray"] = func(i interface{}) bool {
+		v := reflect.ValueOf(i)
+		switch v.Kind() {
+		case reflect.Array:
+			return true
+		default:
+			return false
+		}
+	}
+	tf["isMap"] = func(i interface{}) bool {
+		v := reflect.ValueOf(i)
+		switch v.Kind() {
+		case reflect.Map:
+			return true
+		default:
+			return false
+		}
+	}
+	tf["replaceAll"] = strings.ReplaceAll
+	tf["join"] = strings.Join
+	tf["joinWithPrefix"] = func(a []string, sep, prefix string) string {
+		var ans []string
+		for _, elem := range a {
+			ans = append(ans, fmt.Sprintf("%s%s", prefix, elem))
+		}
+		return strings.Join(ans, sep)
+	}
+	tf["joinWithPrefixAndPostfix"] = func(a []string, sep, prefix, postfix string) string {
+		var ans []string
+		for _, elem := range a {
+			ans = append(ans, fmt.Sprintf("%s%s%s", prefix, elem, postfix))
+		}
+		return strings.Join(ans, sep)
+	}
+	tf["sort"] = func(a []string) []string {
+		sort.Strings(a)
+		return a
+	}
+	tf["getKeys"] = func(m map[interface{}]interface{}) []string {
+		var ans []string
+		for k, _ := range m {
+			ans = append(ans, k.(string))
+		}
+		return ans
+	}
+	tf["cast2StringArray"] = func(a []interface{}) []string {
+		var ans []string
+		for _, v := range a {
+			ans = append(ans, v.(string))
+		}
+		return ans
 	}
 	t := template.New("spec").Funcs(tf)
 	tt, err := t.Parse(raw)
