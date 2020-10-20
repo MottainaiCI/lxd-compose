@@ -33,6 +33,8 @@ import (
 )
 
 func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var enabledFlags []string
+	var disabledFlags []string
 
 	var cmd = &cobra.Command{
 		Use:   "create node1 node2",
@@ -51,6 +53,9 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
 			}
+
+			composer.SetFlagsDisabled(disabledFlags)
+			composer.SetFlagsEnabled(enabledFlags)
 
 			nodes := args[0:]
 
@@ -116,6 +121,10 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 	pflags.Bool("hooks", false, "Execute post-node-creation hooks")
+	pflags.StringSliceVar(&enabledFlags, "enable-flag", []string{},
+		"Run hooks of only specified flags.")
+	pflags.StringSliceVar(&disabledFlags, "disable-flag", []string{},
+		"Disable execution of the hooks with the specified flags.")
 
 	return cmd
 }
