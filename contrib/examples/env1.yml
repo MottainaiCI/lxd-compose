@@ -200,6 +200,28 @@ projects:
                 commands:
                   - echo "${myvar}" > /tmp/lxd-compose-var
 
+              - event: post-node-sync
+                node: "host"
+                entrypoint:
+                  - /bin/bash
+                  - -c
+                flags:
+                  - flag2
+                commands:
+                  - |
+                    echo '{ "obj1": "value1" }' | jq '.obj1'
+                out2var: "host_var"
+
+              - event: post-node-sync
+                node: "host"
+                entrypoint:
+                  - /bin/bash
+                  - -c
+                flags:
+                  - flag2
+                commands:
+                  - echo "${host_var}"
+
             # List of templates files to compiles before push the
             # result inside container.
             config_templates:
