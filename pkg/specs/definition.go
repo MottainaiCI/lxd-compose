@@ -105,7 +105,7 @@ type LxdCNode struct {
 
 	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 	SyncResources   []LxdCSyncResource   `json:"sync_resources,omitempty" yaml:"sync_resources,omitempty"`
-	Profiles        []string             `json:"profiles,omitempty" yaml:"lxd_profiles,omitempty"`
+	Profiles        []string             `json:"profiles,omitempty" yaml:"profiles,omitempty"`
 
 	Hooks []LxdCHook `json:"hooks" yaml:"hooks"`
 }

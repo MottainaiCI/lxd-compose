@@ -303,6 +303,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			profiles := []string{}
 			profiles = append(profiles, group.CommonProfiles...)
 			profiles = append(profiles, node.Profiles...)
+			i.Logger.Debug(fmt.Sprintf("[%s] Using profiles %s", node.Name, profiles))
 
 			err := executor.CreateContainer(node.Name, node.ImageSource,
 				node.ImageRemoteServer, profiles)
