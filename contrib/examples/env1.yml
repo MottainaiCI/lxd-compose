@@ -15,6 +15,7 @@ template_engine:
     # Enable to_yaml, to_json, etc.
     - "--filters"
     - "/usr/lib/python3.7/site-packages/ansible/plugins/filter/core.py"
+    - "contrib/filters/from_json.py"
 
 # Override LXD_CONF_DIR. Default use $HOME/.config/lxc/
 # lxd_config_dir: ""
@@ -78,6 +79,14 @@ projects:
       # Get stderr of the commands and store it to a project
       # environment. Optional parameter.
       #  err2var: "myvar2"
+
+    hooks:
+      - event: pre-group
+        node: "host"
+        commands:
+          - |
+            echo '[{ "user": "user1" }]'
+        out2var: "json_var"
 
 
     # A fast way to define environments for template
@@ -221,6 +230,10 @@ projects:
                   - flag2
                 commands:
                   - echo "${host_var}"
+
+              - event: post-node-sync
+                commands:
+                  - echo "${json_var}"
 
             # List of templates files to compiles before push the
             # result inside container.

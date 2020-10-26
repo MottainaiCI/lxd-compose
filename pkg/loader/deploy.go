@@ -266,6 +266,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		return err
 	}
 
+	// We need reload variables updated from out2var/err2var hooks.
+	compiler.InitVars()
+
 	// Compile group templates
 	err = template.CompileGroupFiles(group, compiler, template.CompilerOpts{})
 	if err != nil {
@@ -330,6 +333,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		if err != nil {
 			return err
 		}
+
+		// We need reload variables updated from out2var/err2var hooks.
+		compiler.InitVars()
 
 		// Compile node templates
 		err = template.CompileNodeFiles(node, compiler, template.CompilerOpts{})

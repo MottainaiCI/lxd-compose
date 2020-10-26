@@ -9,4 +9,11 @@ key2: {{ key2 }}
 
 key_from_file: {{ key_from_file1 }}
 
+{{ json_var | from_json | to_nice_yaml(indent=2) | indent(2, true) }}
+
+{% for user in json_var | from_json %}
+{{ user.user }}
+{% endfor %}
+
+
 # vim: filetype=yaml
