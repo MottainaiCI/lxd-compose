@@ -30,6 +30,10 @@ $> sudo luet upgrade app-emulation/lxd-compose
 
 ```
 
+## Examples
+
+We maintain a project that supply ready to build environments at [LXD Compose Galaxy](https://github.com/MottainaiCI/lxd-compose-galaxy).
+
 ## Getting Started
 
 ### Deploy an environment
@@ -38,9 +42,16 @@ $> sudo luet upgrade app-emulation/lxd-compose
 
 $> lxd-compose apply myproject
 
+# Disable hooks with flag foo
+$> lxd-compose apply --disable-flag foo
+
+# Execute only hooks with flag foo
+$> lxd-compose apply --enable-flag foo
+
 ```
 
-### Destroy an environment 
+
+### Destroy an environment
 
 ```bash
 
@@ -62,6 +73,12 @@ $> lxd-compose validate
 ```bash
 
 $> lxd-compose node create node1 --hooks
+
+# Execute only hooks with flag foo
+$> lxd-compose node create node1 --hooks --enable-flag foo
+
+# Disable hooks with flag foo
+$> lxd-compose node create node1 --hooks --disable-flag foo
 
 ```
 
