@@ -115,6 +115,11 @@ projects:
         # Create the environment container as ephemeral or not.
         ephemeral: true
 
+        hooks:
+          - event: pre-node-sync
+            node: "host"
+            commands:
+              - echo "HOST PRE-NODE-SYNC (ON GROUP)"
         # hooks:
         #   ....
         # event values are
@@ -175,6 +180,11 @@ projects:
                   - luet install repository/mocaccino-extra
                   - luet install utils/jq
                   - echo "${node}" | jq
+
+              - event: pre-node-sync
+                node: "host"
+                commands:
+                  - echo "HOST PRE-NODE-SYNC"
 
               - event: post-node-sync
                 commands:

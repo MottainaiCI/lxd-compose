@@ -49,6 +49,6 @@ func (g *LxdCGroup) GetHooks(event string) []LxdCHook {
 	return getHooks(&g.Hooks, event)
 }
 
-func (g *LxdCGroup) GetHooks4Nodes(event, node string) []LxdCHook {
-	return getHooks4Nodes(&g.Hooks, event, node)
+func (g *LxdCGroup) GetHooks4Nodes(event string, nodes []string) []LxdCHook {
+	return getHooks4Nodes(&g.Hooks, event, nodes)
 }

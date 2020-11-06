@@ -46,7 +46,7 @@ func (n *LxdCNode) GetHooks(event string) []LxdCHook {
 }
 
 func (n *LxdCNode) GetAllHooks(event string) []LxdCHook {
-	return getHooks4Nodes(&n.Hooks, event, "*")
+	return getHooks4Nodes(&n.Hooks, event, []string{"*"})
 }
 
 func (n *LxdCNode) ToJson() (string, error) {

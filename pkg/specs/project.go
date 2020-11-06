@@ -85,6 +85,6 @@ func (p *LxdCProject) GetHooks(event string) []LxdCHook {
 	return getHooks(&p.Hooks, event)
 }
 
-func (p *LxdCProject) GetHooks4Nodes(event, node string) []LxdCHook {
-	return getHooks4Nodes(&p.Hooks, event, node)
+func (p *LxdCProject) GetHooks4Nodes(event string, nodes []string) []LxdCHook {
+	return getHooks4Nodes(&p.Hooks, event, nodes)
 }

@@ -34,12 +34,12 @@ import (
 func (i *LxdCInstance) GetNodeHooks4Event(event string, proj *specs.LxdCProject, group *specs.LxdCGroup, node *specs.LxdCNode) []specs.LxdCHook {
 
 	// Retrieve project hooks
-	projHooks := proj.GetHooks4Nodes(event, "*")
-	projHooks = specs.FilterHooks4Node(&projHooks, node.Name)
+	projHooks := proj.GetHooks4Nodes(event, []string{"*"})
+	projHooks = specs.FilterHooks4Node(&projHooks, []string{node.Name, "host"})
 
 	// Retrieve group hooks
-	groupHooks := group.GetHooks4Nodes(event, "*")
-	groupHooks = specs.FilterHooks4Node(&groupHooks, node.Name)
+	groupHooks := group.GetHooks4Nodes(event, []string{"*"})
+	groupHooks = specs.FilterHooks4Node(&groupHooks, []string{node.Name, "host"})
 
 	ans := projHooks
 	ans = append(ans, groupHooks...)
@@ -61,8 +61,8 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	}
 
 	// Get only host hooks. All other hooks are handled by group and node.
-	preProjHooks := proj.GetHooks4Nodes("pre-project", "host")
-	postProjHooks := proj.GetHooks4Nodes("post-project", "*")
+	preProjHooks := proj.GetHooks4Nodes("pre-project", []string{"host"})
+	postProjHooks := proj.GetHooks4Nodes("post-project", []string{"*", "host"})
 
 	// Create executor for host commands.
 	executor := executor.NewLxdCExecutor("local",
@@ -256,9 +256,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 
 	// Retrieve pre-group hooks from project
-	preGroupHooks := proj.GetHooks4Nodes("pre-group", "host")
+	preGroupHooks := proj.GetHooks4Nodes("pre-group", []string{"*", "host"})
 	// Retrieve pre-group hooks from group
-	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes("pre-group", "*")...)
+	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes("pre-group", []string{"*", "host"})...)
 
 	// Run pre-group hooks
 	err = i.ProcessHooks(&preGroupHooks, executor, proj, group)
@@ -408,8 +408,8 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 
 	// Retrieve post-group hooks from project
-	postGroupHooks := proj.GetHooks4Nodes("post-group", "host")
-	postGroupHooks = append(postGroupHooks, proj.GetHooks4Nodes("post-group", "*")...)
+	postGroupHooks := proj.GetHooks4Nodes("post-group", []string{"host"})
+	postGroupHooks = append(postGroupHooks, proj.GetHooks4Nodes("post-group", []string{"*", "host"})...)
 
 	// Execute post-group hooks
 	err = i.ProcessHooks(&postGroupHooks, executor, proj, group)

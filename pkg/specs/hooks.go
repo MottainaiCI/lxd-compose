@@ -26,21 +26,25 @@ import (
 )
 
 func getHooks(hooks *[]LxdCHook, event string) []LxdCHook {
-	return getHooks4Nodes(hooks, event, "")
+	return getHooks4Nodes(hooks, event, []string{""})
 }
 
-func getHooks4Nodes(hooks *[]LxdCHook, event, node string) []LxdCHook {
+func getHooks4Nodes(hooks *[]LxdCHook, event string, nodes []string) []LxdCHook {
 	ans := []LxdCHook{}
 
 	if hooks != nil {
 		for _, h := range *hooks {
 			if h.Event == event {
 
-				if (node == "" && h.Node != "host") || node == "*" {
-					ans = append(ans, h)
-				} else {
-					if node == h.Node {
+				for _, node := range nodes {
+					if (node == "" && h.Node != "host") || node == "*" {
 						ans = append(ans, h)
+						break
+					} else {
+						if node == h.Node {
+							ans = append(ans, h)
+							break
+						}
 					}
 				}
 
@@ -112,15 +116,18 @@ func (h *LxdCHook) ContainsFlag(flag string) bool {
 	return ans
 }
 
-func FilterHooks4Node(hooks *[]LxdCHook, node string) []LxdCHook {
+func FilterHooks4Node(hooks *[]LxdCHook, nodes []string) []LxdCHook {
 	ans := []LxdCHook{}
 
 	if hooks != nil {
 		for _, h := range *hooks {
-			if h.For(node) {
-				nh := h.Clone()
-				nh.SetNode(node)
-				ans = append(ans, *nh)
+			for _, node := range nodes {
+				if h.For(node) {
+					nh := h.Clone()
+					nh.SetNode(node)
+					ans = append(ans, *nh)
+					break
+				}
 			}
 		}
 	}
