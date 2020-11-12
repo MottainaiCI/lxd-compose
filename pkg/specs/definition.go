@@ -21,10 +21,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package specs
 
-import (
-	"gopkg.in/yaml.v2"
-)
-
 type LxdCEnvironment struct {
 	Version      string `json:"version,omitempty" yaml:"version,omitempty"`
 	File         string `json:"-" yaml:"-"`
@@ -118,12 +114,4 @@ type LxdCConfigTemplate struct {
 type LxdCSyncResource struct {
 	Source      string `json:"source" yaml:"source"`
 	Destination string `json:"dst" yaml:"dst"`
-}
-
-func EnvVarsFromYaml(data []byte) (*LxdCEnvVars, error) {
-	ans := &LxdCEnvVars{}
-	if err := yaml.Unmarshal(data, ans); err != nil {
-		return nil, err
-	}
-	return ans, nil
 }

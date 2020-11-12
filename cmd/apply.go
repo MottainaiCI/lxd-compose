@@ -34,6 +34,7 @@ import (
 func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledFlags []string
 	var disabledFlags []string
+	var envs []string
 
 	var cmd = &cobra.Command{
 		Use:   "apply [list-of-projects]",
@@ -70,6 +71,21 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					os.Exit(1)
 				}
 
+				if len(envs) > 0 {
+
+					evars := specs.NewEnvVars()
+					for _, e := range envs {
+						err := evars.AddKVAggregated(e)
+						if err != nil {
+							fmt.Println(err)
+							os.Exit(1)
+						}
+					}
+
+					pObj := env.GetProjectByName(proj)
+					pObj.AddEnvironment(evars)
+				}
+
 				err = composer.ApplyProject(proj)
 				if err != nil {
 					fmt.Println("Error on apply project " + proj + ": " + err.Error())
@@ -87,6 +103,9 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Run hooks of only specified flags.")
 	flags.StringSliceVar(&disabledFlags, "disable-flag", []string{},
 		"Disable execution of the hooks with the specified flags.")
+
+	flags.StringSliceVar(&envs, "env", []string{},
+		"Append project environments in the format key=value.")
 
 	return cmd
 }

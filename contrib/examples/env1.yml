@@ -245,6 +245,10 @@ projects:
                 commands:
                   - echo "${json_var}"
 
+              - event: post-node-sync
+                commands:
+                  - echo "${runtime_var}"
+
             # List of templates files to compiles before push the
             # result inside container.
             config_templates:
