@@ -56,7 +56,6 @@ func (e *LxdCEnvVars) AddKVAggregated(aggregatedEnv string) error {
 	key := aggregatedEnv[0:strings.Index(aggregatedEnv, "=")]
 	value := aggregatedEnv[strings.Index(aggregatedEnv, "=")+1:]
 
-	fmt.Println("K ", key, "V", value)
 	e.EnvVars[key] = value
 
 	return nil
