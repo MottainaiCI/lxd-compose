@@ -34,6 +34,8 @@ import (
 )
 
 func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var envs []string
+
 	var cmd = &cobra.Command{
 		Use:   "exec node [command]",
 		Short: "Execute a command to a node or a list of nodes.",
@@ -68,6 +70,20 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				endpoint = grp.Connection
 			}
 
+			if len(envs) > 0 {
+
+				evars := specs.NewEnvVars()
+				for _, e := range envs {
+					err := evars.AddKVAggregated(e)
+					if err != nil {
+						fmt.Println(err)
+						os.Exit(1)
+					}
+				}
+
+				proj.AddEnvironment(evars)
+			}
+
 			executor := executor.NewLxdCExecutor(endpoint, confdir, nodeConf.Entrypoint,
 				grp.Ephemeral, config.GetLogging().CmdsOutput)
 			err = executor.Setup()
@@ -92,6 +108,8 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
+	pflags.StringSliceVar(&envs, "env", []string{},
+		"Append project environments in the format key=value.")
 
 	return cmd
 }
