@@ -35,6 +35,7 @@ import (
 func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledFlags []string
 	var disabledFlags []string
+	var envs []string
 
 	var cmd = &cobra.Command{
 		Use:   "create node1 node2",
@@ -73,6 +74,20 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 				if confdir == "" {
 					confdir = config.GetGeneral().LxdConfDir
+				}
+
+				if len(envs) > 0 {
+
+					evars := specs.NewEnvVars()
+					for _, e := range envs {
+						err := evars.AddKVAggregated(e)
+						if err != nil {
+							fmt.Println(err)
+							os.Exit(1)
+						}
+					}
+
+					proj.AddEnvironment(evars)
 				}
 
 				executor := executor.NewLxdCExecutor(endpoint, confdir,
@@ -125,6 +140,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Run hooks of only specified flags.")
 	pflags.StringSliceVar(&disabledFlags, "disable-flag", []string{},
 		"Disable execution of the hooks with the specified flags.")
+	pflags.StringSliceVar(&envs, "env", []string{},
+		"Append project environments in the format key=value.")
 
 	return cmd
 }
