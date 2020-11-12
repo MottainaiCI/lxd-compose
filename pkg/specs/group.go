@@ -52,3 +52,28 @@ func (g *LxdCGroup) GetHooks(event string) []LxdCHook {
 func (g *LxdCGroup) GetHooks4Nodes(event string, nodes []string) []LxdCHook {
 	return getHooks4Nodes(&g.Hooks, event, nodes)
 }
+
+func (g *LxdCGroup) ToProcess(groupsEnabled, groupsDisabled []string) bool {
+	ans := false
+
+	if len(groupsDisabled) > 0 {
+		for _, gd := range groupsDisabled {
+			if gd == g.Name {
+				return false
+			}
+		}
+	}
+
+	if len(groupsEnabled) > 0 {
+		for _, ge := range groupsEnabled {
+			if ge == g.Name {
+				ans = true
+				break
+			}
+		}
+	} else {
+		ans = true
+	}
+
+	return ans
+}

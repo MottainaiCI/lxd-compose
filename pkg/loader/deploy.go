@@ -86,6 +86,11 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 
 	for _, grp := range proj.Groups {
 
+		if !grp.ToProcess(i.GroupsEnabled, i.GroupsDisabled) {
+			i.Logger.Debug("Skipped group ", grp.Name)
+			continue
+		}
+
 		err := i.ApplyGroup(&grp, proj, env, compiler)
 		if err != nil {
 			return err

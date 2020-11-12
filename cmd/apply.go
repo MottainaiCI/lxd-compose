@@ -13,7 +13,7 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU General Public License for more details.:s
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
@@ -34,6 +34,8 @@ import (
 func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledFlags []string
 	var disabledFlags []string
+	var enabledGroups []string
+	var disabledGroups []string
 	var envs []string
 
 	var cmd = &cobra.Command{
@@ -58,6 +60,8 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			composer.SetFlagsDisabled(disabledFlags)
 			composer.SetFlagsEnabled(enabledFlags)
+			composer.SetGroupsDisabled(disabledGroups)
+			composer.SetGroupsEnabled(enabledGroups)
 
 			projects := args[0:]
 
@@ -104,6 +108,10 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&disabledFlags, "disable-flag", []string{},
 		"Disable execution of the hooks with the specified flags.")
 
+	flags.StringSliceVar(&disabledGroups, "disable-group", []string{},
+		"Skip selected group from deploy.")
+	flags.StringSliceVar(&enabledGroups, "enable-group", []string{},
+		"Apply only selected groups.")
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
 

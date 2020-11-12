@@ -35,11 +35,13 @@ import (
 )
 
 type LxdCInstance struct {
-	Config        *specs.LxdComposeConfig
-	Logger        *log.LxdCLogger
-	Environments  []specs.LxdCEnvironment
-	FlagsDisabled []string
-	FlagsEnabled  []string
+	Config         *specs.LxdComposeConfig
+	Logger         *log.LxdCLogger
+	Environments   []specs.LxdCEnvironment
+	FlagsDisabled  []string
+	FlagsEnabled   []string
+	GroupsEnabled  []string
+	GroupsDisabled []string
 }
 
 func NewLxdCInstance(config *specs.LxdComposeConfig) *LxdCInstance {
@@ -67,6 +69,15 @@ func (i *LxdCInstance) AddEnvironment(env specs.LxdCEnvironment) {
 
 func (i *LxdCInstance) GetEnvironments() *[]specs.LxdCEnvironment {
 	return &i.Environments
+}
+
+func (i *LxdCInstance) GetGroupsEnabled() []string  { return i.GroupsEnabled }
+func (i *LxdCInstance) GetGroupsDisabled() []string { return i.GroupsDisabled }
+func (i *LxdCInstance) SetGroupsEnabled(groups []string) {
+	i.GroupsEnabled = groups
+}
+func (i *LxdCInstance) SetGroupsDisabled(groups []string) {
+	i.GroupsDisabled = groups
 }
 
 func (i *LxdCInstance) GetFlagsEnabled() []string  { return i.FlagsEnabled }
