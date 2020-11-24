@@ -88,6 +88,13 @@ projects:
             echo '[{ "user": "user1" }]'
         out2var: "json_var"
 
+      # NOTE: call nodes of different groups at the moments
+      #       works only for same remote.
+      - event: post-group
+        node: "node1"
+        commands:
+          - echo "run post-project command on node1"
+          - hostname
 
     # A fast way to define environments for template
     vars:
@@ -98,6 +105,8 @@ projects:
           obj:
             key: "xxx"
             foo: "baa"
+
+          LUET_YES: "true"
 
     groups:
       - name: "group1"

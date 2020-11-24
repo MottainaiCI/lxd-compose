@@ -413,8 +413,8 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 
 	// Retrieve post-group hooks from project
-	postGroupHooks := proj.GetHooks4Nodes("post-group", []string{"host"})
-	postGroupHooks = append(postGroupHooks, proj.GetHooks4Nodes("post-group", []string{"*", "host"})...)
+	postGroupHooks := proj.GetHooks4Nodes("post-group", []string{"*", "host"})
+	postGroupHooks = append(postGroupHooks, group.GetHooks4Nodes("post-group", []string{"*", "host"})...)
 
 	// Execute post-group hooks
 	err = i.ProcessHooks(&postGroupHooks, executor, proj, group)
