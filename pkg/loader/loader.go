@@ -38,6 +38,7 @@ type LxdCInstance struct {
 	Config         *specs.LxdComposeConfig
 	Logger         *log.LxdCLogger
 	Environments   []specs.LxdCEnvironment
+	SkipSync       bool
 	FlagsDisabled  []string
 	FlagsEnabled   []string
 	GroupsEnabled  []string
@@ -71,6 +72,8 @@ func (i *LxdCInstance) GetEnvironments() *[]specs.LxdCEnvironment {
 	return &i.Environments
 }
 
+func (i *LxdCInstance) SetSkipSync(v bool)          { i.SkipSync = v }
+func (i *LxdCInstance) GetSkipSync() bool           { return i.SkipSync }
 func (i *LxdCInstance) GetGroupsEnabled() []string  { return i.GroupsEnabled }
 func (i *LxdCInstance) GetGroupsDisabled() []string { return i.GroupsDisabled }
 func (i *LxdCInstance) SetGroupsEnabled(groups []string) {

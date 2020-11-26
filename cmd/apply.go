@@ -58,10 +58,13 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			skipSync, _ := cmd.Flags().GetBool("skip-sync")
+
 			composer.SetFlagsDisabled(disabledFlags)
 			composer.SetFlagsEnabled(enabledFlags)
 			composer.SetGroupsDisabled(disabledGroups)
 			composer.SetGroupsEnabled(enabledGroups)
+			composer.SetSkipSync(skipSync)
 
 			projects := args[0:]
 
@@ -114,6 +117,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Apply only selected groups.")
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	flags.Bool("skip-sync", false, "Disable sync of files.")
 
 	return cmd
 }

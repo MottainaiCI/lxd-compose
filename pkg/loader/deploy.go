@@ -394,7 +394,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			return err
 		}
 
-		if len(node.SyncResources) > 0 {
+		if len(node.SyncResources) > 0 && !i.SkipSync {
 			if node.SourceDir != "" {
 				if node.IsSourcePathRelative() {
 					syncSourceDir = filepath.Join(envBaseAbs, node.SourceDir)
