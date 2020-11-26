@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/MottainaiCI/lxd-compose/pkg/executor"
+	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 	"github.com/MottainaiCI/lxd-compose/pkg/template"
 )
@@ -64,14 +64,10 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	preProjHooks := proj.GetHooks4Nodes("pre-project", []string{"host"})
 	postProjHooks := proj.GetHooks4Nodes("post-project", []string{"*", "host"})
 
-	// Create executor for host commands.
-	executor := executor.NewLxdCExecutor("local",
-		i.Config.GetGeneral().LxdConfDir, []string{}, true,
-		i.Config.GetLogging().CmdsOutput)
-	// Setup is not needed here.
-
 	// Execute pre-project hooks
-	err := i.ProcessHooks(&preProjHooks, executor, proj, nil)
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s] Running %d pre-project hooks... ", projectName, len(preProjHooks)))
+	err := i.ProcessHooks(&preProjHooks, proj, nil, nil)
 
 	compiler, err := template.NewProjectTemplateCompiler(env, proj)
 	if err != nil {
@@ -99,7 +95,9 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	}
 
 	// Execute post-project hooks
-	err = i.ProcessHooks(&postProjHooks, executor, proj, nil)
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s] Running %d post-project hooks... ", projectName, len(preProjHooks)))
+	err = i.ProcessHooks(&postProjHooks, proj, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -107,20 +105,17 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	return nil
 }
 
-func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.LxdCExecutor, proj *specs.LxdCProject, group *specs.LxdCGroup) error {
+func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCProject, group *specs.LxdCGroup, targetNode *specs.LxdCNode) error {
 	var res int
 	nodes := []specs.LxdCNode{}
 	storeVar := false
 
+	executorMap := make(map[string]*lxd_executor.LxdCExecutor, 0)
+
 	if len(*hooks) > 0 {
 
 		runSingleCmd := func(h *specs.LxdCHook, node, cmds string) error {
-
-			if h.Out2Var != "" || h.Err2Var != "" {
-				storeVar = true
-			} else {
-				storeVar = false
-			}
+			var executor *lxd_executor.LxdCExecutor
 
 			envs, err := proj.GetEnvsMap()
 			if err != nil {
@@ -130,6 +125,69 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 				envs["HOME"] = "/"
 			}
 
+			if node != "host" {
+
+				_, _, grp, nodeEntity := i.GetEntitiesByNodeName(node)
+
+				json, err := nodeEntity.ToJson()
+				if err != nil {
+					return err
+				}
+				envs["node"] = json
+
+				if len(nodeEntity.Labels) > 0 {
+					for k, v := range nodeEntity.Labels {
+						envs[k] = v
+					}
+				}
+
+				if _, ok := executorMap[node]; !ok {
+					// Initialize executor
+					executor = lxd_executor.NewLxdCExecutor(grp.Connection,
+						i.Config.GetGeneral().LxdConfDir, []string{}, grp.Ephemeral,
+						i.Config.GetLogging().CmdsOutput)
+					err := executor.Setup()
+					if err != nil {
+						return err
+					}
+					// Initialize entrypoint to ensure to set always the
+					if nodeEntity.Entrypoint != nil && len(nodeEntity.Entrypoint) > 0 {
+						executor.Entrypoint = nodeEntity.Entrypoint
+					} else {
+						executor.Entrypoint = []string{}
+					}
+
+					executorMap[node] = executor
+
+				} else {
+					executor = executorMap[node]
+				}
+
+			} else {
+				connection := "local"
+				ephemeral := true
+
+				if group != nil {
+					connection = group.Connection
+					ephemeral = group.Ephemeral
+				}
+				// Initialize executor with local LXD connection
+				executor = lxd_executor.NewLxdCExecutor(connection,
+					i.Config.GetGeneral().LxdConfDir, []string{}, ephemeral,
+					i.Config.GetLogging().CmdsOutput)
+				err := executor.Setup()
+				if err != nil {
+					return err
+				}
+
+			}
+
+			if h.Out2Var != "" || h.Err2Var != "" {
+				storeVar = true
+			} else {
+				storeVar = false
+			}
+
 			if h.Node == "host" {
 				if storeVar {
 					res, err = executor.RunHostCommandWithOutput4Var(cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint)
@@ -137,25 +195,6 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 					res, err = executor.RunHostCommand(cmds, envs, h.Entrypoint)
 				}
 			} else {
-
-				if node != "" {
-					_, _, _, nodeEntity := i.GetEntitiesByNodeName(node)
-					if nodeEntity == nil {
-						return errors.New("Error on retrieve node object for name " + node)
-					}
-
-					json, err := nodeEntity.ToJson()
-					if err != nil {
-						return err
-					}
-					envs["node"] = json
-
-					if len(nodeEntity.Labels) > 0 {
-						for k, v := range nodeEntity.Labels {
-							envs[k] = v
-						}
-					}
-				}
 
 				if storeVar {
 					res, err = executor.RunCommandWithOutput4Var(node, cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint)
@@ -212,18 +251,17 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 				for _, cmds := range h.Commands {
 					switch h.Node {
 					case "", "*":
-						for _, node := range nodes {
-
-							// Initialize entrypoint to ensure to set always the
-							if node.Entrypoint != nil && len(node.Entrypoint) > 0 {
-								executor.Entrypoint = node.Entrypoint
-							} else {
-								executor.Entrypoint = []string{}
-							}
-
-							err := runSingleCmd(&h, node.Name, cmds)
+						if targetNode != nil {
+							err := runSingleCmd(&h, targetNode.Name, cmds)
 							if err != nil {
 								return err
+							}
+						} else {
+							for _, node := range nodes {
+								err := runSingleCmd(&h, node.Name, cmds)
+								if err != nil {
+									return err
+								}
 							}
 						}
 
@@ -246,7 +284,7 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, executor *executor.
 func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProject, env *specs.LxdCEnvironment, compiler template.LxdCTemplateCompiler) error {
 
 	// Initialize executor
-	executor := executor.NewLxdCExecutor(group.Connection,
+	executor := lxd_executor.NewLxdCExecutor(group.Connection,
 		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
 		i.Config.GetLogging().CmdsOutput)
 	err := executor.Setup()
@@ -266,7 +304,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes("pre-group", []string{"*", "host"})...)
 
 	// Run pre-group hooks
-	err = i.ProcessHooks(&preGroupHooks, executor, proj, group)
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s - %s] Running %d pre-group hooks... ", proj.Name, group.Name, len(preGroupHooks)))
+	err = i.ProcessHooks(&preGroupHooks, proj, group, nil)
 	if err != nil {
 		return err
 	}
@@ -303,7 +343,10 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			// Retrieve pre-node-creation hooks
 			preCreationHooks := i.GetNodeHooks4Event("pre-node-creation", proj, group, &node)
 			// Run pre-node-creation hooks
-			err = i.ProcessHooks(&preCreationHooks, executor, proj, group)
+			i.Logger.Debug(fmt.Sprintf(
+				"[%s - %s] Running %d pre-node-creation hooks for node %s... ",
+				proj.Name, group.Name, len(preCreationHooks), node.Name))
+			err = i.ProcessHooks(&preCreationHooks, proj, group, &node)
 			if err != nil {
 				return err
 			}
@@ -323,7 +366,10 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			postCreationHooks := i.GetNodeHooks4Event("post-node-creation", proj, group, &node)
 
 			// Run post-node-creation hooks
-			err = i.ProcessHooks(&postCreationHooks, executor, proj, group)
+			i.Logger.Debug(fmt.Sprintf(
+				"[%s - %s] Running %d post-node-creation hooks for node %s... ",
+				proj.Name, group.Name, len(postCreationHooks), node.Name))
+			err = i.ProcessHooks(&postCreationHooks, proj, group, &node)
 			if err != nil {
 				return err
 			}
@@ -334,7 +380,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		preSyncHooks := i.GetNodeHooks4Event("pre-node-sync", proj, group, &node)
 
 		// Run pre-node-sync hooks
-		err = i.ProcessHooks(&preSyncHooks, executor, proj, group)
+		err = i.ProcessHooks(&preSyncHooks, proj, group, &node)
 		if err != nil {
 			return err
 		}
@@ -405,7 +451,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		postSyncHooks := i.GetNodeHooks4Event("post-node-sync", proj, group, &node)
 
 		// Run post-node-sync hooks
-		err = i.ProcessHooks(&postSyncHooks, executor, proj, group)
+		err = i.ProcessHooks(&postSyncHooks, proj, group, &node)
 		if err != nil {
 			return err
 		}
@@ -417,7 +463,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	postGroupHooks = append(postGroupHooks, group.GetHooks4Nodes("post-group", []string{"*", "host"})...)
 
 	// Execute post-group hooks
-	err = i.ProcessHooks(&postGroupHooks, executor, proj, group)
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s - %s] Running %d post-group hooks... ", proj.Name, group.Name, len(postGroupHooks)))
+	err = i.ProcessHooks(&postGroupHooks, proj, group, nil)
 	if err != nil {
 		return err
 	}

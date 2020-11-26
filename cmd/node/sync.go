@@ -26,7 +26,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/MottainaiCI/lxd-compose/pkg/executor"
+	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
@@ -72,7 +72,7 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				endpoint = grp.Connection
 			}
 
-			executor := executor.NewLxdCExecutor(endpoint, confdir,
+			executor := lxd_executor.NewLxdCExecutor(endpoint, confdir,
 				nodeConf.Entrypoint, grp.Ephemeral, config.GetLogging().CmdsOutput)
 			err = executor.Setup()
 			if err != nil {
@@ -118,7 +118,7 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			if syncPostCmds {
 				hooks := composer.GetNodeHooks4Event("post-node-sync", proj, grp, nodeConf)
-				err := composer.ProcessHooks(&hooks, executor, proj, grp)
+				err := composer.ProcessHooks(&hooks, proj, grp, nodeConf)
 				if err != nil {
 					fmt.Println("Error " + err.Error())
 					os.Exit(1)
