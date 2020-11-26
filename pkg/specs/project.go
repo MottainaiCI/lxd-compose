@@ -53,6 +53,18 @@ func (p *LxdCProject) GetName() string {
 func (p *LxdCProject) GetEnvsMap() (map[string]string, error) {
 	ans := map[string]string{}
 
+	y, err := yaml.Marshal(p.Sanitize())
+	if err != nil {
+		return ans, fmt.Errorf("Error on convert project %s to yaml: %s",
+			p.GetName(), err.Error())
+	}
+	pData, err := yaml.YAMLToJSON(y)
+	if err != nil {
+		return ans, fmt.Errorf("Error on convert project %s to json: %s",
+			p.GetName(), err.Error())
+	}
+	ans["project"] = string(pData)
+
 	for _, e := range p.Environments {
 		for k, v := range e.EnvVars {
 			switch v.(type) {
@@ -87,4 +99,16 @@ func (p *LxdCProject) GetHooks(event string) []LxdCHook {
 
 func (p *LxdCProject) GetHooks4Nodes(event string, nodes []string) []LxdCHook {
 	return getHooks4Nodes(&p.Hooks, event, nodes)
+}
+
+func (p *LxdCProject) Sanitize() *LxdCProjectSanitized {
+	return &LxdCProjectSanitized{
+		Name:              p.Name,
+		Description:       p.Description,
+		IncludeGroupFiles: p.IncludeGroupFiles,
+		IncludeEnvFiles:   p.IncludeEnvFiles,
+		Groups:            p.Groups,
+		Hooks:             p.Hooks,
+		ConfigTemplates:   p.ConfigTemplates,
+	}
 }

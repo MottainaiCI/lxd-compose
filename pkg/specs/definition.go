@@ -70,6 +70,19 @@ type LxdCProject struct {
 	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
+type LxdCProjectSanitized struct {
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+
+	IncludeGroupFiles []string `json:"include_groups_files,omitempty" yaml:"include_groups_files,omitempty"`
+	IncludeEnvFiles   []string `json:"include_env_files,omitempty" yaml:"include_env_files,omitempty"`
+
+	Groups []LxdCGroup `json:"groups" yaml:"groups"`
+
+	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
+	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
+}
+
 type LxdCGroup struct {
 	Name        string `json:"name" yaml:"name"`
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
