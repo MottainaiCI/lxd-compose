@@ -129,35 +129,53 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 				_, _, grp, nodeEntity := i.GetEntitiesByNodeName(node)
 
-				json, err := nodeEntity.ToJson()
-				if err != nil {
-					return err
-				}
-				envs["node"] = json
-
-				if len(nodeEntity.Labels) > 0 {
-					for k, v := range nodeEntity.Labels {
-						envs[k] = v
-					}
-				}
-
-				if _, ok := executorMap[node]; !ok {
-					// Initialize executor
-					executor = lxd_executor.NewLxdCExecutor(grp.Connection,
-						i.Config.GetGeneral().LxdConfDir, []string{}, grp.Ephemeral,
-						i.Config.GetLogging().CmdsOutput)
-					err := executor.Setup()
+				if nodeEntity != nil {
+					json, err := nodeEntity.ToJson()
 					if err != nil {
 						return err
 					}
-					// Initialize entrypoint to ensure to set always the
-					if nodeEntity.Entrypoint != nil && len(nodeEntity.Entrypoint) > 0 {
-						executor.Entrypoint = nodeEntity.Entrypoint
-					} else {
-						executor.Entrypoint = []string{}
+					envs["node"] = json
+
+					if nodeEntity.Labels != nil && len(nodeEntity.Labels) > 0 {
+						for k, v := range nodeEntity.Labels {
+							envs[k] = v
+						}
 					}
 
-					executorMap[node] = executor
+					if _, ok := executorMap[node]; !ok {
+						// Initialize executor
+						executor = lxd_executor.NewLxdCExecutor(grp.Connection,
+							i.Config.GetGeneral().LxdConfDir, []string{}, grp.Ephemeral,
+							i.Config.GetLogging().CmdsOutput)
+						err := executor.Setup()
+						if err != nil {
+							return err
+						}
+						// Initialize entrypoint to ensure to set always the
+						if nodeEntity.Entrypoint != nil && len(nodeEntity.Entrypoint) > 0 {
+							executor.Entrypoint = nodeEntity.Entrypoint
+						} else {
+							executor.Entrypoint = []string{}
+						}
+
+						executorMap[node] = executor
+					} else {
+
+						if group == nil {
+							return errors.New(fmt.Sprintf(
+								"Error on retrieve node information for %s and hook %s",
+								node, h))
+						}
+
+						executor = lxd_executor.NewLxdCExecutor(group.Connection,
+							i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
+							i.Config.GetLogging().CmdsOutput)
+						err := executor.Setup()
+						if err != nil {
+							return err
+						}
+
+					}
 
 				} else {
 					executor = executorMap[node]
