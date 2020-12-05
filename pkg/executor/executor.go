@@ -118,7 +118,7 @@ func (e *LxdCExecutor) Setup() error {
 			}
 
 		} else {
-			client, err = e.LxdConfig.GetContainerServer(e.Endpoint)
+			client, err = e.LxdConfig.GetInstanceServer(e.Endpoint)
 			if err != nil {
 				return errors.New("Endpoint:" + e.Endpoint + " Error: " + err.Error())
 			}
@@ -130,10 +130,10 @@ func (e *LxdCExecutor) Setup() error {
 	} else {
 		if len(e.LxdConfig.DefaultRemote) > 0 {
 			// POST: If is present default I use default as main ContainerServer
-			client, err = e.LxdConfig.GetContainerServer(e.LxdConfig.DefaultRemote)
+			client, err = e.LxdConfig.GetInstanceServer(e.LxdConfig.DefaultRemote)
 		} else {
 			if _, has_local := e.LxdConfig.Remotes["local"]; has_local {
-				client, err = e.LxdConfig.GetContainerServer("local")
+				client, err = e.LxdConfig.GetInstanceServer("local")
 				// POST: I use local if is present
 			} else {
 				// POST: I use default socket connection
@@ -195,6 +195,7 @@ func (e *LxdCExecutor) DeleteContainer(name string) error {
 
 func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error) {
 	entrypoint := []string{"/bin/bash", "-c"}
+
 	if len(e.Entrypoint) > 0 {
 		entrypoint = e.Entrypoint
 	}
