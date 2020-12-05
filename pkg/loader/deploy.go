@@ -151,13 +151,6 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						if err != nil {
 							return err
 						}
-						// Initialize entrypoint to ensure to set always the
-						if nodeEntity.Entrypoint != nil && len(nodeEntity.Entrypoint) > 0 {
-							executor.Entrypoint = nodeEntity.Entrypoint
-						} else {
-							executor.Entrypoint = []string{}
-						}
-
 						executorMap[node] = executor
 					} else {
 
@@ -175,6 +168,13 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 							return err
 						}
 
+					}
+
+					// Initialize entrypoint to ensure to set always the
+					if nodeEntity.Entrypoint != nil && len(nodeEntity.Entrypoint) > 0 {
+						executor.Entrypoint = nodeEntity.Entrypoint
+					} else {
+						executor.Entrypoint = []string{}
 					}
 
 				} else {
