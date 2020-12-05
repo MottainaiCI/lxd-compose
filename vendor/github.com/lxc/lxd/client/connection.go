@@ -1,15 +1,20 @@
 package lxd
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"gopkg.in/macaroon-bakery.v2/httpbakery"
+
+	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/logger"
 	"github.com/lxc/lxd/shared/simplestreams"
-	"gopkg.in/macaroon-bakery.v2/httpbakery"
 )
 
 // ConnectionArgs represents a set of common connection properties
@@ -49,6 +54,10 @@ type ConnectionArgs struct {
 
 	// Skip automatic GetServer request upon connection
 	SkipGetServer bool
+
+	// Caching support for image servers
+	CachePath   string
+	CacheExpiry time.Duration
 }
 
 // ConnectLXD lets you connect to a remote LXD daemon over HTTPs.
@@ -58,7 +67,7 @@ type ConnectionArgs struct {
 // If connecting to a LXD daemon running in PKI mode, the PKI CA (TLSCA) must also be provided.
 //
 // Unless the remote server is trusted by the system CA, the remote certificate must be provided (TLSServerCert).
-func ConnectLXD(url string, args *ConnectionArgs) (ContainerServer, error) {
+func ConnectLXD(url string, args *ConnectionArgs) (InstanceServer, error) {
 	logger.Debugf("Connecting to a remote LXD over HTTPs")
 
 	// Cleanup URL
@@ -67,12 +76,46 @@ func ConnectLXD(url string, args *ConnectionArgs) (ContainerServer, error) {
 	return httpsLXD(url, args)
 }
 
+// ConnectLXDHTTP lets you connect to a VM agent over a VM socket.
+func ConnectLXDHTTP(args *ConnectionArgs, client *http.Client) (InstanceServer, error) {
+	logger.Debugf("Connecting to a VM agent over a VM socket")
+
+	// Use empty args if not specified
+	if args == nil {
+		args = &ConnectionArgs{}
+	}
+
+	// Initialize the client struct
+	server := ProtocolLXD{
+		httpHost:      "https://custom.socket",
+		httpProtocol:  "custom",
+		httpUserAgent: args.UserAgent,
+		chConnected:   make(chan struct{}, 1),
+	}
+
+	// Setup the HTTP client
+	server.http = client
+
+	// Test the connection and seed the server information
+	if !args.SkipGetServer {
+		serverStatus, _, err := server.GetServer()
+		if err != nil {
+			return nil, err
+		}
+
+		// Record the server certificate
+		server.httpCertificate = serverStatus.Environment.Certificate
+	}
+
+	return &server, nil
+}
+
 // ConnectLXDUnix lets you connect to a remote LXD daemon over a local unix socket.
 //
 // If the path argument is empty, then $LXD_SOCKET will be used, if
 // unset $LXD_DIR/unix.socket will be used and if that one isn't set
 // either, then the path will default to /var/lib/lxd/unix.socket.
-func ConnectLXDUnix(path string, args *ConnectionArgs) (ContainerServer, error) {
+func ConnectLXDUnix(path string, args *ConnectionArgs) (InstanceServer, error) {
 	logger.Debugf("Connecting to a local LXD over a Unix socket")
 
 	// Use empty args if not specified
@@ -86,6 +129,7 @@ func ConnectLXDUnix(path string, args *ConnectionArgs) (ContainerServer, error) 
 		httpUnixPath:  path,
 		httpProtocol:  "unix",
 		httpUserAgent: args.UserAgent,
+		chConnected:   make(chan struct{}, 1),
 	}
 
 	// Determine the socket path
@@ -100,6 +144,8 @@ func ConnectLXDUnix(path string, args *ConnectionArgs) (ContainerServer, error) 
 			path = filepath.Join(lxdDir, "unix.socket")
 		}
 	}
+
+	path = shared.HostPath(path)
 
 	// Setup the HTTP client
 	httpClient, err := unixHTTPClient(args.HTTPClient, path)
@@ -166,11 +212,35 @@ func ConnectSimpleStreams(url string, args *ConnectionArgs) (ImageServer, error)
 	ssClient := simplestreams.NewClient(url, *httpClient, args.UserAgent)
 	server.ssClient = ssClient
 
+	// Setup the cache
+	if args.CachePath != "" {
+		if !shared.PathExists(args.CachePath) {
+			return nil, fmt.Errorf("Cache directory '%s' doesn't exist", args.CachePath)
+		}
+
+		hashedURL := fmt.Sprintf("%x", sha256.Sum256([]byte(url)))
+
+		cachePath := filepath.Join(args.CachePath, hashedURL)
+		cacheExpiry := args.CacheExpiry
+		if cacheExpiry == 0 {
+			cacheExpiry = time.Hour
+		}
+
+		if !shared.PathExists(cachePath) {
+			err := os.Mkdir(cachePath, 0755)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		ssClient.SetCache(cachePath, cacheExpiry)
+	}
+
 	return &server, nil
 }
 
 // Internal function called by ConnectLXD and ConnectPublicLXD
-func httpsLXD(url string, args *ConnectionArgs) (ContainerServer, error) {
+func httpsLXD(url string, args *ConnectionArgs) (InstanceServer, error) {
 	// Use empty args if not specified
 	if args == nil {
 		args = &ConnectionArgs{}
@@ -183,7 +253,9 @@ func httpsLXD(url string, args *ConnectionArgs) (ContainerServer, error) {
 		httpProtocol:     "https",
 		httpUserAgent:    args.UserAgent,
 		bakeryInteractor: args.AuthInteractor,
+		chConnected:      make(chan struct{}, 1),
 	}
+
 	if args.AuthType == "candid" {
 		server.RequireAuthenticated(true)
 	}

@@ -1,10 +1,8 @@
 package simplestreams
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,350 +14,92 @@ import (
 
 	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
-	"github.com/lxc/lxd/shared/ioprogress"
 	"github.com/lxc/lxd/shared/osarch"
 )
 
-type ssSortImage []api.Image
-
-func (a ssSortImage) Len() int {
-	return len(a)
-}
-
-func (a ssSortImage) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
-}
-
-func (a ssSortImage) Less(i, j int) bool {
-	if a[i].Properties["os"] == a[j].Properties["os"] {
-		if a[i].Properties["release"] == a[j].Properties["release"] {
-			if !shared.TimeIsSet(a[i].CreatedAt) {
-				return true
-			}
-
-			if !shared.TimeIsSet(a[j].CreatedAt) {
-				return false
-			}
-
-			if a[i].CreatedAt == a[j].CreatedAt {
-				return a[i].Properties["serial"] > a[j].Properties["serial"]
-			}
-
-			return a[i].CreatedAt.UTC().Unix() > a[j].CreatedAt.UTC().Unix()
-		}
-
-		if a[i].Properties["release"] == "" {
-			return false
-		}
-
-		if a[j].Properties["release"] == "" {
-			return true
-		}
-
-		return a[i].Properties["release"] < a[j].Properties["release"]
-	}
-
-	if a[i].Properties["os"] == "" {
-		return false
-	}
-
-	if a[j].Properties["os"] == "" {
-		return true
-	}
-
-	return a[i].Properties["os"] < a[j].Properties["os"]
-}
-
-var ssDefaultOS = map[string]string{
+var urlDefaultOS = map[string]string{
 	"https://cloud-images.ubuntu.com": "ubuntu",
 }
 
-type SimpleStreamsManifest struct {
-	Updated  string                                  `json:"updated,omitempty"`
-	DataType string                                  `json:"datatype"`
-	Format   string                                  `json:"format"`
-	License  string                                  `json:"license,omitempty"`
-	Products map[string]SimpleStreamsManifestProduct `json:"products"`
-}
-
-func (s *SimpleStreamsManifest) ToLXD() ([]api.Image, map[string][][]string) {
-	downloads := map[string][][]string{}
-
-	images := []api.Image{}
-	nameLayout := "20060102"
-	eolLayout := "2006-01-02"
-
-	for _, product := range s.Products {
-		// Skip unsupported architectures
-		architecture, err := osarch.ArchitectureId(product.Architecture)
-		if err != nil {
-			continue
-		}
-
-		architectureName, err := osarch.ArchitectureName(architecture)
-		if err != nil {
-			continue
-		}
-
-		for name, version := range product.Versions {
-			// Short of anything better, use the name as date (see format above)
-			if len(name) < 8 {
-				continue
-			}
-
-			creationDate, err := time.Parse(nameLayout, name[0:8])
-			if err != nil {
-				continue
-			}
-
-			var meta SimpleStreamsManifestProductVersionItem
-			var rootTar SimpleStreamsManifestProductVersionItem
-			var rootSquash SimpleStreamsManifestProductVersionItem
-			deltas := []SimpleStreamsManifestProductVersionItem{}
-
-			for _, item := range version.Items {
-				// Identify deltas
-				if item.FileType == "squashfs.vcdiff" {
-					deltas = append(deltas, item)
-				}
-
-				// Skip the files we don't care about
-				if !shared.StringInSlice(item.FileType, []string{"root.tar.xz", "lxd.tar.xz", "lxd_combined.tar.gz", "squashfs"}) {
-					continue
-				}
-
-				if item.FileType == "lxd.tar.xz" {
-					meta = item
-				} else if item.FileType == "squashfs" {
-					rootSquash = item
-				} else if item.FileType == "root.tar.xz" {
-					rootTar = item
-				} else if item.FileType == "lxd_combined.tar.gz" {
-					meta = item
-					rootTar = item
-				}
-			}
-
-			if meta.FileType == "" || (rootTar.FileType == "" && rootSquash.FileType == "") {
-				// Invalid image
-				continue
-			}
-
-			var rootfsSize int64
-			metaPath := meta.Path
-			metaHash := meta.HashSha256
-			metaSize := meta.Size
-			rootfsPath := ""
-			rootfsHash := ""
-			fields := strings.Split(meta.Path, "/")
-			filename := fields[len(fields)-1]
-			size := meta.Size
-			fingerprint := ""
-
-			if rootSquash.FileType != "" {
-				if meta.LXDHashSha256SquashFs != "" {
-					fingerprint = meta.LXDHashSha256SquashFs
-				} else {
-					fingerprint = meta.LXDHashSha256
-				}
-				size += rootSquash.Size
-				rootfsPath = rootSquash.Path
-				rootfsHash = rootSquash.HashSha256
-				rootfsSize = rootSquash.Size
-			} else {
-				if meta == rootTar {
-					fingerprint = meta.HashSha256
-					size = meta.Size
-				} else {
-					if meta.LXDHashSha256RootXz != "" {
-						fingerprint = meta.LXDHashSha256RootXz
-					} else {
-						fingerprint = meta.LXDHashSha256
-					}
-					size += rootTar.Size
-				}
-				rootfsPath = rootTar.Path
-				rootfsHash = rootTar.HashSha256
-				rootfsSize = rootTar.Size
-			}
-
-			if size == 0 || filename == "" || fingerprint == "" {
-				// Invalid image
-				continue
-			}
-
-			// Generate the actual image entry
-			description := fmt.Sprintf("%s %s %s", product.OperatingSystem, product.ReleaseTitle, product.Architecture)
-			if version.Label != "" {
-				description = fmt.Sprintf("%s (%s)", description, version.Label)
-			}
-			description = fmt.Sprintf("%s (%s)", description, name)
-
-			image := api.Image{}
-			image.Architecture = architectureName
-			image.Public = true
-			image.Size = size
-			image.CreatedAt = creationDate
-			image.UploadedAt = creationDate
-			image.Filename = filename
-			image.Fingerprint = fingerprint
-			image.Properties = map[string]string{
-				"os":           product.OperatingSystem,
-				"release":      product.Release,
-				"version":      product.Version,
-				"architecture": product.Architecture,
-				"label":        version.Label,
-				"serial":       name,
-				"description":  description,
-			}
-
-			// Add the provided aliases
-			if product.Aliases != "" {
-				image.Aliases = []api.ImageAlias{}
-				for _, entry := range strings.Split(product.Aliases, ",") {
-					image.Aliases = append(image.Aliases, api.ImageAlias{Name: entry})
-				}
-			}
-
-			// Clear unset properties
-			for k, v := range image.Properties {
-				if v == "" {
-					delete(image.Properties, k)
-				}
-			}
-
-			// Attempt to parse the EOL
-			image.ExpiresAt = time.Unix(0, 0).UTC()
-			if product.SupportedEOL != "" {
-				eolDate, err := time.Parse(eolLayout, product.SupportedEOL)
-				if err == nil {
-					image.ExpiresAt = eolDate
-				}
-			}
-
-			var imgDownloads [][]string
-			if meta == rootTar {
-				imgDownloads = [][]string{{metaPath, metaHash, "meta", fmt.Sprintf("%d", metaSize)}}
-			} else {
-				imgDownloads = [][]string{
-					{metaPath, metaHash, "meta", fmt.Sprintf("%d", metaSize)},
-					{rootfsPath, rootfsHash, "root", fmt.Sprintf("%d", rootfsSize)}}
-			}
-
-			// Add the deltas
-			for _, delta := range deltas {
-				srcImage, ok := product.Versions[delta.DeltaBase]
-				if !ok {
-					continue
-				}
-
-				var srcFingerprint string
-				for _, item := range srcImage.Items {
-					if item.FileType != "lxd.tar.xz" {
-						continue
-					}
-
-					srcFingerprint = item.LXDHashSha256SquashFs
-					break
-				}
-
-				if srcFingerprint == "" {
-					continue
-				}
-
-				imgDownloads = append(imgDownloads, []string{
-					delta.Path,
-					delta.HashSha256,
-					fmt.Sprintf("root.delta-%s", srcFingerprint),
-					fmt.Sprintf("%d", delta.Size)})
-			}
-
-			downloads[fingerprint] = imgDownloads
-			images = append(images, image)
-		}
-	}
-
-	return images, downloads
-}
-
-type SimpleStreamsManifestProduct struct {
-	Aliases         string                                         `json:"aliases"`
-	Architecture    string                                         `json:"arch"`
-	OperatingSystem string                                         `json:"os"`
-	Release         string                                         `json:"release"`
-	ReleaseCodename string                                         `json:"release_codename,omitempty"`
-	ReleaseTitle    string                                         `json:"release_title"`
-	Supported       bool                                           `json:"supported,omitempty"`
-	SupportedEOL    string                                         `json:"support_eol,omitempty"`
-	Version         string                                         `json:"version,omitempty"`
-	Versions        map[string]SimpleStreamsManifestProductVersion `json:"versions"`
-}
-
-type SimpleStreamsManifestProductVersion struct {
-	PublicName string                                             `json:"pubname,omitempty"`
-	Label      string                                             `json:"label,omitempty"`
-	Items      map[string]SimpleStreamsManifestProductVersionItem `json:"items"`
-}
-
-type SimpleStreamsManifestProductVersionItem struct {
-	Path                  string `json:"path"`
-	FileType              string `json:"ftype"`
-	HashMd5               string `json:"md5,omitempty"`
-	HashSha256            string `json:"sha256,omitempty"`
-	LXDHashSha256         string `json:"combined_sha256,omitempty"`
-	LXDHashSha256RootXz   string `json:"combined_rootxz_sha256,omitempty"`
-	LXDHashSha256SquashFs string `json:"combined_squashfs_sha256,omitempty"`
-	Size                  int64  `json:"size"`
-	DeltaBase             string `json:"delta_base,omitempty"`
-}
-
-type SimpleStreamsIndex struct {
-	Format  string                              `json:"format"`
-	Index   map[string]SimpleStreamsIndexStream `json:"index"`
-	Updated string                              `json:"updated,omitempty"`
-}
-
-type SimpleStreamsIndexStream struct {
-	Updated  string   `json:"updated,omitempty"`
-	DataType string   `json:"datatype"`
-	Path     string   `json:"path"`
-	Format   string   `json:"format,omitempty"`
-	Products []string `json:"products"`
-}
-
-type SimpleStreamsFile struct {
+// DownloadableFile represents a file with its URL, hash and size
+type DownloadableFile struct {
 	Path   string
 	Sha256 string
 	Size   int64
 }
 
+// NewClient returns a simplestreams client for the provided stream URL
 func NewClient(url string, httpClient http.Client, useragent string) *SimpleStreams {
 	return &SimpleStreams{
 		http:           &httpClient,
 		url:            url,
-		cachedManifest: map[string]*SimpleStreamsManifest{},
+		cachedProducts: map[string]*Products{},
 		useragent:      useragent,
 	}
 }
 
+// SimpleStreams represents a simplestream client
 type SimpleStreams struct {
 	http      *http.Client
 	url       string
 	useragent string
 
-	cachedIndex    *SimpleStreamsIndex
-	cachedManifest map[string]*SimpleStreamsManifest
+	cachedStream   *Stream
+	cachedProducts map[string]*Products
 	cachedImages   []api.Image
-	cachedAliases  map[string]*api.ImageAliasesEntry
+	cachedAliases  []extendedAlias
+
+	cachePath   string
+	cacheExpiry time.Duration
 }
 
-func (s *SimpleStreams) parseIndex() (*SimpleStreamsIndex, error) {
-	if s.cachedIndex != nil {
-		return s.cachedIndex, nil
+// SetCache configures the on-disk cache
+func (s *SimpleStreams) SetCache(path string, expiry time.Duration) {
+	s.cachePath = path
+	s.cacheExpiry = expiry
+}
+
+func (s *SimpleStreams) readCache(path string) ([]byte, bool) {
+	cacheName := filepath.Join(s.cachePath, path)
+
+	if s.cachePath == "" {
+		return nil, false
 	}
 
-	url := fmt.Sprintf("%s/streams/v1/index.json", s.url)
-	req, err := http.NewRequest("GET", url, nil)
+	if !shared.PathExists(cacheName) {
+		return nil, false
+	}
+
+	fi, err := os.Stat(cacheName)
+	if err != nil {
+		os.Remove(cacheName)
+		return nil, false
+	}
+
+	body, err := ioutil.ReadFile(cacheName)
+	if err != nil {
+		os.Remove(cacheName)
+		return nil, false
+	}
+
+	expired := time.Since(fi.ModTime()) > s.cacheExpiry
+
+	return body, expired
+}
+
+func (s *SimpleStreams) cachedDownload(path string) ([]byte, error) {
+	fields := strings.Split(path, "/")
+	fileName := fields[len(fields)-1]
+
+	// Attempt to get from the cache
+	cachedBody, expired := s.readCache(fileName)
+	if cachedBody != nil && !expired {
+		return cachedBody, nil
+	}
+
+	// Download from the source
+	uri := fmt.Sprintf("%s/%s", s.url, path)
+	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -370,12 +110,22 @@ func (s *SimpleStreams) parseIndex() (*SimpleStreamsIndex, error) {
 
 	r, err := s.http.Do(req)
 	if err != nil {
+		// On local connectivity error, return from cache anyway
+		if cachedBody != nil {
+			return cachedBody, nil
+		}
+
 		return nil, err
 	}
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Unable to fetch %s: %s", url, r.Status)
+		// On local connectivity error, return from cache anyway
+		if cachedBody != nil {
+			return cachedBody, nil
+		}
+
+		return nil, fmt.Errorf("Unable to fetch %s: %s", uri, r.Status)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -383,86 +133,106 @@ func (s *SimpleStreams) parseIndex() (*SimpleStreamsIndex, error) {
 		return nil, err
 	}
 
-	// Parse the idnex
-	ssIndex := SimpleStreamsIndex{}
-	err = json.Unmarshal(body, &ssIndex)
-	if err != nil {
-		return nil, err
+	// Attempt to store in cache
+	if s.cachePath != "" {
+		cacheName := filepath.Join(s.cachePath, fileName)
+		os.Remove(cacheName)
+		ioutil.WriteFile(cacheName, body, 0644)
 	}
 
-	s.cachedIndex = &ssIndex
-
-	return &ssIndex, nil
+	return body, nil
 }
 
-func (s *SimpleStreams) parseManifest(path string) (*SimpleStreamsManifest, error) {
-	if s.cachedManifest[path] != nil {
-		return s.cachedManifest[path], nil
+func (s *SimpleStreams) parseStream() (*Stream, error) {
+	if s.cachedStream != nil {
+		return s.cachedStream, nil
 	}
 
-	url := fmt.Sprintf("%s/%s", s.url, path)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if s.useragent != "" {
-		req.Header.Set("User-Agent", s.useragent)
-	}
-
-	r, err := s.http.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Body.Close()
-
-	if r.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Unable to fetch %s: %s", url, r.Status)
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := s.cachedDownload("streams/v1/index.json")
 	if err != nil {
 		return nil, err
 	}
 
 	// Parse the idnex
-	ssManifest := SimpleStreamsManifest{}
-	err = json.Unmarshal(body, &ssManifest)
+	stream := Stream{}
+	err = json.Unmarshal(body, &stream)
 	if err != nil {
 		return nil, err
 	}
 
-	s.cachedManifest[path] = &ssManifest
+	s.cachedStream = &stream
 
-	return &ssManifest, nil
+	return &stream, nil
 }
 
-func (s *SimpleStreams) applyAliases(images []api.Image) ([]api.Image, map[string]*api.ImageAliasesEntry, error) {
-	aliases := map[string]*api.ImageAliasesEntry{}
+func (s *SimpleStreams) parseProducts(path string) (*Products, error) {
+	if s.cachedProducts[path] != nil {
+		return s.cachedProducts[path], nil
+	}
 
-	sort.Sort(ssSortImage(images))
+	body, err := s.cachedDownload(path)
+	if err != nil {
+		return nil, err
+	}
 
+	// Parse the idnex
+	products := Products{}
+	err = json.Unmarshal(body, &products)
+	if err != nil {
+		return nil, err
+	}
+
+	s.cachedProducts[path] = &products
+
+	return &products, nil
+}
+
+type extendedAlias struct {
+	Name         string
+	Alias        *api.ImageAliasesEntry
+	Type         string
+	Architecture string
+}
+
+func (s *SimpleStreams) applyAliases(images []api.Image) ([]api.Image, []extendedAlias, error) {
+	aliasesList := []extendedAlias{}
+
+	// Sort the images so we tag the preferred ones
+	sort.Sort(sortedImages(images))
+
+	// Look for the default OS
 	defaultOS := ""
-	for k, v := range ssDefaultOS {
+	for k, v := range urlDefaultOS {
 		if strings.HasPrefix(s.url, k) {
 			defaultOS = v
 			break
 		}
 	}
 
-	addAlias := func(name string, fingerprint string) *api.ImageAlias {
+	addAlias := func(imageType string, architecture string, name string, fingerprint string) *api.ImageAlias {
 		if defaultOS != "" {
 			name = strings.TrimPrefix(name, fmt.Sprintf("%s/", defaultOS))
 		}
 
-		if aliases[name] != nil {
-			return nil
+		for _, entry := range aliasesList {
+			if entry.Name == name && entry.Type == imageType && entry.Architecture == architecture {
+				return nil
+			}
 		}
 
 		alias := api.ImageAliasesEntry{}
 		alias.Name = name
 		alias.Target = fingerprint
-		aliases[name] = &alias
+		alias.Type = imageType
+
+		entry := extendedAlias{
+			Name:         name,
+			Type:         imageType,
+			Alias:        &alias,
+			Architecture: architecture,
+		}
+
+		aliasesList = append(aliasesList, entry)
 
 		return &api.ImageAlias{Name: name}
 	}
@@ -478,15 +248,13 @@ func (s *SimpleStreams) applyAliases(images []api.Image) ([]api.Image, map[strin
 
 			for _, entry := range aliases {
 				// Short
-				if image.Architecture == architectureName {
-					alias := addAlias(fmt.Sprintf("%s", entry.Name), image.Fingerprint)
-					if alias != nil {
-						image.Aliases = append(image.Aliases, *alias)
-					}
+				alias := addAlias(image.Type, image.Architecture, entry.Name, image.Fingerprint)
+				if alias != nil && architectureName == image.Architecture {
+					image.Aliases = append(image.Aliases, *alias)
 				}
 
 				// Medium
-				alias := addAlias(fmt.Sprintf("%s/%s", entry.Name, image.Properties["architecture"]), image.Fingerprint)
+				alias = addAlias(image.Type, image.Architecture, fmt.Sprintf("%s/%s", entry.Name, image.Properties["architecture"]), image.Fingerprint)
 				if alias != nil {
 					image.Aliases = append(image.Aliases, *alias)
 				}
@@ -496,24 +264,24 @@ func (s *SimpleStreams) applyAliases(images []api.Image) ([]api.Image, map[strin
 		newImages = append(newImages, image)
 	}
 
-	return newImages, aliases, nil
+	return newImages, aliasesList, nil
 }
 
-func (s *SimpleStreams) getImages() ([]api.Image, map[string]*api.ImageAliasesEntry, error) {
+func (s *SimpleStreams) getImages() ([]api.Image, []extendedAlias, error) {
 	if s.cachedImages != nil && s.cachedAliases != nil {
 		return s.cachedImages, s.cachedAliases, nil
 	}
 
 	images := []api.Image{}
 
-	// Load the main index
-	ssIndex, err := s.parseIndex()
+	// Load the stream data
+	stream, err := s.parseStream()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Iterate through the various image manifests
-	for _, entry := range ssIndex.Index {
+	// Iterate through the various indices
+	for _, entry := range stream.Index {
 		// We only care about images
 		if entry.DataType != "image-downloads" {
 			continue
@@ -524,16 +292,13 @@ func (s *SimpleStreams) getImages() ([]api.Image, map[string]*api.ImageAliasesEn
 			continue
 		}
 
-		manifest, err := s.parseManifest(entry.Path)
+		products, err := s.parseProducts(entry.Path)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		manifestImages, _ := manifest.ToLXD()
-
-		for _, image := range manifestImages {
-			images = append(images, image)
-		}
+		streamImages, _ := products.ToLXD()
+		images = append(images, streamImages...)
 	}
 
 	// Setup the aliases
@@ -548,15 +313,16 @@ func (s *SimpleStreams) getImages() ([]api.Image, map[string]*api.ImageAliasesEn
 	return images, aliases, nil
 }
 
-func (s *SimpleStreams) GetFiles(fingerprint string) (map[string]SimpleStreamsFile, error) {
-	// Load the main index
-	ssIndex, err := s.parseIndex()
+// GetFiles returns a map of files for the provided image fingerprint
+func (s *SimpleStreams) GetFiles(fingerprint string) (map[string]DownloadableFile, error) {
+	// Load the main stream
+	stream, err := s.parseStream()
 	if err != nil {
 		return nil, err
 	}
 
-	// Iterate through the various image manifests
-	for _, entry := range ssIndex.Index {
+	// Iterate through the various indices
+	for _, entry := range stream.Index {
 		// We only care about images
 		if entry.DataType != "image-downloads" {
 			continue
@@ -567,16 +333,16 @@ func (s *SimpleStreams) GetFiles(fingerprint string) (map[string]SimpleStreamsFi
 			continue
 		}
 
-		manifest, err := s.parseManifest(entry.Path)
+		products, err := s.parseProducts(entry.Path)
 		if err != nil {
 			return nil, err
 		}
 
-		manifestImages, downloads := manifest.ToLXD()
+		images, downloads := products.ToLXD()
 
-		for _, image := range manifestImages {
+		for _, image := range images {
 			if strings.HasPrefix(image.Fingerprint, fingerprint) {
-				files := map[string]SimpleStreamsFile{}
+				files := map[string]DownloadableFile{}
 
 				for _, path := range downloads[image.Fingerprint] {
 					size, err := strconv.ParseInt(path[3], 10, 64)
@@ -584,7 +350,7 @@ func (s *SimpleStreams) GetFiles(fingerprint string) (map[string]SimpleStreamsFi
 						return nil, err
 					}
 
-					files[path[2]] = SimpleStreamsFile{
+					files[path[2]] = DownloadableFile{
 						Path:   path[0],
 						Sha256: path[1],
 						Size:   size}
@@ -598,106 +364,112 @@ func (s *SimpleStreams) GetFiles(fingerprint string) (map[string]SimpleStreamsFi
 	return nil, fmt.Errorf("Couldn't find the requested image")
 }
 
-func (s *SimpleStreams) downloadFile(path string, hash string, target string, progress func(int64, int64)) error {
-	download := func(url string, hash string, target string) error {
-		out, err := os.Create(target)
-		if err != nil {
-			return err
-		}
-		defer out.Close()
-
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return err
-		}
-
-		if s.useragent != "" {
-			req.Header.Set("User-Agent", s.useragent)
-		}
-
-		r, err := s.http.Do(req)
-		if err != nil {
-			return err
-		}
-		defer r.Body.Close()
-
-		if r.StatusCode != http.StatusOK {
-			return fmt.Errorf("Unable to fetch %s: %s", url, r.Status)
-		}
-
-		body := &ioprogress.ProgressReader{
-			ReadCloser: r.Body,
-			Tracker: &ioprogress.ProgressTracker{
-				Length:  r.ContentLength,
-				Handler: progress,
-			},
-		}
-
-		sha256 := sha256.New()
-		_, err = io.Copy(io.MultiWriter(out, sha256), body)
-		if err != nil {
-			return err
-		}
-
-		result := fmt.Sprintf("%x", sha256.Sum(nil))
-		if result != hash {
-			os.Remove(target)
-			return fmt.Errorf("Hash mismatch for %s: %s != %s", path, result, hash)
-		}
-
-		return nil
-	}
-
-	// Try http first
-	if strings.HasPrefix(s.url, "https://") {
-		err := download(fmt.Sprintf("http://%s/%s", strings.TrimPrefix(s.url, "https://"), path), hash, target)
-		if err == nil {
-			return nil
-		}
-	}
-
-	err := download(fmt.Sprintf("%s/%s", s.url, path), hash, target)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
+// ListAliases returns a list of image aliases for the provided image fingerprint
 func (s *SimpleStreams) ListAliases() ([]api.ImageAliasesEntry, error) {
-	_, aliasesMap, err := s.getImages()
+	_, aliasesList, err := s.getImages()
 	if err != nil {
 		return nil, err
 	}
 
-	aliases := []api.ImageAliasesEntry{}
+	// Sort the list ahead of dedup
+	sort.Sort(sortedAliases(aliasesList))
 
-	for _, alias := range aliasesMap {
-		aliases = append(aliases, *alias)
+	aliases := []api.ImageAliasesEntry{}
+	for _, entry := range aliasesList {
+		dup := false
+		for _, v := range aliases {
+			if v.Name == entry.Name && v.Type == entry.Type {
+				dup = true
+			}
+		}
+
+		if dup {
+			continue
+		}
+
+		aliases = append(aliases, *entry.Alias)
 	}
 
 	return aliases, nil
 }
 
+// ListImages returns a list of LXD images
 func (s *SimpleStreams) ListImages() ([]api.Image, error) {
 	images, _, err := s.getImages()
 	return images, err
 }
 
-func (s *SimpleStreams) GetAlias(name string) (*api.ImageAliasesEntry, error) {
-	_, aliasesMap, err := s.getImages()
+// GetAlias returns a LXD ImageAliasesEntry for the provided alias name
+func (s *SimpleStreams) GetAlias(imageType string, name string) (*api.ImageAliasesEntry, error) {
+	_, aliasesList, err := s.getImages()
 	if err != nil {
 		return nil, err
 	}
 
-	alias, ok := aliasesMap[name]
-	if !ok {
+	// Sort the list ahead of dedup
+	sort.Sort(sortedAliases(aliasesList))
+
+	var match *api.ImageAliasesEntry
+	for _, entry := range aliasesList {
+		if entry.Name != name {
+			continue
+		}
+
+		if entry.Type != imageType && imageType != "" {
+			continue
+		}
+
+		if match != nil {
+			if match.Type != entry.Type {
+				return nil, fmt.Errorf("More than one match for alias '%s'", name)
+			}
+
+			continue
+		}
+
+		match = entry.Alias
+	}
+
+	if match == nil {
 		return nil, fmt.Errorf("Alias '%s' doesn't exist", name)
 	}
 
-	return alias, nil
+	return match, nil
 }
 
+// GetAliasArchitectures returns a map of architecture / alias entries for an alias
+func (s *SimpleStreams) GetAliasArchitectures(imageType string, name string) (map[string]*api.ImageAliasesEntry, error) {
+	aliases := map[string]*api.ImageAliasesEntry{}
+
+	_, aliasesList, err := s.getImages()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range aliasesList {
+		if entry.Name != name {
+			continue
+		}
+
+		if entry.Type != imageType && imageType != "" {
+			continue
+		}
+
+		if aliases[entry.Architecture] != nil {
+			return nil, fmt.Errorf("More than one match for alias '%s'", name)
+		}
+
+		aliases[entry.Architecture] = entry.Alias
+	}
+
+	if len(aliases) == 0 {
+		return nil, fmt.Errorf("Alias '%s' doesn't exist", name)
+	}
+
+	return aliases, nil
+}
+
+// GetImage returns a LXD image for the provided image fingerprint
 func (s *SimpleStreams) GetImage(fingerprint string) (*api.Image, error) {
 	images, _, err := s.getImages()
 	if err != nil {
@@ -719,41 +491,4 @@ func (s *SimpleStreams) GetImage(fingerprint string) (*api.Image, error) {
 	}
 
 	return &matches[0], nil
-}
-
-func (s *SimpleStreams) ExportImage(image string, target string) (string, error) {
-	if !shared.IsDir(target) {
-		return "", fmt.Errorf("Split images can only be written to a directory")
-	}
-
-	files, err := s.GetFiles(image)
-	if err != nil {
-		return "", err
-	}
-
-	for _, file := range files {
-		fields := strings.Split(file.Path, "/")
-		targetFile := filepath.Join(target, fields[len(fields)-1])
-
-		err := s.downloadFile(file.Path, file.Sha256, targetFile, nil)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return target, nil
-}
-
-func (s *SimpleStreams) Download(image string, fileType string, target string, progress func(int64, int64)) error {
-	files, err := s.GetFiles(image)
-	if err != nil {
-		return err
-	}
-
-	file, ok := files[fileType]
-	if ok {
-		return s.downloadFile(file.Path, file.Sha256, target, progress)
-	}
-
-	return fmt.Errorf("The file couldn't be found")
 }

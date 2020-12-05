@@ -168,11 +168,12 @@ github.com/kyokomi/emoji
 # github.com/logrusorgru/aurora v2.0.3+incompatible
 ## explicit
 github.com/logrusorgru/aurora
-# github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40
+# github.com/lxc/lxd v0.0.0-20201112195216-796fc6680728
 ## explicit
 github.com/lxc/lxd/client
 github.com/lxc/lxd/lxc/config
 github.com/lxc/lxd/lxc/utils
+github.com/lxc/lxd/lxd/include
 github.com/lxc/lxd/shared
 github.com/lxc/lxd/shared/api
 github.com/lxc/lxd/shared/cancel
@@ -183,12 +184,15 @@ github.com/lxc/lxd/shared/osarch
 github.com/lxc/lxd/shared/simplestreams
 github.com/lxc/lxd/shared/termios
 github.com/lxc/lxd/shared/units
+github.com/lxc/lxd/shared/validate
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mattn/go-colorable v0.1.2
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.10
 github.com/mattn/go-isatty
+# github.com/mattn/go-runewidth v0.0.7
+github.com/mattn/go-runewidth
 # github.com/mitchellh/copystructure v1.0.0
 ## explicit
 github.com/mitchellh/copystructure
@@ -219,6 +223,7 @@ github.com/nxadm/tail/watch
 github.com/nxadm/tail/winfile
 # github.com/olekukonko/tablewriter v0.0.4
 ## explicit
+github.com/olekukonko/tablewriter
 # github.com/onsi/ginkgo v1.14.2
 ## explicit
 github.com/onsi/ginkgo
@@ -524,3 +529,4 @@ howett.net/plist
 ## explicit
 # github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.20200605210607-749178b8f80d+incompatible
 # github.com/renstrom/dedent v1.1.0 => github.com/lithammer/dedent v1.1.0
+# github.com/Sirupsen/logrusv1.7.0 => github.com/sirupsen/logrus v1.7.0

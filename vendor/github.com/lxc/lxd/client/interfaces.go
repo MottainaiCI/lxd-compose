@@ -34,6 +34,7 @@ type RemoteOperation interface {
 type Server interface {
 	GetConnectionInfo() (info *ConnectionInfo, err error)
 	GetHTTPClient() (client *http.Client, err error)
+	Disconnect()
 }
 
 // The ImageServer type represents a read-only image server.
@@ -55,10 +56,14 @@ type ImageServer interface {
 	GetImageAliasNames() (names []string, err error)
 
 	GetImageAlias(name string) (alias *api.ImageAliasesEntry, ETag string, err error)
+	GetImageAliasType(imageType string, name string) (alias *api.ImageAliasesEntry, ETag string, err error)
+	GetImageAliasArchitectures(imageType string, name string) (entries map[string]*api.ImageAliasesEntry, err error)
+
+	ExportImage(fingerprint string, image api.ImageExportPost) (Operation, error)
 }
 
-// The ContainerServer type represents a full featured LXD server.
-type ContainerServer interface {
+// The InstanceServer type represents a full featured LXD server.
+type InstanceServer interface {
 	ImageServer
 
 	// Server functions
@@ -68,8 +73,8 @@ type ContainerServer interface {
 	HasExtension(extension string) (exists bool)
 	RequireAuthenticated(authenticated bool)
 	IsClustered() (clustered bool)
-	UseTarget(name string) (client ContainerServer)
-	UseProject(name string) (client ContainerServer)
+	UseTarget(name string) (client InstanceServer)
+	UseProject(name string) (client InstanceServer)
 
 	// Certificate functions
 	GetCertificateFingerprints() (fingerprints []string, err error)
@@ -86,7 +91,7 @@ type ContainerServer interface {
 	GetContainer(name string) (container *api.Container, ETag string, err error)
 	CreateContainer(container api.ContainersPost) (op Operation, err error)
 	CreateContainerFromImage(source ImageServer, image api.Image, imgcontainer api.ContainersPost) (op RemoteOperation, err error)
-	CopyContainer(source ContainerServer, container api.Container, args *ContainerCopyArgs) (op RemoteOperation, err error)
+	CopyContainer(source InstanceServer, container api.Container, args *ContainerCopyArgs) (op RemoteOperation, err error)
 	UpdateContainer(name string, container api.ContainerPut, ETag string) (op Operation, err error)
 	RenameContainer(name string, container api.ContainerPost) (op Operation, err error)
 	MigrateContainer(name string, container api.ContainerPost) (op Operation, err error)
@@ -105,7 +110,7 @@ type ContainerServer interface {
 	GetContainerSnapshots(containerName string) (snapshots []api.ContainerSnapshot, err error)
 	GetContainerSnapshot(containerName string, name string) (snapshot *api.ContainerSnapshot, ETag string, err error)
 	CreateContainerSnapshot(containerName string, snapshot api.ContainerSnapshotsPost) (op Operation, err error)
-	CopyContainerSnapshot(source ContainerServer, containerName string, snapshot api.ContainerSnapshot, args *ContainerSnapshotCopyArgs) (op RemoteOperation, err error)
+	CopyContainerSnapshot(source InstanceServer, containerName string, snapshot api.ContainerSnapshot, args *ContainerSnapshotCopyArgs) (op RemoteOperation, err error)
 	RenameContainerSnapshot(containerName string, name string, container api.ContainerSnapshotPost) (op Operation, err error)
 	MigrateContainerSnapshot(containerName string, name string, container api.ContainerSnapshotPost) (op Operation, err error)
 	DeleteContainerSnapshot(containerName string, name string) (op Operation, err error)
@@ -135,6 +140,65 @@ type ContainerServer interface {
 	CreateContainerTemplateFile(containerName string, templateName string, content io.ReadSeeker) (err error)
 	UpdateContainerTemplateFile(containerName string, templateName string, content io.ReadSeeker) (err error)
 	DeleteContainerTemplateFile(name string, templateName string) (err error)
+
+	// Instance functions.
+	GetInstanceNames(instanceType api.InstanceType) (names []string, err error)
+	GetInstances(instanceType api.InstanceType) (instances []api.Instance, err error)
+	GetInstancesFull(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
+	GetInstance(name string) (instance *api.Instance, ETag string, err error)
+	CreateInstance(instance api.InstancesPost) (op Operation, err error)
+	CreateInstanceFromImage(source ImageServer, image api.Image, req api.InstancesPost) (op RemoteOperation, err error)
+	CopyInstance(source InstanceServer, instance api.Instance, args *InstanceCopyArgs) (op RemoteOperation, err error)
+	UpdateInstance(name string, instance api.InstancePut, ETag string) (op Operation, err error)
+	RenameInstance(name string, instance api.InstancePost) (op Operation, err error)
+	MigrateInstance(name string, instance api.InstancePost) (op Operation, err error)
+	DeleteInstance(name string) (op Operation, err error)
+
+	ExecInstance(instanceName string, exec api.InstanceExecPost, args *InstanceExecArgs) (op Operation, err error)
+	ConsoleInstance(instanceName string, console api.InstanceConsolePost, args *InstanceConsoleArgs) (op Operation, err error)
+	ConsoleInstanceDynamic(instanceName string, console api.InstanceConsolePost, args *InstanceConsoleArgs) (Operation, func(io.ReadWriteCloser) error, error)
+
+	GetInstanceConsoleLog(instanceName string, args *InstanceConsoleLogArgs) (content io.ReadCloser, err error)
+	DeleteInstanceConsoleLog(instanceName string, args *InstanceConsoleLogArgs) (err error)
+
+	GetInstanceFile(instanceName string, path string) (content io.ReadCloser, resp *InstanceFileResponse, err error)
+	CreateInstanceFile(instanceName string, path string, args InstanceFileArgs) (err error)
+	DeleteInstanceFile(instanceName string, path string) (err error)
+
+	GetInstanceSnapshotNames(instanceName string) (names []string, err error)
+	GetInstanceSnapshots(instanceName string) (snapshots []api.InstanceSnapshot, err error)
+	GetInstanceSnapshot(instanceName string, name string) (snapshot *api.InstanceSnapshot, ETag string, err error)
+	CreateInstanceSnapshot(instanceName string, snapshot api.InstanceSnapshotsPost) (op Operation, err error)
+	CopyInstanceSnapshot(source InstanceServer, instanceName string, snapshot api.InstanceSnapshot, args *InstanceSnapshotCopyArgs) (op RemoteOperation, err error)
+	RenameInstanceSnapshot(instanceName string, name string, instance api.InstanceSnapshotPost) (op Operation, err error)
+	MigrateInstanceSnapshot(instanceName string, name string, instance api.InstanceSnapshotPost) (op Operation, err error)
+	DeleteInstanceSnapshot(instanceName string, name string) (op Operation, err error)
+	UpdateInstanceSnapshot(instanceName string, name string, instance api.InstanceSnapshotPut, ETag string) (op Operation, err error)
+
+	GetInstanceBackupNames(instanceName string) (names []string, err error)
+	GetInstanceBackups(instanceName string) (backups []api.InstanceBackup, err error)
+	GetInstanceBackup(instanceName string, name string) (backup *api.InstanceBackup, ETag string, err error)
+	CreateInstanceBackup(instanceName string, backup api.InstanceBackupsPost) (op Operation, err error)
+	RenameInstanceBackup(instanceName string, name string, backup api.InstanceBackupPost) (op Operation, err error)
+	DeleteInstanceBackup(instanceName string, name string) (op Operation, err error)
+	GetInstanceBackupFile(instanceName string, name string, req *BackupFileRequest) (resp *BackupFileResponse, err error)
+	CreateInstanceFromBackup(args InstanceBackupArgs) (op Operation, err error)
+
+	GetInstanceState(name string) (state *api.InstanceState, ETag string, err error)
+	UpdateInstanceState(name string, state api.InstanceStatePut, ETag string) (op Operation, err error)
+
+	GetInstanceLogfiles(name string) (logfiles []string, err error)
+	GetInstanceLogfile(name string, filename string) (content io.ReadCloser, err error)
+	DeleteInstanceLogfile(name string, filename string) (err error)
+
+	GetInstanceMetadata(name string) (metadata *api.ImageMetadata, ETag string, err error)
+	SetInstanceMetadata(name string, metadata api.ImageMetadata, ETag string) (err error)
+
+	GetInstanceTemplateFiles(instanceName string) (templates []string, err error)
+	GetInstanceTemplateFile(instanceName string, templateName string) (content io.ReadCloser, err error)
+	CreateInstanceTemplateFile(instanceName string, templateName string, content io.ReadSeeker) (err error)
+	UpdateInstanceTemplateFile(instanceName string, templateName string, content io.ReadSeeker) (err error)
+	DeleteInstanceTemplateFile(name string, templateName string) (err error)
 
 	// Event handling functions
 	GetEvents() (listener *EventListener, err error)
@@ -167,6 +231,7 @@ type ContainerServer interface {
 	GetOperations() (operations []api.Operation, err error)
 	GetOperation(uuid string) (op *api.Operation, ETag string, err error)
 	GetOperationWait(uuid string, timeout int) (op *api.Operation, ETag string, err error)
+	GetOperationWaitSecret(uuid string, secret string, timeout int) (op *api.Operation, ETag string, err error)
 	GetOperationWebsocket(uuid string, secret string) (conn *websocket.Conn, err error)
 	DeleteOperation(uuid string) (err error)
 
@@ -205,8 +270,8 @@ type ContainerServer interface {
 	UpdateStoragePoolVolume(pool string, volType string, name string, volume api.StorageVolumePut, ETag string) (err error)
 	DeleteStoragePoolVolume(pool string, volType string, name string) (err error)
 	RenameStoragePoolVolume(pool string, volType string, name string, volume api.StorageVolumePost) (err error)
-	CopyStoragePoolVolume(pool string, source ContainerServer, sourcePool string, volume api.StorageVolume, args *StoragePoolVolumeCopyArgs) (op RemoteOperation, err error)
-	MoveStoragePoolVolume(pool string, source ContainerServer, sourcePool string, volume api.StorageVolume, args *StoragePoolVolumeMoveArgs) (op RemoteOperation, err error)
+	CopyStoragePoolVolume(pool string, source InstanceServer, sourcePool string, volume api.StorageVolume, args *StoragePoolVolumeCopyArgs) (op RemoteOperation, err error)
+	MoveStoragePoolVolume(pool string, source InstanceServer, sourcePool string, volume api.StorageVolume, args *StoragePoolVolumeMoveArgs) (op RemoteOperation, err error)
 	MigrateStoragePoolVolume(pool string, volume api.StorageVolumePost) (op Operation, err error)
 
 	// Storage volume snapshot functions ("storage_api_volume_snapshots" API extension)
@@ -218,6 +283,16 @@ type ContainerServer interface {
 	RenameStoragePoolVolumeSnapshot(pool string, volumeType string, volumeName string, snapshotName string, snapshot api.StorageVolumeSnapshotPost) (op Operation, err error)
 	UpdateStoragePoolVolumeSnapshot(pool string, volumeType string, volumeName string, snapshotName string, volume api.StorageVolumeSnapshotPut, ETag string) (err error)
 
+	// Storage volume backup functions ("custom_volume_backup" API extension)
+	GetStoragePoolVolumeBackupNames(pool string, volName string) (names []string, err error)
+	GetStoragePoolVolumeBackups(pool string, volName string) (backups []api.StoragePoolVolumeBackup, err error)
+	GetStoragePoolVolumeBackup(pool string, volName string, name string) (backup *api.StoragePoolVolumeBackup, ETag string, err error)
+	CreateStoragePoolVolumeBackup(pool string, volName string, backup api.StoragePoolVolumeBackupsPost) (op Operation, err error)
+	RenameStoragePoolVolumeBackup(pool string, volName string, name string, backup api.StoragePoolVolumeBackupPost) (op Operation, err error)
+	DeleteStoragePoolVolumeBackup(pool string, volName string, name string) (op Operation, err error)
+	GetStoragePoolVolumeBackupFile(pool string, volName string, name string, req *BackupFileRequest) (resp *BackupFileResponse, err error)
+	CreateStoragePoolVolumeFromBackup(pool string, args StoragePoolVolumeBackupArgs) (op Operation, err error)
+
 	// Cluster functions ("cluster" API extensions)
 	GetCluster() (cluster *api.Cluster, ETag string, err error)
 	UpdateCluster(cluster api.ClusterPut, ETag string) (op Operation, err error)
@@ -225,6 +300,7 @@ type ContainerServer interface {
 	GetClusterMemberNames() (names []string, err error)
 	GetClusterMembers() (members []api.ClusterMember, err error)
 	GetClusterMember(name string) (member *api.ClusterMember, ETag string, err error)
+	UpdateClusterMember(name string, member api.ClusterMemberPut, ETag string) (err error)
 	RenameClusterMember(name string, member api.ClusterMemberPost) (err error)
 
 	// Internal functions (for internal use)
@@ -233,7 +309,7 @@ type ContainerServer interface {
 	RawOperation(method string, path string, data interface{}, queryETag string) (op Operation, ETag string, err error)
 }
 
-// The ConnectionInfo struct represents general information for a connection
+// The ConnectionInfo struct represents general information for a connection.
 type ConnectionInfo struct {
 	Addresses   []string
 	Certificate string
@@ -243,16 +319,7 @@ type ConnectionInfo struct {
 	Project     string
 }
 
-// The ContainerBackupArgs struct is used when creating a container from a backup
-type ContainerBackupArgs struct {
-	// The backup file
-	BackupFile io.Reader
-
-	// Storage pool to use
-	PoolName string
-}
-
-// The BackupFileRequest struct is used for a backup download request
+// The BackupFileRequest struct is used for a backup download request.
 type BackupFileRequest struct {
 	// Writer for the backup file
 	BackupFile io.WriteSeeker
@@ -264,13 +331,13 @@ type BackupFileRequest struct {
 	Canceler *cancel.Canceler
 }
 
-// The BackupFileResponse struct is used as the response for backup downloads
+// The BackupFileResponse struct is used as the response for backup downloads.
 type BackupFileResponse struct {
 	// Size of backup file
 	Size int64
 }
 
-// The ImageCreateArgs struct is used for direct image upload
+// The ImageCreateArgs struct is used for direct image upload.
 type ImageCreateArgs struct {
 	// Reader for the meta file
 	MetaFile io.Reader
@@ -286,9 +353,12 @@ type ImageCreateArgs struct {
 
 	// Progress handler (called with upload progress)
 	ProgressHandler func(progress ioprogress.ProgressData)
+
+	// Type of the image (container or virtual-machine)
+	Type string
 }
 
-// The ImageFileRequest struct is used for an image download request
+// The ImageFileRequest struct is used for an image download request.
 type ImageFileRequest struct {
 	// Writer for the metadata file
 	MetaFile io.WriteSeeker
@@ -307,7 +377,7 @@ type ImageFileRequest struct {
 	DeltaSourceRetriever func(fingerprint string, file string) string
 }
 
-// The ImageFileResponse struct is used as the response for image downloads
+// The ImageFileResponse struct is used as the response for image downloads.
 type ImageFileResponse struct {
 	// Filename for the metadata file
 	MetaName string
@@ -322,7 +392,7 @@ type ImageFileResponse struct {
 	RootfsSize int64
 }
 
-// The ImageCopyArgs struct is used to pass additional options during image copy
+// The ImageCopyArgs struct is used to pass additional options during image copy.
 type ImageCopyArgs struct {
 	// Aliases to add to the copied image.
 	Aliases []api.ImageAlias
@@ -335,10 +405,16 @@ type ImageCopyArgs struct {
 
 	// Whether this image is to be made available to unauthenticated users
 	Public bool
+
+	// The image type to use for resolution
+	Type string
+
+	// The transfer mode, can be "pull" (default), "push" or "relay"
+	Mode string
 }
 
 // The StoragePoolVolumeCopyArgs struct is used to pass additional options
-// during storage volume copy
+// during storage volume copy.
 type StoragePoolVolumeCopyArgs struct {
 	// New name for the target
 	Name string
@@ -351,21 +427,43 @@ type StoragePoolVolumeCopyArgs struct {
 }
 
 // The StoragePoolVolumeMoveArgs struct is used to pass additional options
-// during storage volume move
+// during storage volume move.
 type StoragePoolVolumeMoveArgs struct {
 	StoragePoolVolumeCopyArgs
 }
 
-// The ContainerCopyArgs struct is used to pass additional options during container copy
-type ContainerCopyArgs struct {
-	// If set, the container will be renamed on copy
+// The StoragePoolVolumeBackupArgs struct is used when creating a storage volume from a backup.
+// API extension: custom_volume_backup
+type StoragePoolVolumeBackupArgs struct {
+	// The backup file
+	BackupFile io.Reader
+
+	// Name to import backup as
+	Name string
+}
+
+// The InstanceBackupArgs struct is used when creating a instance from a backup.
+type InstanceBackupArgs struct {
+	// The backup file
+	BackupFile io.Reader
+
+	// Storage pool to use
+	PoolName string
+
+	// Name to import backup as
+	Name string
+}
+
+// The InstanceCopyArgs struct is used to pass additional options during instance copy.
+type InstanceCopyArgs struct {
+	// If set, the instance will be renamed on copy
 	Name string
 
-	// If set, the container running state will be transferred (live migration)
+	// If set, the instance running state will be transferred (live migration)
 	Live bool
 
-	// If set, only the container will copied, its snapshots won't
-	ContainerOnly bool
+	// If set, only the instance will copied, its snapshots won't
+	InstanceOnly bool
 
 	// The transfer mode, can be "pull" (default), "push" or "relay"
 	Mode string
@@ -375,39 +473,39 @@ type ContainerCopyArgs struct {
 	Refresh bool
 }
 
-// The ContainerSnapshotCopyArgs struct is used to pass additional options during container copy
-type ContainerSnapshotCopyArgs struct {
-	// If set, the container will be renamed on copy
+// The InstanceSnapshotCopyArgs struct is used to pass additional options during instance copy.
+type InstanceSnapshotCopyArgs struct {
+	// If set, the instance will be renamed on copy
 	Name string
 
 	// The transfer mode, can be "pull" (default), "push" or "relay"
 	Mode string
 
 	// API extension: container_snapshot_stateful_migration
-	// If set, the container running state will be transferred (live migration)
+	// If set, the instance running state will be transferred (live migration)
 	Live bool
 }
 
-// The ContainerConsoleArgs struct is used to pass additional options during a
-// container console session
-type ContainerConsoleArgs struct {
-	// Bidirectional fd to pass to the container
+// The InstanceConsoleArgs struct is used to pass additional options during a
+// instance console session.
+type InstanceConsoleArgs struct {
+	// Bidirectional fd to pass to the instance
 	Terminal io.ReadWriteCloser
 
 	// Control message handler (window resize)
 	Control func(conn *websocket.Conn)
 
-	// Closing this Channel causes a disconnect from the container's console
+	// Closing this Channel causes a disconnect from the instance's console
 	ConsoleDisconnect chan bool
 }
 
-// The ContainerConsoleLogArgs struct is used to pass additional options during a
-// container console log request
-type ContainerConsoleLogArgs struct {
+// The InstanceConsoleLogArgs struct is used to pass additional options during a
+// instance console log request.
+type InstanceConsoleLogArgs struct {
 }
 
-// The ContainerExecArgs struct is used to pass additional options during container exec
-type ContainerExecArgs struct {
+// The InstanceExecArgs struct is used to pass additional options during instance exec.
+type InstanceExecArgs struct {
 	// Standard input
 	Stdin io.ReadCloser
 
@@ -424,8 +522,8 @@ type ContainerExecArgs struct {
 	DataDone chan bool
 }
 
-// The ContainerFileArgs struct is used to pass the various options for a container file upload
-type ContainerFileArgs struct {
+// The InstanceFileArgs struct is used to pass the various options for a instance file upload.
+type InstanceFileArgs struct {
 	// File content
 	Content io.ReadSeeker
 
@@ -445,8 +543,8 @@ type ContainerFileArgs struct {
 	WriteMode string
 }
 
-// The ContainerFileResponse struct is used as part of the response for a container file download
-type ContainerFileResponse struct {
+// The InstanceFileResponse struct is used as part of the response for a instance file download.
+type InstanceFileResponse struct {
 	// User id that owns the file
 	UID int64
 

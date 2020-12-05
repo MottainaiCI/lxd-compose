@@ -14,6 +14,10 @@ const (
 	ARCH_64BIT_POWERPC_BIG_ENDIAN    = 6
 	ARCH_64BIT_POWERPC_LITTLE_ENDIAN = 7
 	ARCH_64BIT_S390_BIG_ENDIAN       = 8
+	ARCH_32BIT_MIPS                  = 9
+	ARCH_64BIT_MIPS                  = 10
+	ARCH_32BIT_RISCV_LITTLE_ENDIAN   = 11
+	ARCH_64BIT_RISCV_LITTLE_ENDIAN   = 12
 )
 
 var architectureNames = map[int]string{
@@ -25,6 +29,10 @@ var architectureNames = map[int]string{
 	ARCH_64BIT_POWERPC_BIG_ENDIAN:    "ppc64",
 	ARCH_64BIT_POWERPC_LITTLE_ENDIAN: "ppc64le",
 	ARCH_64BIT_S390_BIG_ENDIAN:       "s390x",
+	ARCH_32BIT_MIPS:                  "mips",
+	ARCH_64BIT_MIPS:                  "mips64",
+	ARCH_32BIT_RISCV_LITTLE_ENDIAN:   "riscv32",
+	ARCH_64BIT_RISCV_LITTLE_ENDIAN:   "riscv64",
 }
 
 var architectureAliases = map[int][]string{
@@ -35,6 +43,10 @@ var architectureAliases = map[int][]string{
 	ARCH_32BIT_POWERPC_BIG_ENDIAN:    {"powerpc"},
 	ARCH_64BIT_POWERPC_BIG_ENDIAN:    {"powerpc64", "ppc64"},
 	ARCH_64BIT_POWERPC_LITTLE_ENDIAN: {"ppc64el"},
+	ARCH_32BIT_MIPS:                  {"mipsel"},
+	ARCH_64BIT_MIPS:                  {"mips64el"},
+	ARCH_32BIT_RISCV_LITTLE_ENDIAN:   {},
+	ARCH_64BIT_RISCV_LITTLE_ENDIAN:   {},
 }
 
 var architecturePersonalities = map[int]string{
@@ -46,6 +58,10 @@ var architecturePersonalities = map[int]string{
 	ARCH_64BIT_POWERPC_BIG_ENDIAN:    "linux64",
 	ARCH_64BIT_POWERPC_LITTLE_ENDIAN: "linux64",
 	ARCH_64BIT_S390_BIG_ENDIAN:       "linux64",
+	ARCH_32BIT_MIPS:                  "linux32",
+	ARCH_64BIT_MIPS:                  "linux64",
+	ARCH_32BIT_RISCV_LITTLE_ENDIAN:   "linux32",
+	ARCH_64BIT_RISCV_LITTLE_ENDIAN:   "linux64",
 }
 
 var architectureSupportedPersonalities = map[int][]int{
@@ -57,6 +73,10 @@ var architectureSupportedPersonalities = map[int][]int{
 	ARCH_64BIT_POWERPC_BIG_ENDIAN:    {ARCH_32BIT_POWERPC_BIG_ENDIAN},
 	ARCH_64BIT_POWERPC_LITTLE_ENDIAN: {},
 	ARCH_64BIT_S390_BIG_ENDIAN:       {},
+	ARCH_32BIT_MIPS:                  {},
+	ARCH_64BIT_MIPS:                  {ARCH_32BIT_MIPS},
+	ARCH_32BIT_RISCV_LITTLE_ENDIAN:   {},
+	ARCH_64BIT_RISCV_LITTLE_ENDIAN:   {},
 }
 
 const ArchitectureDefault = "x86_64"
@@ -104,4 +124,17 @@ func ArchitecturePersonalities(arch int) ([]int, error) {
 	}
 
 	return []int{}, fmt.Errorf("Architecture isn't supported: %d", arch)
+}
+
+// ArchitectureGetLocalID returns the local hardware architecture ID
+func ArchitectureGetLocalID() (int, error) {
+	name, err := ArchitectureGetLocal()
+	if err != nil {
+		return -1, err
+	}
+	id, err := ArchitectureId(name)
+	if err != nil {
+		return -1, err
+	}
+	return id, nil
 }

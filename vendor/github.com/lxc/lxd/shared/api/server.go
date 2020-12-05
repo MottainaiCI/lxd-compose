@@ -8,8 +8,12 @@ type ServerEnvironment struct {
 	CertificateFingerprint string   `json:"certificate_fingerprint" yaml:"certificate_fingerprint"`
 	Driver                 string   `json:"driver" yaml:"driver"`
 	DriverVersion          string   `json:"driver_version" yaml:"driver_version"`
-	Kernel                 string   `json:"kernel" yaml:"kernel"`
-	KernelArchitecture     string   `json:"kernel_architecture" yaml:"kernel_architecture"`
+
+	// API extension: firewall_driver
+	Firewall string `json:"firewall" yaml:"firewall"`
+
+	Kernel             string `json:"kernel" yaml:"kernel"`
+	KernelArchitecture string `json:"kernel_architecture" yaml:"kernel_architecture"`
 
 	// API extension: kernel_features
 	KernelFeatures map[string]string `json:"kernel_features" yaml:"kernel_features"`
@@ -18,6 +22,10 @@ type ServerEnvironment struct {
 
 	// API extension: lxc_features
 	LXCFeatures map[string]string `json:"lxc_features" yaml:"lxc_features"`
+
+	// API extension: api_os
+	OSName    string `json:"os_name" yaml:"os_name"`
+	OSVersion string `json:"os_version" yaml:"os_version"`
 
 	// API extension: projects
 	Project string `json:"project" yaml:"project"`

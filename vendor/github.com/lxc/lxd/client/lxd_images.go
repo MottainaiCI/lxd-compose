@@ -79,7 +79,7 @@ func (r *ProtocolLXD) GetPrivateImage(fingerprint string, secret string) (*api.I
 	image := api.Image{}
 
 	// Build the API path
-	path := fmt.Sprintf("/images/%s", url.QueryEscape(fingerprint))
+	path := fmt.Sprintf("/images/%s", url.PathEscape(fingerprint))
 	var err error
 	path, err = r.setQueryAttributes(path)
 	if err != nil {
@@ -109,7 +109,7 @@ func (r *ProtocolLXD) GetPrivateImageFile(fingerprint string, secret string, req
 		return nil, fmt.Errorf("No file requested")
 	}
 
-	uri := fmt.Sprintf("/1.0/images/%s/export", url.QueryEscape(fingerprint))
+	uri := fmt.Sprintf("/1.0/images/%s/export", url.PathEscape(fingerprint))
 
 	var err error
 	uri, err = r.setQueryAttributes(uri)
@@ -180,15 +180,25 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 	// Handle the data
 	body := response.Body
 	if req.ProgressHandler != nil {
-		body = &ioprogress.ProgressReader{
+		reader := &ioprogress.ProgressReader{
 			ReadCloser: response.Body,
 			Tracker: &ioprogress.ProgressTracker{
 				Length: response.ContentLength,
-				Handler: func(percent int64, speed int64) {
-					req.ProgressHandler(ioprogress.ProgressData{Text: fmt.Sprintf("%d%% (%s/s)", percent, units.GetByteSizeString(speed, 2))})
-				},
 			},
 		}
+
+		if response.ContentLength > 0 {
+			reader.Tracker.Handler = func(percent int64, speed int64) {
+				req.ProgressHandler(ioprogress.ProgressData{Text: fmt.Sprintf("%d%% (%s/s)", percent, units.GetByteSizeString(speed, 2))})
+			}
+		} else {
+			reader.Tracker.Handler = func(received int64, speed int64) {
+				req.ProgressHandler(ioprogress.ProgressData{Text: fmt.Sprintf("%s (%s/s)", units.GetByteSizeString(received, 2), units.GetByteSizeString(speed, 2))})
+
+			}
+		}
+
+		body = reader
 	}
 
 	// Hashing
@@ -226,7 +236,7 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 			return nil, err
 		}
 
-		if part.FormName() != "rootfs" {
+		if !shared.StringInSlice(part.FormName(), []string{"rootfs", "rootfs.img"}) {
 			return nil, fmt.Errorf("Invalid multipart image")
 		}
 
@@ -311,12 +321,47 @@ func (r *ProtocolLXD) GetImageAlias(name string) (*api.ImageAliasesEntry, string
 	alias := api.ImageAliasesEntry{}
 
 	// Fetch the raw value
-	etag, err := r.queryStruct("GET", fmt.Sprintf("/images/aliases/%s", url.QueryEscape(name)), nil, "", &alias)
+	etag, err := r.queryStruct("GET", fmt.Sprintf("/images/aliases/%s", url.PathEscape(name)), nil, "", &alias)
 	if err != nil {
 		return nil, "", err
 	}
 
 	return &alias, etag, nil
+}
+
+// GetImageAliasType returns an existing alias as an ImageAliasesEntry struct
+func (r *ProtocolLXD) GetImageAliasType(imageType string, name string) (*api.ImageAliasesEntry, string, error) {
+	alias, etag, err := r.GetImageAlias(name)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if imageType != "" {
+		if alias.Type == "" {
+			alias.Type = "container"
+		}
+
+		if alias.Type != imageType {
+			return nil, "", fmt.Errorf("Alias doesn't exist for the specified type")
+		}
+	}
+
+	return alias, etag, nil
+}
+
+// GetImageAliasArchitectures returns a map of architectures / targets
+func (r *ProtocolLXD) GetImageAliasArchitectures(imageType string, name string) (map[string]*api.ImageAliasesEntry, error) {
+	alias, _, err := r.GetImageAliasType(imageType, name)
+	if err != nil {
+		return nil, err
+	}
+
+	img, _, err := r.GetImage(alias.Target)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]*api.ImageAliasesEntry{img.Architecture: alias}, nil
 }
 
 // CreateImage requests that LXD creates, copies or import a new image
@@ -373,7 +418,11 @@ func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (
 		}
 
 		// Rootfs file
-		fw, err = w.CreateFormFile("rootfs", args.RootfsName)
+		if args.Type == "virtual-machine" {
+			fw, err = w.CreateFormFile("rootfs.img", args.RootfsName)
+		} else {
+			fw, err = w.CreateFormFile("rootfs", args.RootfsName)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -449,6 +498,14 @@ func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (
 	// Set the user agent
 	if r.httpUserAgent != "" {
 		req.Header.Set("User-Agent", r.httpUserAgent)
+	}
+
+	if image.Source != nil && image.Source.Fingerprint != "" && image.Source.Secret != "" && image.Source.Mode == "push" {
+		// Set fingerprint
+		req.Header.Set("X-LXD-fingerprint", image.Source.Fingerprint)
+
+		// Set secret
+		req.Header.Set("X-LXD-secret", image.Source.Secret)
 	}
 
 	// Send the request
@@ -536,7 +593,9 @@ func (r *ProtocolLXD) tryCopyImage(req api.ImagesPost, urls []string) (RemoteOpe
 				continue
 			}
 
+			rop.handlerLock.Lock()
 			rop.targetOp = op
+			rop.handlerLock.Unlock()
 
 			for _, handler := range rop.handlers {
 				rop.targetOp.AddHandler(handler)
@@ -575,6 +634,160 @@ func (r *ProtocolLXD) CopyImage(source ImageServer, image api.Image, args *Image
 		return nil, err
 	}
 
+	// Push mode
+	if args != nil && args.Mode == "push" {
+		// Get certificate and URL
+		info, err := r.GetConnectionInfo()
+		if err != nil {
+			return nil, err
+		}
+
+		imagesPost := api.ImagesPost{
+			Source: &api.ImagesPostSource{
+				Fingerprint: image.Fingerprint,
+				Mode:        args.Mode,
+			},
+		}
+
+		if args.CopyAliases {
+			imagesPost.Aliases = image.Aliases
+		}
+
+		imagesPost.ExpiresAt = image.ExpiresAt
+		imagesPost.Properties = image.Properties
+		imagesPost.Public = args.Public
+
+		// Receive token from target server. This token is later passed to the source which will use
+		// it, together with the URL and certificate, to connect to the target.
+		tokenOp, err := r.CreateImage(imagesPost, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		opAPI := tokenOp.Get()
+
+		secret, ok := opAPI.Metadata["secret"]
+		if !ok {
+			return nil, fmt.Errorf("No token provided")
+		}
+
+		req := api.ImageExportPost{
+			Target:      info.URL,
+			Certificate: info.Certificate,
+			Secret:      secret.(string),
+			Aliases:     image.Aliases,
+		}
+
+		exportOp, err := source.ExportImage(image.Fingerprint, req)
+		if err != nil {
+			tokenOp.Cancel()
+			return nil, err
+		}
+
+		rop := remoteOperation{
+			targetOp: exportOp,
+			chDone:   make(chan bool),
+		}
+
+		// Forward targetOp to remote op
+		go func() {
+			rop.err = rop.targetOp.Wait()
+			tokenOp.Cancel()
+			close(rop.chDone)
+		}()
+
+		return &rop, nil
+	}
+
+	// Relay mode
+	if args != nil && args.Mode == "relay" {
+		metaFile, err := ioutil.TempFile("", "lxc_image_")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(metaFile.Name())
+
+		rootfsFile, err := ioutil.TempFile("", "lxc_image_")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(rootfsFile.Name())
+
+		// Import image
+		req := ImageFileRequest{
+			MetaFile:   metaFile,
+			RootfsFile: rootfsFile,
+		}
+
+		resp, err := source.GetImageFile(image.Fingerprint, req)
+		if err != nil {
+			return nil, err
+		}
+
+		// Export image
+		_, err = metaFile.Seek(0, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = rootfsFile.Seek(0, 0)
+		if err != nil {
+			return nil, err
+		}
+
+		imagePost := api.ImagesPost{}
+		imagePost.Public = args.Public
+
+		if args.CopyAliases {
+			imagePost.Aliases = image.Aliases
+			if args.Aliases != nil {
+				imagePost.Aliases = append(imagePost.Aliases, args.Aliases...)
+			}
+		}
+
+		createArgs := &ImageCreateArgs{
+			MetaFile: metaFile,
+			MetaName: image.Filename,
+			Type:     image.Type,
+		}
+
+		if resp.RootfsName != "" {
+			// Deal with split images
+			createArgs.RootfsFile = rootfsFile
+			createArgs.RootfsName = image.Filename
+		}
+
+		rop := remoteOperation{
+			chDone: make(chan bool),
+		}
+
+		go func() {
+			defer close(rop.chDone)
+
+			op, err := r.CreateImage(imagePost, createArgs)
+			if err != nil {
+				rop.err = remoteOperationError("Failed to copy image", nil)
+				return
+			}
+
+			rop.handlerLock.Lock()
+			rop.targetOp = op
+			rop.handlerLock.Unlock()
+
+			for _, handler := range rop.handlers {
+				rop.targetOp.AddHandler(handler)
+			}
+
+			err = rop.targetOp.Wait()
+			if err != nil {
+				rop.err = remoteOperationError("Failed to copy image", nil)
+				return
+			}
+		}()
+
+		return &rop, nil
+	}
+
 	// Prepare the copy request
 	req := api.ImagesPost{
 		Source: &api.ImagesPostSource{
@@ -586,6 +799,10 @@ func (r *ProtocolLXD) CopyImage(source ImageServer, image api.Image, args *Image
 			Mode:        "pull",
 			Type:        "image",
 		},
+	}
+
+	if args != nil {
+		req.Source.ImageType = args.Type
 	}
 
 	// Generate secret token if needed
@@ -618,7 +835,7 @@ func (r *ProtocolLXD) CopyImage(source ImageServer, image api.Image, args *Image
 // UpdateImage updates the image definition
 func (r *ProtocolLXD) UpdateImage(fingerprint string, image api.ImagePut, ETag string) error {
 	// Send the request
-	_, _, err := r.query("PUT", fmt.Sprintf("/images/%s", url.QueryEscape(fingerprint)), image, ETag)
+	_, _, err := r.query("PUT", fmt.Sprintf("/images/%s", url.PathEscape(fingerprint)), image, ETag)
 	if err != nil {
 		return err
 	}
@@ -629,7 +846,7 @@ func (r *ProtocolLXD) UpdateImage(fingerprint string, image api.ImagePut, ETag s
 // DeleteImage requests that LXD removes an image from the store
 func (r *ProtocolLXD) DeleteImage(fingerprint string) (Operation, error) {
 	// Send the request
-	op, _, err := r.queryOperation("DELETE", fmt.Sprintf("/images/%s", url.QueryEscape(fingerprint)), nil, "")
+	op, _, err := r.queryOperation("DELETE", fmt.Sprintf("/images/%s", url.PathEscape(fingerprint)), nil, "")
 	if err != nil {
 		return nil, err
 	}
@@ -644,7 +861,7 @@ func (r *ProtocolLXD) RefreshImage(fingerprint string) (Operation, error) {
 	}
 
 	// Send the request
-	op, _, err := r.queryOperation("POST", fmt.Sprintf("/images/%s/refresh", url.QueryEscape(fingerprint)), nil, "")
+	op, _, err := r.queryOperation("POST", fmt.Sprintf("/images/%s/refresh", url.PathEscape(fingerprint)), nil, "")
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +872,7 @@ func (r *ProtocolLXD) RefreshImage(fingerprint string) (Operation, error) {
 // CreateImageSecret requests that LXD issues a temporary image secret
 func (r *ProtocolLXD) CreateImageSecret(fingerprint string) (Operation, error) {
 	// Send the request
-	op, _, err := r.queryOperation("POST", fmt.Sprintf("/images/%s/secret", url.QueryEscape(fingerprint)), nil, "")
+	op, _, err := r.queryOperation("POST", fmt.Sprintf("/images/%s/secret", url.PathEscape(fingerprint)), nil, "")
 	if err != nil {
 		return nil, err
 	}
@@ -677,7 +894,7 @@ func (r *ProtocolLXD) CreateImageAlias(alias api.ImageAliasesPost) error {
 // UpdateImageAlias updates the image alias definition
 func (r *ProtocolLXD) UpdateImageAlias(name string, alias api.ImageAliasesEntryPut, ETag string) error {
 	// Send the request
-	_, _, err := r.query("PUT", fmt.Sprintf("/images/aliases/%s", url.QueryEscape(name)), alias, ETag)
+	_, _, err := r.query("PUT", fmt.Sprintf("/images/aliases/%s", url.PathEscape(name)), alias, ETag)
 	if err != nil {
 		return err
 	}
@@ -688,7 +905,7 @@ func (r *ProtocolLXD) UpdateImageAlias(name string, alias api.ImageAliasesEntryP
 // RenameImageAlias renames an existing image alias
 func (r *ProtocolLXD) RenameImageAlias(name string, alias api.ImageAliasesEntryPost) error {
 	// Send the request
-	_, _, err := r.query("POST", fmt.Sprintf("/images/aliases/%s", url.QueryEscape(name)), alias, "")
+	_, _, err := r.query("POST", fmt.Sprintf("/images/aliases/%s", url.PathEscape(name)), alias, "")
 	if err != nil {
 		return err
 	}
@@ -699,10 +916,26 @@ func (r *ProtocolLXD) RenameImageAlias(name string, alias api.ImageAliasesEntryP
 // DeleteImageAlias removes an alias from the LXD image store
 func (r *ProtocolLXD) DeleteImageAlias(name string) error {
 	// Send the request
-	_, _, err := r.query("DELETE", fmt.Sprintf("/images/aliases/%s", url.QueryEscape(name)), nil, "")
+	_, _, err := r.query("DELETE", fmt.Sprintf("/images/aliases/%s", url.PathEscape(name)), nil, "")
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// ExportImage exports (copies) an image to a remote server
+func (r *ProtocolLXD) ExportImage(fingerprint string, image api.ImageExportPost) (Operation, error) {
+	if !r.HasExtension("images_push_relay") {
+		return nil, fmt.Errorf("The server is missing the required \"images_push_relay\" API extension")
+	}
+
+	// Send the request
+	op, _, err := r.queryOperation("POST", fmt.Sprintf("/images/%s/export", url.PathEscape(fingerprint)), &image, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return op, nil
+
 }

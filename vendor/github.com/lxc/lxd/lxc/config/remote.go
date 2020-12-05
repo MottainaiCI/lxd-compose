@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/juju/persistent-cookiejar"
@@ -49,8 +50,13 @@ func (c *Config) ParseRemote(raw string) (string, string, error) {
 	return result[0], result[1], nil
 }
 
-// GetContainerServer returns a ContainerServer struct for the remote
-func (c *Config) GetContainerServer(name string) (lxd.ContainerServer, error) {
+// GetInstanceServer returns a InstanceServer struct for the remote
+func (c *Config) GetInstanceServer(name string) (lxd.InstanceServer, error) {
+	// Handle "local" on non-Linux
+	if name == "local" && runtime.GOOS != "linux" {
+		return nil, ErrNotLinux
+	}
+
 	// Get the remote
 	remote, ok := c.Remotes[name]
 	if !ok {
@@ -109,6 +115,11 @@ func (c *Config) GetContainerServer(name string) (lxd.ContainerServer, error) {
 
 // GetImageServer returns a ImageServer struct for the remote
 func (c *Config) GetImageServer(name string) (lxd.ImageServer, error) {
+	// Handle "local" on non-Linux
+	if name == "local" && runtime.GOOS != "linux" {
+		return nil, ErrNotLinux
+	}
+
 	// Get the remote
 	remote, ok := c.Remotes[name]
 	if !ok {

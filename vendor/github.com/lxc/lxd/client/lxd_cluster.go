@@ -108,6 +108,26 @@ func (r *ProtocolLXD) GetClusterMember(name string) (*api.ClusterMember, string,
 	return &member, etag, nil
 }
 
+// UpdateClusterMember updates information about the given member
+func (r *ProtocolLXD) UpdateClusterMember(name string, member api.ClusterMemberPut, ETag string) error {
+	if !r.HasExtension("clustering_edit_roles") {
+		return fmt.Errorf("The server is missing the required \"clustering_edit_roles\" API extension")
+	}
+	if member.FailureDomain != "" {
+		if !r.HasExtension("clustering_failure_domains") {
+			return fmt.Errorf("The server is missing the required \"clustering_failure_domains\" API extension")
+		}
+	}
+
+	// Send the request
+	_, _, err := r.query("PUT", fmt.Sprintf("/cluster/members/%s", name), member, ETag)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // RenameClusterMember changes the name of an existing member
 func (r *ProtocolLXD) RenameClusterMember(name string, member api.ClusterMemberPost) error {
 	if !r.HasExtension("clustering") {

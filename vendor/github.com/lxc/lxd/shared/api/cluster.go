@@ -52,9 +52,30 @@ type ClusterMemberPost struct {
 //
 // API extension: clustering
 type ClusterMember struct {
+	ClusterMemberPut `yaml:",inline"`
+
 	ServerName string `json:"server_name" yaml:"server_name"`
 	URL        string `json:"url" yaml:"url"`
 	Database   bool   `json:"database" yaml:"database"`
 	Status     string `json:"status" yaml:"status"`
 	Message    string `json:"message" yaml:"message"`
+}
+
+// Writable converts a full Profile struct into a ProfilePut struct (filters read-only fields)
+func (member *ClusterMember) Writable() ClusterMemberPut {
+	return member.ClusterMemberPut
+}
+
+// ClusterMemberPut represents the the modifiable fields of a LXD cluster member
+//
+// API extension: clustering_edit_roles
+type ClusterMemberPut struct {
+	// API extension: clustering_roles
+	Roles []string `json:"roles" yaml:"roles"`
+
+	// API extension: clustering_architecture
+	Architecture string `json:"architecture" yaml:"architecture"`
+
+	// API extension: clustering_failure_domains
+	FailureDomain string `json:"failure_domain" yaml:"failure_domain"`
 }

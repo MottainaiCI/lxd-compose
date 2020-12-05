@@ -22,7 +22,8 @@ import (
 
 // ProtocolLXD represents a LXD API server
 type ProtocolLXD struct {
-	server *api.Server
+	server      *api.Server
+	chConnected chan struct{}
 
 	eventListeners     []*EventListener
 	eventListenersLock sync.Mutex
@@ -40,6 +41,13 @@ type ProtocolLXD struct {
 
 	clusterTarget string
 	project       string
+}
+
+// Disconnect gets rid of any background goroutines
+func (r *ProtocolLXD) Disconnect() {
+	if r.chConnected != nil {
+		close(r.chConnected)
+	}
 }
 
 // GetConnectionInfo returns the basic connection information used to interact with the server
@@ -61,6 +69,10 @@ func (r *ProtocolLXD) GetConnectionInfo() (*ConnectionInfo, error) {
 
 	if r.server != nil && len(r.server.Environment.Addresses) > 0 {
 		for _, addr := range r.server.Environment.Addresses {
+			if strings.HasPrefix(addr, ":") {
+				continue
+			}
+
 			url := fmt.Sprintf("https://%s", addr)
 			if !shared.StringInSlice(url, urls) {
 				urls = append(urls, url)
@@ -368,7 +380,7 @@ func (r *ProtocolLXD) rawWebsocket(url string) (*websocket.Conn, error) {
 	}
 
 	// Log the data
-	logger.Debugf("Connected to the websocket")
+	logger.Debugf("Connected to the websocket: %v", url)
 
 	return conn, err
 }

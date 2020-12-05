@@ -12,6 +12,13 @@ type Resources struct {
 	// API extension: resources_v2
 	Network ResourcesNetwork `json:"network" yaml:"network"`
 	Storage ResourcesStorage `json:"storage" yaml:"storage"`
+
+	// API extension: resources_usb_pci
+	USB ResourcesUSB `json:"usb" yaml:"usb"`
+	PCI ResourcesPCI `json:"pci" yaml:"pci"`
+
+	// API extension: resources_system
+	System ResourcesSystem `json:"system" yaml:"system"`
 }
 
 // ResourcesCPU represents the cpu resources available on the system
@@ -50,8 +57,10 @@ type ResourcesCPUCache struct {
 // ResourcesCPUCore represents a CPU core on the system
 // API extension: resources_v2
 type ResourcesCPUCore struct {
-	Core     uint64 `json:"core" yaml:"core"`
-	NUMANode uint64 `json:"numa_node" yaml:"numa_node"`
+	Core uint64 `json:"core" yaml:"core"`
+
+	// API extension: resources_cpu_core_die
+	Die uint64 `json:"die" yaml:"die"`
 
 	Threads []ResourcesCPUThread `json:"threads" yaml:"threads"`
 
@@ -61,9 +70,13 @@ type ResourcesCPUCore struct {
 // ResourcesCPUThread represents a CPU thread on the system
 // API extension: resources_v2
 type ResourcesCPUThread struct {
-	ID     int64  `json:"id" yaml:"id"`
-	Thread uint64 `json:"thread" yaml:"thread"`
-	Online bool   `json:"online" yaml:"online"`
+	ID       int64  `json:"id" yaml:"id"`
+	NUMANode uint64 `json:"numa_node" yaml:"numa_node"`
+	Thread   uint64 `json:"thread" yaml:"thread"`
+	Online   bool   `json:"online" yaml:"online"`
+
+	// API extension: resource_cpu_isolated
+	Isolated bool `json:"isolated" yaml:"isolated"`
 }
 
 // ResourcesGPU represents the GPU resources available on the system
@@ -82,6 +95,9 @@ type ResourcesGPUCard struct {
 	DRM    *ResourcesGPUCardDRM    `json:"drm,omitempty" yaml:"drm,omitempty"`
 	SRIOV  *ResourcesGPUCardSRIOV  `json:"sriov,omitempty" yaml:"sriov,omitempty"`
 	Nvidia *ResourcesGPUCardNvidia `json:"nvidia,omitempty" yaml:"nvidia,omitempty"`
+
+	// API extension: resources_gpu_mdev
+	Mdev map[string]ResourcesGPUCardMdev `json:"mdev,omitempty" yaml:"mdev,omitempty"`
 
 	NUMANode   uint64 `json:"numa_node" yaml:"numa_node"`
 	PCIAddress string `json:"pci_address,omitempty" yaml:"pci_address,omitempty"`
@@ -119,17 +135,27 @@ type ResourcesGPUCardSRIOV struct {
 // ResourcesGPUCardNvidia represents additional information for NVIDIA GPUs
 // API extension: resources_gpu
 type ResourcesGPUCardNvidia struct {
-	CUDAVersion string `json:"cuda_version" yaml:"cuda_version"`
-	NVRMVersion string `json:"nvrm_version" yaml:"nvrm_version"`
+	CUDAVersion string `json:"cuda_version,omitempty" yaml:"cuda_version,omitempty"`
+	NVRMVersion string `json:"nvrm_version,omitempty" yaml:"nvrm_version,omitempty"`
 
 	Brand        string `json:"brand" yaml:"brand"`
 	Model        string `json:"model" yaml:"model"`
-	UUID         string `json:"uuid" yaml:"uuid"`
-	Architecture string `json:"architecture" yaml:"architecture"`
+	UUID         string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	Architecture string `json:"architecture,omitempty" yaml:"architecture,omitempty"`
 
 	// API extension: resources_v2
 	CardName   string `json:"card_name" yaml:"card_name"`
 	CardDevice string `json:"card_device" yaml:"card_device"`
+}
+
+// ResourcesGPUCardMdev represents the mediated devices configuration of the GPU
+// API extension: resources_gpu_mdev
+type ResourcesGPUCardMdev struct {
+	API         string   `json:"api" yaml:"api"`
+	Available   uint64   `json:"available" yaml:"available"`
+	Name        string   `json:"name,omitempty" yaml:"name,omitempty"`
+	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
+	Devices     []string `json:"devices" yaml:"devices"`
 }
 
 // ResourcesNetwork represents the network cards available on the system
@@ -155,6 +181,9 @@ type ResourcesNetworkCard struct {
 	VendorID  string `json:"vendor_id,omitempty" yaml:"vendor_id,omitempty"`
 	Product   string `json:"product,omitempty" yaml:"product,omitempty"`
 	ProductID string `json:"product_id,omitempty" yaml:"product_id,omitempty"`
+
+	// API extension: resources_network_firmware
+	FirmwareVersion string `json:"firmware_version,omitempty" yaml:"firmware_version,omitempty"`
 }
 
 // ResourcesNetworkCardPort represents a network port on the system
@@ -223,6 +252,16 @@ type ResourcesStorageDisk struct {
 	WWN       string `json:"wwn,omitempty" yaml:"wwn,omitempty"`
 	NUMANode  uint64 `json:"numa_node" yaml:"numa_node"`
 
+	// API extension: resources_disk_sata
+	DevicePath      string `json:"device_path,omitempty" yaml:"device_path,omitempty"`
+	BlockSize       uint64 `json:"block_size" yaml:"block_size"`
+	FirmwareVersion string `json:"firmware_version,omitempty" yaml:"firmware_version,omitempty"`
+	RPM             uint64 `json:"rpm" yaml:"rpm"`
+	Serial          string `json:"serial,omitempty" yaml:"serial,omitempty"`
+
+	// API extension: resources_disk_id
+	DeviceID string `json:"device_id" yaml:"device_id"`
+
 	Partitions []ResourcesStorageDiskPartition `json:"partitions" yaml:"partitions"`
 }
 
@@ -280,4 +319,99 @@ type ResourcesStoragePoolSpace struct {
 type ResourcesStoragePoolInodes struct {
 	Used  uint64 `json:"used" yaml:"used"`
 	Total uint64 `json:"total" yaml:"total"`
+}
+
+// ResourcesUSB represents the USB devices available on the system
+// API extension: resources_usb_pci
+type ResourcesUSB struct {
+	Devices []ResourcesUSBDevice `json:"devices" yaml:"devices"`
+	Total   uint64               `json:"total" yaml:"total"`
+}
+
+// ResourcesUSBDevice represents a USB device
+// API extension: resources_usb_pci
+type ResourcesUSBDevice struct {
+	BusAddress    uint64                        `json:"bus_address" yaml:"bus_address"`
+	DeviceAddress uint64                        `json:"device_address" yaml:"device_address"`
+	Interfaces    []ResourcesUSBDeviceInterface `json:"interfaces" yaml:"interfaces"`
+	Product       string                        `json:"product" yaml:"product"`
+	ProductID     string                        `json:"product_id" yaml:"product_id"`
+	Speed         float64                       `json:"speed" yaml:"speed"`
+	Vendor        string                        `json:"vendor" yaml:"vendor"`
+	VendorID      string                        `json:"vendor_id" yaml:"vendor_id"`
+}
+
+// ResourcesUSBDeviceInterface represents a USB device interface
+// API extension: resources_usb_pci
+type ResourcesUSBDeviceInterface struct {
+	Class         string `json:"class" yaml:"class"`
+	ClassID       uint64 `json:"class_id" yaml:"class_id"`
+	Driver        string `json:"driver" yaml:"driver"`
+	DriverVersion string `json:"driver_version" yaml:"driver_version"`
+	Number        uint64 `json:"number" yaml:"number"`
+	SubClass      string `json:"subclass" yaml:"subclass"`
+	SubClassID    uint64 `json:"subclass_id" yaml:"subclass_id"`
+}
+
+// ResourcesPCI represents the PCI devices available on the system
+// API extension: resources_usb_pci
+type ResourcesPCI struct {
+	Devices []ResourcesPCIDevice `json:"devices" yaml:"devices"`
+	Total   uint64               `json:"total" yaml:"total"`
+}
+
+// ResourcesPCIDevice represents a PCI device
+// API extension: resources_usb_pci
+type ResourcesPCIDevice struct {
+	Driver        string `json:"driver" yaml:"driver"`
+	DriverVersion string `json:"driver_version" yaml:"driver_version"`
+	NUMANode      uint64 `json:"numa_node" yaml:"numa_node"`
+	PCIAddress    string `json:"pci_address" yaml:"pci_address"`
+	Product       string `json:"product" yaml:"product"`
+	ProductID     string `json:"product_id" yaml:"product_id"`
+	Vendor        string `json:"vendor" yaml:"vendor"`
+	VendorID      string `json:"vendor_id" yaml:"vendor_id"`
+}
+
+// ResourcesSystem represents the system
+// API extension: resources_system
+type ResourcesSystem struct {
+	UUID    string `json:"uuid" yaml:"uuid"`
+	Vendor  string `json:"vendor" yaml:"vendor"`
+	Product string `json:"product" yaml:"product"`
+	Family  string `json:"family" yaml:"family"`
+	Version string `json:"version" yaml:"version"`
+	Sku     string `json:"sku" yaml:"sku"`
+	Serial  string `json:"serial" yaml:"serial"`
+	Type    string `json:"type" yaml:"type"`
+
+	Firmware    *ResourcesSystemFirmware    `json:"firmware" yaml:"firmware"`
+	Chassis     *ResourcesSystemChassis     `json:"chassis" yaml:"chassis"`
+	Motherboard *ResourcesSystemMotherboard `json:"motherboard" yaml:"motherboard"`
+}
+
+// ResourcesSystemFirmware represents the system firmware
+// API extension: resources_system
+type ResourcesSystemFirmware struct {
+	Vendor  string `json:"vendor" yaml:"vendor"`
+	Date    string `json:"date" yaml:"date"`
+	Version string `json:"version" yaml:"version"`
+}
+
+// ResourcesSystemChassis represents the system chassis
+// API extension: resources_system
+type ResourcesSystemChassis struct {
+	Vendor  string `json:"vendor" yaml:"vendor"`
+	Type    string `json:"type" yaml:"type"`
+	Serial  string `json:"serial" yaml:"serial"`
+	Version string `json:"version" yaml:"version"`
+}
+
+// ResourcesSystemMotherboard represents the motherboard
+// API extension: resources_system
+type ResourcesSystemMotherboard struct {
+	Vendor  string `json:"vendor" yaml:"vendor"`
+	Product string `json:"product" yaml:"product"`
+	Serial  string `json:"serial" yaml:"serial"`
+	Version string `json:"version" yaml:"version"`
 }

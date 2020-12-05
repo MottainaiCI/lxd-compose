@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"time"
 )
@@ -42,13 +41,13 @@ import (
 //
 // If a CA certificate is found, it will be returned as well as second return
 // value (otherwise it will be nil).
-func KeyPairAndCA(dir, prefix string, kind CertKind) (*CertInfo, error) {
+func KeyPairAndCA(dir, prefix string, kind CertKind, addHosts bool) (*CertInfo, error) {
 	certFilename := filepath.Join(dir, prefix+".crt")
 	keyFilename := filepath.Join(dir, prefix+".key")
 
 	// Ensure that the certificate exists, or create a new one if it does
 	// not.
-	err := FindOrGenCert(certFilename, keyFilename, kind == CertClient)
+	err := FindOrGenCert(certFilename, keyFilename, kind == CertClient, addHosts)
 	if err != nil {
 		return nil, err
 	}
@@ -69,15 +68,30 @@ func KeyPairAndCA(dir, prefix string, kind CertKind) (*CertInfo, error) {
 		}
 	}
 
+	crlFilename := filepath.Join(dir, "ca.crl")
+	var crl *pkix.CertificateList
+	if PathExists(crlFilename) {
+		data, err := ioutil.ReadFile(crlFilename)
+		if err != nil {
+			return nil, err
+		}
+
+		crl, err = x509.ParseCRL(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	info := &CertInfo{
 		keypair: keypair,
 		ca:      ca,
+		crl:     crl,
 	}
 	return info, nil
 }
 
 // CertInfo captures TLS certificate information about a certain public/private
-// keypair and an optional CA certificate.
+// keypair and an optional CA certificate and CRL.
 //
 // Given LXD's support for PKI setups, these two bits of information are
 // normally used and passed around together, so this structure helps with that
@@ -85,6 +99,7 @@ func KeyPairAndCA(dir, prefix string, kind CertKind) (*CertInfo, error) {
 type CertInfo struct {
 	keypair tls.Certificate
 	ca      *x509.Certificate
+	crl     *pkix.CertificateList
 }
 
 // KeyPair returns the public/private key pair.
@@ -133,6 +148,11 @@ func (c *CertInfo) Fingerprint() string {
 		panic("invalid public key material")
 	}
 	return fingerprint
+}
+
+// CRL returns the certificate revocation list.
+func (c *CertInfo) CRL() *pkix.CertificateList {
+	return c.crl
 }
 
 // CertKind defines the kind of certificate to generate from scratch in
@@ -185,39 +205,20 @@ func mynames() ([]string, error) {
 		return nil, err
 	}
 
-	ret := []string{h}
-
-	ifs, err := net.Interfaces()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, iface := range ifs {
-		if IsLoopback(&iface) {
-			continue
-		}
-
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return nil, err
-		}
-
-		for _, addr := range addrs {
-			ret = append(ret, addr.String())
-		}
-	}
-
+	ret := []string{h, "127.0.0.1/8", "::1/128"}
 	return ret, nil
 }
 
-func FindOrGenCert(certf string, keyf string, certtype bool) error {
+// FindOrGenCert generates a keypair if needed.
+// The type argument is false for server, true for client.
+func FindOrGenCert(certf string, keyf string, certtype bool, addHosts bool) error {
 	if PathExists(certf) && PathExists(keyf) {
 		return nil
 	}
 
 	/* If neither stat succeeded, then this is our first run and we
 	 * need to generate cert and privkey */
-	err := GenCert(certf, keyf, certtype)
+	err := GenCert(certf, keyf, certtype, addHosts)
 	if err != nil {
 		return err
 	}
@@ -226,20 +227,21 @@ func FindOrGenCert(certf string, keyf string, certtype bool) error {
 }
 
 // GenCert will create and populate a certificate file and a key file
-func GenCert(certf string, keyf string, certtype bool) error {
+func GenCert(certf string, keyf string, certtype bool, addHosts bool) error {
 	/* Create the basenames if needed */
-	dir := path.Dir(certf)
+	dir := filepath.Dir(certf)
 	err := os.MkdirAll(dir, 0750)
 	if err != nil {
 		return err
 	}
-	dir = path.Dir(keyf)
+
+	dir = filepath.Dir(keyf)
 	err = os.MkdirAll(dir, 0750)
 	if err != nil {
 		return err
 	}
 
-	certBytes, keyBytes, err := GenerateMemCert(certtype)
+	certBytes, keyBytes, err := GenerateMemCert(certtype, addHosts)
 	if err != nil {
 		return err
 	}
@@ -262,15 +264,10 @@ func GenCert(certf string, keyf string, certtype bool) error {
 
 // GenerateMemCert creates client or server certificate and key pair,
 // returning them as byte arrays in memory.
-func GenerateMemCert(client bool) ([]byte, []byte, error) {
+func GenerateMemCert(client bool, addHosts bool) ([]byte, []byte, error) {
 	privk, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to generate key: %v", err)
-	}
-
-	hosts, err := mynames()
-	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to get my hostname: %v", err)
 	}
 
 	validFrom := time.Now()
@@ -317,14 +314,23 @@ func GenerateMemCert(client bool) ([]byte, []byte, error) {
 		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	}
 
-	for _, h := range hosts {
-		if ip, _, err := net.ParseCIDR(h); err == nil {
-			if !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() {
-				template.IPAddresses = append(template.IPAddresses, ip)
-			}
-		} else {
-			template.DNSNames = append(template.DNSNames, h)
+	if addHosts {
+		hosts, err := mynames()
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to get my hostname: %v", err)
 		}
+
+		for _, h := range hosts {
+			if ip, _, err := net.ParseCIDR(h); err == nil {
+				if !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() {
+					template.IPAddresses = append(template.IPAddresses, ip)
+				}
+			} else {
+				template.DNSNames = append(template.DNSNames, h)
+			}
+		}
+	} else if !client {
+		template.DNSNames = []string{"unspecified"}
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privk.PublicKey, privk)
@@ -375,7 +381,7 @@ func CertFingerprintStr(c string) (string, error) {
 	return CertFingerprint(cert), nil
 }
 
-func GetRemoteCertificate(address string) (*x509.Certificate, error) {
+func GetRemoteCertificate(address string, useragent string) (*x509.Certificate, error) {
 	// Setup a permissive TLS config
 	tlsConfig, err := GetTLSConfig("", "", "", nil)
 	if err != nil {
@@ -396,8 +402,17 @@ func GetRemoteCertificate(address string) (*x509.Certificate, error) {
 	}
 
 	// Connect
+	req, err := http.NewRequest("GET", address, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if useragent != "" {
+		req.Header.Set("User-Agent", useragent)
+	}
+
 	client := &http.Client{Transport: tr}
-	resp, err := client.Get(address)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

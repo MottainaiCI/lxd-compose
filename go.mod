@@ -31,7 +31,7 @@ require (
 	github.com/koding/logging v0.0.0-20160720134017-8b5a689ed69b // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40
+	github.com/lxc/lxd v0.0.0-20201112195216-796fc6680728
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mudler/anagent v0.0.0-20180810152608-626d9ac35e3e // indirect
@@ -65,3 +65,5 @@ require (
 )
 
 replace github.com/renstrom/dedent v1.1.0 => github.com/lithammer/dedent v1.1.0
+
+replace github.com/Sirupsen/logrusv1.7.0 => github.com/sirupsen/logrus v1.7.0

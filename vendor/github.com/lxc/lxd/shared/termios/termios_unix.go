@@ -11,7 +11,6 @@ import (
 )
 
 // #include <termios.h>
-// #cgo CFLAGS: -std=gnu11 -Wvla
 import "C"
 
 // State contains the state of a terminal.

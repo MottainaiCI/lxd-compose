@@ -57,7 +57,7 @@ func (r *ProtocolSimpleStreams) GetImageFile(fingerprint string, req ImageFileRe
 
 	// Attempt to download from host
 	if shared.PathExists("/dev/lxd/sock") && os.Geteuid() == 0 {
-		unixURI := fmt.Sprintf("http://unix.socket/1.0/images/%s/export", url.QueryEscape(fingerprint))
+		unixURI := fmt.Sprintf("http://unix.socket/1.0/images/%s/export", url.PathEscape(fingerprint))
 
 		// Setup the HTTP client
 		devlxdHTTP, err := unixHTTPClient(nil, "/dev/lxd/sock")
@@ -229,10 +229,49 @@ func (r *ProtocolSimpleStreams) GetImageAliasNames() ([]string, error) {
 
 // GetImageAlias returns an existing alias as an ImageAliasesEntry struct
 func (r *ProtocolSimpleStreams) GetImageAlias(name string) (*api.ImageAliasesEntry, string, error) {
-	alias, err := r.ssClient.GetAlias(name)
+	alias, err := r.ssClient.GetAlias("container", name)
+	if err != nil {
+		alias, err = r.ssClient.GetAlias("virtual-machine", name)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	return alias, "", err
+}
+
+// GetImageAliasType returns an existing alias as an ImageAliasesEntry struct
+func (r *ProtocolSimpleStreams) GetImageAliasType(imageType string, name string) (*api.ImageAliasesEntry, string, error) {
+	if imageType == "" {
+		return r.GetImageAlias(name)
+	}
+
+	alias, err := r.ssClient.GetAlias(imageType, name)
 	if err != nil {
 		return nil, "", err
 	}
 
 	return alias, "", err
+}
+
+// GetImageAliasArchitectures returns a map of architectures / targets
+func (r *ProtocolSimpleStreams) GetImageAliasArchitectures(imageType string, name string) (map[string]*api.ImageAliasesEntry, error) {
+	if imageType == "" {
+		aliases, err := r.ssClient.GetAliasArchitectures("container", name)
+		if err != nil {
+			aliases, err = r.ssClient.GetAliasArchitectures("virtual-machine", name)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return aliases, nil
+	}
+
+	return r.ssClient.GetAliasArchitectures(imageType, name)
+}
+
+// ExportImage exports (copies) an image to a remote server
+func (r *ProtocolSimpleStreams) ExportImage(fingerprint string, image api.ImageExportPost) (Operation, error) {
+	return nil, fmt.Errorf("Exporting images is not supported by the simplestreams protocol")
 }

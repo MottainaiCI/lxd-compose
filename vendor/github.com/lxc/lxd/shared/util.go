@@ -33,7 +33,7 @@ import (
 )
 
 const SnapshotDelimiter = "/"
-const DefaultPort = "8443"
+const DefaultPort = 8443
 
 // URLEncode encodes a path and query parameters to a URL.
 func URLEncode(path string, query map[string]string) (string, error) {
@@ -106,6 +106,57 @@ func IsUnixSocket(path string) bool {
 	return (stat.Mode() & os.ModeSocket) == os.ModeSocket
 }
 
+// HostPathFollow takes a valid path (from HostPath) and resolves it
+// all the way to its target or to the last which can be resolved.
+func HostPathFollow(path string) string {
+	// Ignore empty paths
+	if len(path) == 0 {
+		return path
+	}
+
+	// Don't prefix stdin/stdout
+	if path == "-" {
+		return path
+	}
+
+	// Check if we're running in a snap package.
+	if !InSnap() {
+		return path
+	}
+
+	// Handle relative paths
+	if path[0] != os.PathSeparator {
+		// Use the cwd of the parent as snap-confine alters our own cwd on launch
+		ppid := os.Getppid()
+		if ppid < 1 {
+			return path
+		}
+
+		pwd, err := os.Readlink(fmt.Sprintf("/proc/%d/cwd", ppid))
+		if err != nil {
+			return path
+		}
+
+		path = filepath.Clean(strings.Join([]string{pwd, path}, string(os.PathSeparator)))
+	}
+
+	// Rely on "readlink -m" to do the right thing.
+	path = HostPath(path)
+	for {
+		target, err := RunCommand("readlink", "-m", path)
+		if err != nil {
+			return path
+		}
+		target = strings.TrimSpace(target)
+
+		if path == HostPath(target) {
+			return path
+		}
+
+		path = HostPath(target)
+	}
+}
+
 // HostPath returns the host path for the provided path
 // On a normal system, this does nothing
 // When inside of a snap environment, returns the real path
@@ -121,9 +172,7 @@ func HostPath(path string) string {
 	}
 
 	// Check if we're running in a snap package
-	_, inSnap := os.LookupEnv("SNAP")
-	snapName := os.Getenv("SNAP_NAME")
-	if !inSnap || snapName != "lxd" {
+	if !InSnap() {
 		return path
 	}
 
@@ -328,6 +377,34 @@ func WriteAll(w io.Writer, data []byte) error {
 	}
 }
 
+// QuotaWriter returns an error once a given write quota gets exceeded.
+type QuotaWriter struct {
+	writer io.Writer
+	quota  int64
+	n      int64
+}
+
+// NewQuotaWriter returns a new QuotaWriter wrapping the given writer.
+//
+// If the given quota is negative, then no quota is applied.
+func NewQuotaWriter(writer io.Writer, quota int64) *QuotaWriter {
+	return &QuotaWriter{
+		writer: writer,
+		quota:  quota,
+	}
+}
+
+// Write implements the Writer interface.
+func (w *QuotaWriter) Write(p []byte) (n int, err error) {
+	if w.quota >= 0 {
+		w.n += int64(len(p))
+		if w.n > w.quota {
+			return 0, fmt.Errorf("reached %d bytes, exceeding quota of %d", w.n, w.quota)
+		}
+	}
+	return w.writer.Write(p)
+}
+
 // FileMove tries to move a file by using os.Rename,
 // if that fails it tries to copy the file and remove the source.
 func FileMove(oldPath string, newPath string) error {
@@ -348,16 +425,43 @@ func FileMove(oldPath string, newPath string) error {
 
 // FileCopy copies a file, overwriting the target if it exists.
 func FileCopy(source string, dest string) error {
+	fi, err := os.Lstat(source)
+	if err != nil {
+		return err
+	}
+
+	_, uid, gid := GetOwnerMode(fi)
+
+	if fi.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(source)
+		if err != nil {
+			return err
+		}
+
+		if PathExists(dest) {
+			err = os.Remove(dest)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = os.Symlink(target, dest)
+		if err != nil {
+			return err
+		}
+
+		if runtime.GOOS != "windows" {
+			return os.Lchown(dest, uid, gid)
+		}
+
+		return nil
+	}
+
 	s, err := os.Open(source)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
-
-	fi, err := s.Stat()
-	if err != nil {
-		return err
-	}
 
 	d, err := os.Create(dest)
 	if err != nil {
@@ -379,7 +483,6 @@ func FileCopy(source string, dest string) error {
 
 	/* chown not supported on windows */
 	if runtime.GOOS != "windows" {
-		_, uid, gid := GetOwnerMode(fi)
 		return d.Chown(uid, gid)
 	}
 
@@ -455,10 +558,6 @@ func (r BytesReadCloser) Close() error {
 
 func IsSnapshot(name string) bool {
 	return strings.Contains(name, SnapshotDelimiter)
-}
-
-func ExtractSnapshotName(name string) string {
-	return strings.SplitN(name, SnapshotDelimiter, 2)[1]
 }
 
 func MkdirAllOwner(path string, perm os.FileMode, uid int, gid int) error {
@@ -540,12 +639,17 @@ func Int64InSlice(key int64, list []int64) bool {
 	return false
 }
 
-func IsTrue(value string) bool {
-	if StringInSlice(strings.ToLower(value), []string{"true", "1", "yes", "on"}) {
-		return true
+func Uint64InSlice(key uint64, list []uint64) bool {
+	for _, entry := range list {
+		if entry == key {
+			return true
+		}
 	}
-
 	return false
+}
+
+func IsTrue(value string) bool {
+	return StringInSlice(strings.ToLower(value), []string{"true", "1", "yes", "on"})
 }
 
 // StringMapHasStringKey returns true if any of the supplied keys are present in the map.
@@ -625,33 +729,34 @@ func RunningInUserNS() bool {
 	return true
 }
 
-func ValidHostname(name string) bool {
+// ValidHostname checks the string is valid DNS hostname.
+func ValidHostname(name string) error {
 	// Validate length
 	if len(name) < 1 || len(name) > 63 {
-		return false
+		return fmt.Errorf("Name must be 1-63 characters long")
 	}
 
 	// Validate first character
 	if strings.HasPrefix(name, "-") {
-		return false
+		return fmt.Errorf(`Name must not start with "-" character`)
 	}
 
 	if _, err := strconv.Atoi(string(name[0])); err == nil {
-		return false
+		return fmt.Errorf("Name must not be a number")
 	}
 
 	// Validate last character
 	if strings.HasSuffix(name, "-") {
-		return false
+		return fmt.Errorf(`Name must not end with "-" character`)
 	}
 
 	// Validate the character set
 	match, _ := regexp.MatchString("^[-a-zA-Z0-9]*$", name)
 	if !match {
-		return false
+		return fmt.Errorf("Name can only contain alphanumeric and hyphen characters")
 	}
 
-	return true
+	return nil
 }
 
 // Spawn the editor with a temporary YAML file for editing configs
@@ -766,8 +871,20 @@ func (e RunError) Error() string {
 	return e.msg
 }
 
-func RunCommandSplit(name string, arg ...string) (string, string, error) {
+// RunCommandSplit runs a command with a supplied environment and optional arguments and returns the
+// resulting stdout and stderr output as separate variables. If the supplied environment is nil then
+// the default environment is used. If the command fails to start or returns a non-zero exit code
+// then an error is returned containing the output of stderr too.
+func RunCommandSplit(env []string, filesInherit []*os.File, name string, arg ...string) (string, string, error) {
 	cmd := exec.Command(name, arg...)
+
+	if env != nil {
+		cmd.Env = env
+	}
+
+	if filesInherit != nil {
+		cmd.ExtraFiles = filesInherit
+	}
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -777,19 +894,38 @@ func RunCommandSplit(name string, arg ...string) (string, string, error) {
 	err := cmd.Run()
 	if err != nil {
 		err := RunError{
-			msg:    fmt.Sprintf("Failed to run: %s %s: %s", name, strings.Join(arg, " "), strings.TrimSpace(string(stderr.Bytes()))),
-			Stdout: string(stdout.Bytes()),
-			Stderr: string(stderr.Bytes()),
+			msg:    fmt.Sprintf("Failed to run: %s %s: %s", name, strings.Join(arg, " "), strings.TrimSpace(stderr.String())),
+			Stdout: stdout.String(),
+			Stderr: stderr.String(),
 			Err:    err,
 		}
-		return string(stdout.Bytes()), string(stderr.Bytes()), err
+		return stdout.String(), stderr.String(), err
 	}
 
-	return string(stdout.Bytes()), string(stderr.Bytes()), nil
+	return stdout.String(), stderr.String(), nil
 }
 
+// RunCommand runs a command with optional arguments and returns stdout. If the command fails to
+// start or returns a non-zero exit code then an error is returned containing the output of stderr.
 func RunCommand(name string, arg ...string) (string, error) {
-	stdout, _, err := RunCommandSplit(name, arg...)
+	stdout, _, err := RunCommandSplit(nil, nil, name, arg...)
+	return stdout, err
+}
+
+// RunCommandInheritFds runs a command with optional arguments and passes a set
+// of file descriptors to the newly created process, returning stdout. If the
+// command fails to start or returns a non-zero exit code then an error is
+// returned containing the output of stderr.
+func RunCommandInheritFds(filesInherit []*os.File, name string, arg ...string) (string, error) {
+	stdout, _, err := RunCommandSplit(nil, filesInherit, name, arg...)
+	return stdout, err
+}
+
+// RunCommandCLocale runs a command with a LANG=C.UTF-8 environment set with optional arguments and
+// returns stdout. If the command fails to start or returns a non-zero exit code then an error is
+// returned containing the output of stderr.
+func RunCommandCLocale(name string, arg ...string) (string, error) {
+	stdout, _, err := RunCommandSplit(append(os.Environ(), "LANG=C.UTF-8"), nil, name, arg...)
 	return stdout, err
 }
 
@@ -821,6 +957,8 @@ func RunCommandWithFds(stdin io.Reader, stdout io.Writer, name string, arg ...st
 	return nil
 }
 
+// TryRunCommand runs the specified command up to 20 times with a 500ms delay between each call
+// until it runs without an error. If after 20 times it is still failing then returns the error.
 func TryRunCommand(name string, arg ...string) (string, error) {
 	var err error
 	var output string
@@ -1072,4 +1210,16 @@ func GetSnapshotExpiry(refDate time.Time, s string) (time.Time, error) {
 		time.Hour*time.Duration(expiry["H"]) + time.Minute*time.Duration(expiry["M"]))
 
 	return t, nil
+}
+
+// InSnap returns true if we're running inside the LXD snap.
+func InSnap() bool {
+	// Detect the snap.
+	_, snapPath := os.LookupEnv("SNAP")
+	snapName := os.Getenv("SNAP_NAME")
+	if snapPath && snapName == "lxd" {
+		return true
+	}
+
+	return false
 }
