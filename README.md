@@ -30,6 +30,23 @@ $> sudo luet upgrade app-emulation/lxd-compose
 
 ```
 
+### Use lxd-compose with snapd
+
+LXD available through snapd doesn't expose local unix socket under default path
+`/var/lib/lxd/unix.socket` but normally under the path `/var/snap/lxd/common/lxd/unix.socket`.
+
+This means that to use `local` connection it's better to create under the config.yaml an entry like this:
+
+```yaml
+  local-snapd:
+    addr: unix:///var/snap/lxd/common/lxd/unix.socket
+    public: false
+```
+
+and then to use `local-snapd` in `connection` option.
+
+Instead, if it's used the HTTPS API this is not needed.
+
 ## Examples
 
 We maintain a project that supply ready to build environments at [LXD Compose Galaxy](https://github.com/MottainaiCI/lxd-compose-galaxy).
@@ -97,3 +114,4 @@ $> lxd-compose diagnose vars project1
 $> lxd-compose project list
 
 ```
+
