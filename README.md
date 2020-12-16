@@ -30,7 +30,7 @@ $> sudo luet upgrade app-emulation/lxd-compose
 
 ```
 
-### Use lxd-compose with snapd
+### Use lxd-compose with LXD installed from snapd
 
 LXD available through snapd doesn't expose local unix socket under default path
 `/var/lib/lxd/unix.socket` but normally under the path `/var/snap/lxd/common/lxd/unix.socket`.
