@@ -23,6 +23,7 @@ package executor
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -111,7 +112,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 	var gid int64 = 0
 	err := e.RecursiveMkdir(nameContainer, filepath.Dir(target), &mode, uid, gid)
 	if err != nil {
-		return err
+		return errors.New("Error on create dir " + filepath.Dir(target) + ": " + err.Error())
 	}
 
 	//source = filepath.Clean(source)
