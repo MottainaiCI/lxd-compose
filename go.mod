@@ -31,7 +31,7 @@ require (
 	github.com/koding/logging v0.0.0-20160720134017-8b5a689ed69b // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/lxc/lxd v0.0.0-20201112195216-796fc6680728
+	github.com/lxc/lxd v0.0.0-20201218183115-ee2375faaf91
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mudler/anagent v0.0.0-20180810152608-626d9ac35e3e // indirect
@@ -39,6 +39,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
+	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/renstrom/dedent v1.1.0 // indirect
 	github.com/russross/blackfriday v1.5.2 // indirect
 	github.com/sethvargo/go-password v0.2.0 // indirect

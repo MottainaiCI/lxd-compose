@@ -14,8 +14,10 @@ import (
 	"github.com/lxc/lxd/shared/validate"
 )
 
+// InstanceAction indicates the type of action being performed.
 type InstanceAction string
 
+// InstanceAction types.
 const (
 	Stop     InstanceAction = "stop"
 	Start    InstanceAction = "start"
@@ -24,8 +26,11 @@ const (
 	Unfreeze InstanceAction = "unfreeze"
 )
 
+// ConfigVolatilePrefix indicates the prefix used for volatile config keys.
+const ConfigVolatilePrefix = "volatile."
+
 // IsRootDiskDevice returns true if the given device representation is configured as root disk for
-// a container. It typically get passed a specific entry of api.Instance.Devices.
+// an instance. It typically get passed a specific entry of api.Instance.Devices.
 func IsRootDiskDevice(device map[string]string) bool {
 	// Root disk devices also need a non-empty "pool" property, but we can't check that here
 	// because this function is used with clients talking to older servers where there was no
@@ -38,7 +43,8 @@ func IsRootDiskDevice(device map[string]string) bool {
 	return false
 }
 
-// GetRootDiskDevice returns the container device that is configured as root disk
+// GetRootDiskDevice returns the instance device that is configured as root disk.
+// Returns the device name and device config map.
 func GetRootDiskDevice(devices map[string]map[string]string) (string, map[string]string, error) {
 	var devName string
 	var dev map[string]string
@@ -255,6 +261,7 @@ var KnownInstanceConfigKeys = map[string]func(value string) error{
 	"volatile.idmap.current":    validate.IsAny,
 	"volatile.idmap.next":       validate.IsAny,
 	"volatile.apply_quota":      validate.IsAny,
+	"volatile.uuid":             validate.Optional(validate.IsUUID),
 }
 
 // ConfigKeyChecker returns a function that will check whether or not
@@ -268,7 +275,7 @@ func ConfigKeyChecker(key string) (func(value string) error, error) {
 		return f, nil
 	}
 
-	if strings.HasPrefix(key, "volatile.") {
+	if strings.HasPrefix(key, ConfigVolatilePrefix) {
 		if strings.HasSuffix(key, ".hwaddr") {
 			return validate.IsAny, nil
 		}
@@ -305,15 +312,15 @@ func ConfigKeyChecker(key string) (func(value string) error, error) {
 			return validate.IsAny, nil
 		}
 
-		if strings.HasSuffix(key, "vm.uuid") {
-			return validate.IsAny, nil
-		}
-
 		if strings.HasSuffix(key, ".ceph_rbd") {
 			return validate.IsAny, nil
 		}
 
 		if strings.HasSuffix(key, ".driver") {
+			return validate.IsAny, nil
+		}
+
+		if strings.HasSuffix(key, ".uuid") {
 			return validate.IsAny, nil
 		}
 	}
@@ -347,4 +354,22 @@ func InstanceGetParentAndSnapshotName(name string) (string, string, bool) {
 	}
 
 	return fields[0], fields[1], true
+}
+
+// InstanceIncludeWhenCopying is used to decide whether to include a config item or not when copying an instance.
+// The remoteCopy argument indicates if the copy is remote (i.e between LXD nodes) as this affects the keys kept.
+func InstanceIncludeWhenCopying(configKey string, remoteCopy bool) bool {
+	if configKey == "volatile.base_image" {
+		return true // Include volatile.base_image always as it can help optimize copies.
+	}
+
+	if configKey == "volatile.last_state.idmap" && !remoteCopy {
+		return true // Include volatile.last_state.idmap when doing local copy to avoid needless remapping.
+	}
+
+	if strings.HasPrefix(configKey, ConfigVolatilePrefix) {
+		return false // Exclude all other volatile keys.
+	}
+
+	return true // Keep all other keys.
 }

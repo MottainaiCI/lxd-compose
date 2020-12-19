@@ -621,6 +621,16 @@ func StringInSlice(key string, list []string) bool {
 	return false
 }
 
+// StringHasPrefix returns true if value has one of the supplied prefixes.
+func StringHasPrefix(value string, prefixes ...string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(value, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func IntInSlice(key int, list []int) bool {
 	for _, entry := range list {
 		if entry == key {
@@ -650,6 +660,10 @@ func Uint64InSlice(key uint64, list []uint64) bool {
 
 func IsTrue(value string) bool {
 	return StringInSlice(strings.ToLower(value), []string{"true", "1", "yes", "on"})
+}
+
+func IsUserConfig(key string) bool {
+	return strings.HasPrefix(key, "user.")
 }
 
 // StringMapHasStringKey returns true if any of the supplied keys are present in the map.
