@@ -18,7 +18,7 @@ distro through [luet](https://luet-lab.github.io/docs/) tool with these steps:
 
 ```bash
 $> curl https://get.mocaccino.org/luet/get_luet_root.sh | sudo sh
-$> sudo luet install repository/mocaccino-extra
+$> sudo luet install repository/mocaccino-extra-stable
 $> sudo luet install app-emulation/lxd-compose
 ```
 
