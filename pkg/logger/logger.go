@@ -131,7 +131,7 @@ func level2AtomicLevel(level string) zap.AtomicLevel {
 	}
 }
 
-func (l *LxdCLogger) msg(level string, withoutColor bool, msg ...interface{}) {
+func (l *LxdCLogger) Msg(level string, withoutColor bool, msg ...interface{}) {
 	var message string
 	var confLevel, msgLevel int
 
@@ -181,30 +181,30 @@ func (l *LxdCLogger) msg(level string, withoutColor bool, msg ...interface{}) {
 }
 
 func (l *LxdCLogger) Warning(mess ...interface{}) {
-	l.msg("warning", false, mess...)
+	l.Msg("warning", false, mess...)
 	//if l.FatalWarns {
 	//	os.Exit(2)
 	//}
 }
 
 func (l *LxdCLogger) Debug(mess ...interface{}) {
-	l.msg("debug", false, mess...)
+	l.Msg("debug", false, mess...)
 }
 
 func (l *LxdCLogger) DebugC(mess ...interface{}) {
-	l.msg("debug", true, mess...)
+	l.Msg("debug", true, mess...)
 }
 
 func (l *LxdCLogger) Info(mess ...interface{}) {
-	l.msg("info", false, mess...)
+	l.Msg("info", false, mess...)
 }
 
 func (l *LxdCLogger) InfoC(mess ...interface{}) {
-	l.msg("info", true, mess...)
+	l.Msg("info", true, mess...)
 }
 
 func (l *LxdCLogger) Error(mess ...interface{}) {
-	l.msg("error", false, mess...)
+	l.Msg("error", false, mess...)
 }
 
 func (l *LxdCLogger) Fatal(mess ...interface{}) {
