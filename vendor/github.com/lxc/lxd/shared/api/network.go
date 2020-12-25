@@ -85,9 +85,6 @@ type NetworkState struct {
 	// API extension: network_state_bond_bridge
 	Bond   *NetworkStateBond   `json:"bond" yaml:"bond"`
 	Bridge *NetworkStateBridge `json:"bridge" yaml:"bridge"`
-
-	// API extension: network_state_vlan
-	VLAN *NetworkStateVLAN `json:"vlan" yaml:"vlan"`
 }
 
 // NetworkStateAddress represents a network address
@@ -120,7 +117,7 @@ type NetworkStateBond struct {
 	LowerDevices []string `json:"lower_devices" yaml:"lower_devices"`
 }
 
-// NetworkStateBridge represents bridge specific state
+// NetworkStateBridge represents bond specific state
 // API extension: network_state_bond_bridge
 type NetworkStateBridge struct {
 	ID           string `json:"id" yaml:"id"`
@@ -131,11 +128,4 @@ type NetworkStateBridge struct {
 	VLANFiltering bool   `json:"vlan_filtering" yaml:"vlan_filtering"`
 
 	UpperDevices []string `json:"upper_devices" yaml:"upper_devices"`
-}
-
-// NetworkStateVLAN represents VLAN specific state
-// API extension: network_state_vlan
-type NetworkStateVLAN struct {
-	LowerDevice string `json:"lower_device" yaml:"lower_device"`
-	VID         uint64 `json:"vid" yaml:"vid"`
 }

@@ -538,6 +538,8 @@ github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40 h1:5GXSLvKjNp1n6SrSXmTr0K4
 github.com/lxc/lxd v0.0.0-20190810000350-cfa3c9083b40/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
 github.com/lxc/lxd v0.0.0-20201112195216-796fc6680728 h1:l9o57sjDge8iN6tTuBEow+rnmWtLvHQKvGYftTO5sTQ=
 github.com/lxc/lxd v0.0.0-20201112195216-796fc6680728/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
+github.com/lxc/lxd v0.0.0-20201210211746-eace244b40c5 h1:LPKP3IwydG/04oumI1erF9rOKLc4uk7sAsWTYU6tP3o=
+github.com/lxc/lxd v0.0.0-20201210211746-eace244b40c5/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
 github.com/lxc/lxd v0.0.0-20201218183115-ee2375faaf91 h1:s0OkQBLFUfwPk7vimmOL9KNu/acUwAErviYWfsK6sPY=
 github.com/lxc/lxd v0.0.0-20201218183115-ee2375faaf91/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=

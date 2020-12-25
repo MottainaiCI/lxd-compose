@@ -179,10 +179,10 @@ func (r *ProtocolLXD) rawQuery(method string, url string, data interface{}, ETag
 
 	// Get a new HTTP request setup
 	if data != nil {
-		switch data := data.(type) {
+		switch data.(type) {
 		case io.Reader:
 			// Some data to be sent along with the request
-			req, err = http.NewRequest(method, url, data)
+			req, err = http.NewRequest(method, url, data.(io.Reader))
 			if err != nil {
 				return nil, "", err
 			}
