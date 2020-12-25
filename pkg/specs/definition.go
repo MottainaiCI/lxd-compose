@@ -64,7 +64,8 @@ type LxdCProject struct {
 
 	Environments []LxdCEnvVars `json:"vars,omitempty" yaml:"vars,omitempty"`
 
-	Groups []LxdCGroup `json:"groups" yaml:"groups"`
+	Groups      []LxdCGroup `json:"groups" yaml:"groups"`
+	NodesPrefix string      `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
 	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
 	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
@@ -77,7 +78,8 @@ type LxdCProjectSanitized struct {
 	IncludeGroupFiles []string `json:"include_groups_files,omitempty" yaml:"include_groups_files,omitempty"`
 	IncludeEnvFiles   []string `json:"include_env_files,omitempty" yaml:"include_env_files,omitempty"`
 
-	Groups []LxdCGroup `json:"groups" yaml:"groups"`
+	Groups      []LxdCGroup `json:"groups" yaml:"groups"`
+	NodesPrefix string      `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
 	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
 	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
@@ -91,7 +93,8 @@ type LxdCGroup struct {
 	CommonProfiles []string `json:"common_profiles,omitempty" yaml:"common_profiles,omitempty"`
 	Ephemeral      bool     `json:"ephemeral,omitempty" yaml:"ephemeral,omitempty"`
 
-	Nodes []LxdCNode `json:"nodes" yaml:"nodes"`
+	Nodes       []LxdCNode `json:"nodes" yaml:"nodes"`
+	NodesPrefix string     `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
 	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
 	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
@@ -103,6 +106,7 @@ type LxdCEnvVars struct {
 
 type LxdCNode struct {
 	Name              string `json:"name" yaml:"name"`
+	NamePrefix        string `json:"name_prefix,omitempty" yaml:"name_prefix,omitempty"`
 	ImageSource       string `json:"image_source" yaml:"image_source"`
 	ImageRemoteServer string `json:"image_remote_server,omitempty" yaml:"image_remote_server,omitempty"`
 

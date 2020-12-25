@@ -201,7 +201,7 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 
 	logger.InfoC(logger.Aurora.Bold(
 		logger.Aurora.BrightCyan(
-			fmt.Sprintf(">>> [%s] Compile %d resources... :icecream:", node.Name, len(targets)))))
+			fmt.Sprintf(">>> [%s] Compile %d resources... :icecream:", node.GetName(), len(targets)))))
 
 	// Set node key with current node
 	(*compiler.GetVars())["node"] = node
@@ -238,7 +238,7 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 			logger.Aurora.Italic(
 				logger.Aurora.BrightCyan(
 					fmt.Sprintf(">>> [%s] Compiling %s -> %s :coffee:",
-						node.Name, sourceFile, destFile))))
+						node.GetName(), sourceFile, destFile))))
 
 		err := compiler.Compile(sourceFile, destFile)
 		if err != nil {
@@ -248,7 +248,7 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 		logger.InfoC(
 			logger.Aurora.BrightCyan(
 				fmt.Sprintf(">>> [%s] - [%2d/%2d] %s :check_mark:",
-					node.Name, idx+1, len(targets), destFile)))
+					node.GetName(), idx+1, len(targets), destFile)))
 	}
 
 	return nil

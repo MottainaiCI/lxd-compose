@@ -43,6 +43,7 @@ type LxdCInstance struct {
 	FlagsEnabled   []string
 	GroupsEnabled  []string
 	GroupsDisabled []string
+	NodesPrefix    string
 }
 
 func NewLxdCInstance(config *specs.LxdComposeConfig) *LxdCInstance {
@@ -72,6 +73,8 @@ func (i *LxdCInstance) GetEnvironments() *[]specs.LxdCEnvironment {
 	return &i.Environments
 }
 
+func (i *LxdCInstance) SetNodesPrefix(s string)     { i.NodesPrefix = s }
+func (i *LxdCInstance) GetNodesPrefix() string      { return i.NodesPrefix }
 func (i *LxdCInstance) SetSkipSync(v bool)          { i.SkipSync = v }
 func (i *LxdCInstance) GetSkipSync() bool           { return i.SkipSync }
 func (i *LxdCInstance) GetGroupsEnabled() []string  { return i.GroupsEnabled }
@@ -115,7 +118,7 @@ func (i *LxdCInstance) GetEntitiesByNodeName(name string) (*specs.LxdCEnvironmen
 		for _, p := range e.Projects {
 			for _, g := range p.Groups {
 				for _, n := range g.Nodes {
-					if n.Name == name {
+					if n.GetName() == name {
 						return &e, &p, &g, &n
 					}
 				}
@@ -215,26 +218,26 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 
 				for _, node := range grp.Nodes {
 
-					if _, isPresent := mnodes[node.Name]; isPresent {
+					if _, isPresent := mnodes[node.GetName()]; isPresent {
 						if !ignoreError {
-							return errors.New("Duplicated node " + node.Name)
+							return errors.New("Duplicated node " + node.GetName())
 						}
 
-						i.Logger.Warning("Found duplicated node " + node.Name)
+						i.Logger.Warning("Found duplicated node " + node.GetName())
 
 						dupNodes++
 
 					} else {
-						mnodes[node.Name] = 1
+						mnodes[node.GetName()] = 1
 					}
 
 					if len(node.Hooks) > 0 {
 						for _, h := range node.Hooks {
 							if h.Node != "" && h.Node != "host" {
-								i.Logger.Warning("Invalid hook on node " + node.Name + " with node field valorized.")
+								i.Logger.Warning("Invalid hook on node " + node.GetName() + " with node field valorized.")
 								wrongHooks++
 								if !ignoreError {
-									return errors.New("Invalid hook on node " + node.Name)
+									return errors.New("Invalid hook on node " + node.GetName())
 								}
 							}
 
@@ -246,10 +249,10 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 								wrongHooks++
 
 								i.Logger.Warning("Found invalid hook of type " + h.Event +
-									" on node " + node.Name)
+									" on node " + node.GetName())
 
 								if !ignoreError {
-									return errors.New("Invalid hook " + h.Event + " on node " + node.Name)
+									return errors.New("Invalid hook " + h.Event + " on node " + node.GetName())
 								}
 							}
 						}

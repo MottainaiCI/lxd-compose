@@ -59,12 +59,14 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			skipSync, _ := cmd.Flags().GetBool("skip-sync")
+			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 
 			composer.SetFlagsDisabled(disabledFlags)
 			composer.SetFlagsEnabled(enabledFlags)
 			composer.SetGroupsDisabled(disabledGroups)
 			composer.SetGroupsEnabled(enabledGroups)
 			composer.SetSkipSync(skipSync)
+			composer.SetNodesPrefix(prefix)
 
 			projects := args[0:]
 
@@ -118,6 +120,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
 	flags.Bool("skip-sync", false, "Disable sync of files.")
+	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
 }

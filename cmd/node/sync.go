@@ -49,6 +49,7 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			syncSourceDir := ""
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
 			syncPostCmds, _ := cmd.Flags().GetBool("hooks")
+			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -60,9 +61,17 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			composer.SetNodesPrefix(prefix)
+
 			node := args[0]
 
 			env, proj, grp, nodeConf := composer.GetEntitiesByNodeName(node)
+			if env == nil && prefix != "" {
+				// Check if i find the node with prefix
+				env, proj, grp, nodeConf = composer.GetEntitiesByNodeName(
+					fmt.Sprintf("%s-%s", prefix, node))
+			}
+
 			if env == nil {
 				fmt.Println("Node not found")
 				os.Exit(1)
@@ -132,6 +141,7 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 	pflags.Bool("hooks", false, "Execute post-node-sync hooks.")
+	pflags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
 }

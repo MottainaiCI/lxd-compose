@@ -35,11 +35,11 @@ func (i *LxdCInstance) GetNodeHooks4Event(event string, proj *specs.LxdCProject,
 
 	// Retrieve project hooks
 	projHooks := proj.GetHooks4Nodes(event, []string{"*"})
-	projHooks = specs.FilterHooks4Node(&projHooks, []string{node.Name, "host"})
+	projHooks = specs.FilterHooks4Node(&projHooks, []string{node.GetName(), "host"})
 
 	// Retrieve group hooks
 	groupHooks := group.GetHooks4Nodes(event, []string{"*"})
-	groupHooks = specs.FilterHooks4Node(&groupHooks, []string{node.Name, "host"})
+	groupHooks = specs.FilterHooks4Node(&groupHooks, []string{node.GetName(), "host"})
 
 	ans := projHooks
 	ans = append(ans, groupHooks...)
@@ -58,6 +58,10 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	proj := env.GetProjectByName(projectName)
 	if proj == nil {
 		return errors.New("No project found with name " + projectName)
+	}
+
+	if i.NodesPrefix != "" {
+		proj.SetNodesPrefix(i.NodesPrefix)
 	}
 
 	// Get only host hooks. All other hooks are handled by group and node.
@@ -127,7 +131,19 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 			if node != "host" {
 
-				_, _, grp, nodeEntity := i.GetEntitiesByNodeName(node)
+				var grp *specs.LxdCGroup = nil
+				var nodeEntity *specs.LxdCNode = nil
+
+				_, _, grp, nodeEntity = i.GetEntitiesByNodeName(node)
+				if nodeEntity == nil && i.NodesPrefix != "" {
+					// Trying to search node with prefix
+					_, _, grp, nodeEntity = i.GetEntitiesByNodeName(
+						fmt.Sprintf("%s-%s", i.NodesPrefix, node))
+
+					if nodeEntity != nil {
+						node = fmt.Sprintf("%s-%s", i.NodesPrefix, node)
+					}
+				}
 
 				if nodeEntity != nil {
 					json, err := nodeEntity.ToJson()
@@ -270,13 +286,13 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 					switch h.Node {
 					case "", "*":
 						if targetNode != nil {
-							err := runSingleCmd(&h, targetNode.Name, cmds)
+							err := runSingleCmd(&h, targetNode.GetName(), cmds)
 							if err != nil {
 								return err
 							}
 						} else {
 							for _, node := range nodes {
-								err := runSingleCmd(&h, node.Name, cmds)
+								err := runSingleCmd(&h, node.GetName(), cmds)
 								if err != nil {
 									return err
 								}
@@ -284,6 +300,7 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						}
 
 					default:
+
 						err := runSingleCmd(&h, h.Node, cmds)
 						if err != nil {
 							return err
@@ -350,9 +367,10 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			executor.Entrypoint = []string{}
 		}
 
-		isPresent, err := executor.IsPresentContainer(node.Name)
+		isPresent, err := executor.IsPresentContainer(node.GetName())
 		if err != nil {
-			i.Logger.Error("Error on check if container " + node.Name + " is present: " + err.Error())
+			i.Logger.Error("Error on check if container " +
+				node.GetName() + " is present: " + err.Error())
 			return err
 		}
 
@@ -363,7 +381,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			// Run pre-node-creation hooks
 			i.Logger.Debug(fmt.Sprintf(
 				"[%s - %s] Running %d pre-node-creation hooks for node %s... ",
-				proj.Name, group.Name, len(preCreationHooks), node.Name))
+				proj.Name, group.Name, len(preCreationHooks), node.GetName()))
 			err = i.ProcessHooks(&preCreationHooks, proj, group, &node)
 			if err != nil {
 				return err
@@ -372,12 +390,14 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			profiles := []string{}
 			profiles = append(profiles, group.CommonProfiles...)
 			profiles = append(profiles, node.Profiles...)
-			i.Logger.Debug(fmt.Sprintf("[%s] Using profiles %s", node.Name, profiles))
+			i.Logger.Debug(fmt.Sprintf("[%s] Using profiles %s",
+				node.GetName(), profiles))
 
-			err := executor.CreateContainer(node.Name, node.ImageSource,
+			err := executor.CreateContainer(node.GetName(), node.ImageSource,
 				node.ImageRemoteServer, profiles)
 			if err != nil {
-				i.Logger.Error("Error on create container " + node.Name + ":" + err.Error())
+				i.Logger.Error("Error on create container " +
+					node.GetName() + ":" + err.Error())
 				return err
 			}
 
@@ -386,7 +406,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			// Run post-node-creation hooks
 			i.Logger.Debug(fmt.Sprintf(
 				"[%s - %s] Running %d post-node-creation hooks for node %s... ",
-				proj.Name, group.Name, len(postCreationHooks), node.Name))
+				proj.Name, group.Name, len(postCreationHooks), node.GetName()))
 			err = i.ProcessHooks(&postCreationHooks, proj, group, &node)
 			if err != nil {
 				return err
@@ -426,14 +446,15 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 			i.Logger.Debug(i.Logger.Aurora.Bold(
 				i.Logger.Aurora.BrightCyan(
-					">>> [" + node.Name + "] Using sync source basedir " + syncSourceDir)))
+					">>> [" + node.GetName() + "] Using sync source basedir " +
+						syncSourceDir)))
 
 			nResources := len(node.SyncResources)
 			i.Logger.InfoC(
 				i.Logger.Aurora.Bold(
 					i.Logger.Aurora.BrightCyan(
 						fmt.Sprintf(">>> [%s] Syncing %d resources... - :bus:",
-							node.Name, nResources))))
+							node.GetName(), nResources))))
 
 			for idx, resource := range node.SyncResources {
 
@@ -449,9 +470,11 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 					i.Logger.Aurora.Italic(
 						i.Logger.Aurora.BrightCyan(
 							fmt.Sprintf(">>> [%s] %s => %s",
-								node.Name, resource.Source, resource.Destination))))
+								node.GetName(), resource.Source,
+								resource.Destination))))
 
-				err = executor.RecursivePushFile(node.Name, sourcePath, resource.Destination)
+				err = executor.RecursivePushFile(node.GetName(),
+					sourcePath, resource.Destination)
 				if err != nil {
 					i.Logger.Debug("Error on sync from sourcePath " + sourcePath +
 						" to dest " + resource.Destination)
@@ -462,7 +485,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 				i.Logger.InfoC(
 					i.Logger.Aurora.BrightCyan(
 						fmt.Sprintf(">>> [%s] - [%2d/%2d] %s - :check_mark:",
-							node.Name, idx+1, nResources, resource.Destination)))
+							node.GetName(), idx+1, nResources, resource.Destination)))
 			}
 
 		}

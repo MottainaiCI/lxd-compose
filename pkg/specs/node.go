@@ -64,3 +64,11 @@ func (n *LxdCNode) ToJson() (string, error) {
 
 	return string(data), nil
 }
+
+func (n *LxdCNode) GetName() string {
+	// Note: "-" it's used to avoid override of the name prefix
+	if n.NamePrefix != "" && n.NamePrefix != "-" {
+		return fmt.Sprintf("%s-%s", n.NamePrefix, n.Name)
+	}
+	return n.Name
+}

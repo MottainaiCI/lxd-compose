@@ -43,6 +43,7 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
+			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -54,11 +55,10 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			composer.SetNodesPrefix(prefix)
+
 			node := args[0]
 			commands := args[1:]
-
-			fmt.Println("node ", node)
-			fmt.Println("command ", commands)
 
 			env, proj, grp, nodeConf := composer.GetEntitiesByNodeName(node)
 			if env == nil {
@@ -110,6 +110,7 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 	pflags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	pflags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
 }

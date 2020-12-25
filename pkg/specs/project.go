@@ -107,8 +107,18 @@ func (p *LxdCProject) Sanitize() *LxdCProjectSanitized {
 		Description:       p.Description,
 		IncludeGroupFiles: p.IncludeGroupFiles,
 		IncludeEnvFiles:   p.IncludeEnvFiles,
+		NodesPrefix:       p.NodesPrefix,
 		Groups:            p.Groups,
 		Hooks:             p.Hooks,
 		ConfigTemplates:   p.ConfigTemplates,
+	}
+}
+
+func (p *LxdCProject) GetNodesPrefix() string { return p.NodesPrefix }
+
+func (p *LxdCProject) SetNodesPrefix(prefix string) {
+	p.NodesPrefix = prefix
+	for idx, _ := range p.Groups {
+		p.Groups[idx].SetNodesPrefix(prefix)
 	}
 }

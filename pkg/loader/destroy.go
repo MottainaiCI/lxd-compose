@@ -40,6 +40,10 @@ func (i *LxdCInstance) DestroyProject(projectName string) error {
 		return errors.New("No project found with name " + projectName)
 	}
 
+	if i.NodesPrefix != "" {
+		proj.SetNodesPrefix(i.NodesPrefix)
+	}
+
 	for _, grp := range proj.Groups {
 
 		err := i.DestroyGroup(&grp, proj, env)
@@ -66,16 +70,18 @@ func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProj
 
 	for _, node := range group.Nodes {
 
-		isPresent, err := executor.IsPresentContainer(node.Name)
+		isPresent, err := executor.IsPresentContainer(node.GetName())
 		if err != nil {
-			i.Logger.Error("Error on check if container " + node.Name + " is present: " + err.Error())
+			i.Logger.Error("Error on check if container " + node.GetName() +
+				" is present: " + err.Error())
 			return err
 		}
 
 		if isPresent {
-			err = executor.CleanUpContainer(node.Name)
+			err = executor.CleanUpContainer(node.GetName())
 			if err != nil {
-				i.Logger.Error("Error on destroy container " + node.Name + ": " + err.Error())
+				i.Logger.Error("Error on destroy container " + node.GetName() +
+					": " + err.Error())
 				return err
 			}
 		}

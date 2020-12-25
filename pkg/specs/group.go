@@ -45,6 +45,18 @@ func GroupFromYaml(data []byte) (*LxdCGroup, error) {
 	return ans, nil
 }
 
+func (g *LxdCGroup) GetNodesPrefix() string { return g.NodesPrefix }
+
+func (g *LxdCGroup) SetNodesPrefix(prefix string) {
+	g.NodesPrefix = prefix
+
+	for idx, _ := range g.Nodes {
+		if g.Nodes[idx].NamePrefix == "" {
+			g.Nodes[idx].NamePrefix = prefix
+		}
+	}
+}
+
 func (g *LxdCGroup) GetHooks(event string) []LxdCHook {
 	return getHooks(&g.Hooks, event)
 }

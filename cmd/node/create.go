@@ -46,6 +46,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			postCreationHooks, _ := cmd.Flags().GetBool("hooks")
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
 			endpoint, _ := cmd.Flags().GetString("endpoint")
+			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
 
@@ -57,6 +58,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			composer.SetFlagsDisabled(disabledFlags)
 			composer.SetFlagsEnabled(enabledFlags)
+			composer.SetNodesPrefix(prefix)
 
 			nodes := args[0:]
 
@@ -142,6 +144,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Disable execution of the hooks with the specified flags.")
 	pflags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	pflags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
 }

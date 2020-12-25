@@ -52,6 +52,10 @@ func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			prefix, _ := cmd.Flags().GetString("nodes-prefix")
+
+			composer.SetNodesPrefix(prefix)
+
 			projects := args[0:]
 
 			for _, proj := range projects {
@@ -73,6 +77,9 @@ func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			fmt.Println("All done.")
 		},
 	}
+
+	flags := cmd.Flags()
+	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
 }
