@@ -41,6 +41,8 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 
+			prefix, _ := cmd.Flags().GetString("nodes-prefix")
+
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
 
@@ -49,6 +51,8 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
 			}
+
+			composer.SetNodesPrefix(prefix)
 
 			opts := template.CompilerOpts{
 				Sources: sources,
@@ -93,6 +97,7 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Choice the list of the projects to compile. Default: all")
 	pflags.StringSliceVarP(&sources, "source-file", "f", []string{},
 		"Choice the list of the source file to compile. Default: all")
+	pflags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
 }
