@@ -26,7 +26,7 @@ $> sudo luet install app-emulation/lxd-compose
 
 ```bash
 
-$> sudo luet upgrade app-emulation/lxd-compose
+$> sudo luet upgrade
 
 ```
 
