@@ -54,6 +54,8 @@ type LxdCExecutor struct {
 	Ephemeral      bool
 	ShowCmdsOutput bool
 	WaitSleep      int
+
+	Emitter LxdCExecutorEmitter
 }
 
 func NewLxdCExecutor(endpoint, configdir string, entrypoint []string, ephemeral, showCmdsOutput bool) *LxdCExecutor {
@@ -64,6 +66,7 @@ func NewLxdCExecutor(endpoint, configdir string, entrypoint []string, ephemeral,
 		Ephemeral:      ephemeral,
 		ShowCmdsOutput: showCmdsOutput,
 		WaitSleep:      1,
+		Emitter:        NewLxdCEmitter(),
 	}
 }
 
@@ -99,7 +102,7 @@ func (e *LxdCExecutor) Setup() error {
 		e.ConfigDir = configDir
 	}
 	configPath := path.Join(e.ConfigDir, "/config.yml")
-	log.GetDefaultLogger().Debug("Using LXD config file", configPath)
+	e.Emitter.DebugLog(false, "Using LXD config file", configPath)
 
 	e.LxdConfig, err = lxd_config.LoadConfig(configPath)
 	if err != nil {
@@ -108,7 +111,7 @@ func (e *LxdCExecutor) Setup() error {
 
 	if len(e.Endpoint) > 0 {
 
-		log.GetDefaultLogger().Debug("Using endpoint " + e.Endpoint + "...")
+		e.Emitter.DebugLog(false, "Using endpoint "+e.Endpoint+"...")
 
 		// Unix socket
 		if strings.HasPrefix(e.Endpoint, "unix:") {
@@ -149,6 +152,11 @@ func (e *LxdCExecutor) Setup() error {
 
 	e.LxdClient = client
 
+	e.Emitter.Emits(LxdClientSetupDone, map[string]interface{}{
+		"defaultRemote": e.LxdConfig.DefaultRemote,
+		"configPath":    configPath,
+	})
+
 	return nil
 }
 
@@ -166,8 +174,8 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, pr
 	logger := log.GetDefaultLogger()
 
 	if isPresent {
-		logger.InfoC(logger.Aurora.Bold(logger.Aurora.BrightCyan(
-			">>> Container " + name + " already present. Nothing to do. - :check_mark:")))
+		e.Emitter.InfoLog(false, logger.Aurora.Bold(logger.Aurora.BrightCyan(
+			">>> Container "+name+" already present. Nothing to do. - :check_mark:")))
 		return nil
 	}
 
@@ -178,8 +186,8 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, pr
 		return err
 	}
 
-	logger.InfoC(logger.Aurora.Bold(logger.Aurora.BrightCyan(
-		">>> Creating container " + name + "... - :factory:")))
+	e.Emitter.InfoLog(true, logger.Aurora.Bold(logger.Aurora.BrightCyan(
+		">>> Creating container "+name+"... - :factory:")))
 	err = e.LaunchContainer(name, imageFingerprint, profiles)
 	if err != nil {
 		logger.Error("Creating container error: " + err.Error())
@@ -236,10 +244,10 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 
 	logger := log.GetDefaultLogger()
 
-	logger.DebugC(logger.Aurora.Bold(
+	e.Emitter.DebugLog(true, logger.Aurora.Bold(
 		logger.Aurora.BrightCyan(
 			fmt.Sprintf(">>> [%s] - entrypoint: %s", containerName, entrypoint))))
-	logger.InfoC(logger.Aurora.Italic(
+	e.Emitter.InfoLog(true, logger.Aurora.Italic(
 		logger.Aurora.BrightCyan(
 			fmt.Sprintf(">>> [%s] - %s - :coffee:", containerName, command))))
 
@@ -268,13 +276,13 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 	// I consider it as an error.
 	if val, ok := opAPI.Metadata["return"]; ok {
 		ans = int(val.(float64))
-		logger.DebugC(
+		e.Emitter.DebugLog(true,
 			logger.Aurora.Bold(
 				logger.Aurora.BrightCyan(
 					fmt.Sprintf(">>> [%s] Exiting [%d]", containerName, ans))))
 
 	} else {
-		logger.InfoC(
+		e.Emitter.InfoLog(true,
 			logger.Aurora.Bold(
 				logger.Aurora.BrightCyan(
 					fmt.Sprintf(">>> [%s] Execution Interrupted (%v)",
@@ -296,15 +304,17 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 	if err == nil {
 
 		if e.ShowCmdsOutput && len(outBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightCyan(
-					fmt.Sprintf(">>> [%s] [stdout]\n%s", containerName, outBuffer.String()))))
+			e.Emitter.InfoLog(false,
+				logger.Aurora.Bold(
+					logger.Aurora.BrightCyan(
+						fmt.Sprintf(">>> [%s] [stdout]\n%s", containerName, outBuffer.String()))))
 		}
 
 		if e.ShowCmdsOutput && len(errBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightRed(
-					fmt.Sprintf(">>> [%s] [stderr]\n%s", containerName, errBuffer.String()))))
+			e.Emitter.InfoLog(false,
+				logger.Aurora.Bold(
+					logger.Aurora.BrightRed(
+						fmt.Sprintf(">>> [%s] [stderr]\n%s", containerName, errBuffer.String()))))
 		}
 	}
 
@@ -322,15 +332,17 @@ func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar, 
 	if err == nil {
 
 		if e.ShowCmdsOutput && len(outBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightCyan(
-					fmt.Sprintf(">>> [%s] [stdout]\n%s", containerName, outBuffer.String()))))
+			e.Emitter.InfoLog(false,
+				logger.Aurora.Bold(
+					logger.Aurora.BrightCyan(
+						fmt.Sprintf(">>> [%s] [stdout]\n%s", containerName, outBuffer.String()))))
 		}
 
 		if e.ShowCmdsOutput && len(errBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightRed(
-					fmt.Sprintf(">>> [%s] [stderr]\n%s", containerName, errBuffer.String()))))
+			e.Emitter.InfoLog(false,
+				logger.Aurora.Bold(
+					logger.Aurora.BrightRed(
+						fmt.Sprintf(">>> [%s] [stderr]\n%s", containerName, errBuffer.String()))))
 		}
 
 		if outVar != "" {
@@ -369,11 +381,13 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 
 	logger := log.GetDefaultLogger()
 
-	logger.DebugC(logger.Aurora.Bold(
-		logger.Aurora.BrightYellow(
-			fmt.Sprintf("   :house_with_garden: - entrypoint: %s", entrypoint))))
-	logger.InfoC(logger.Aurora.Bold(
-		logger.Aurora.BrightYellow("   :house_with_garden: - " + command)))
+	e.Emitter.DebugLog(true,
+		logger.Aurora.Bold(
+			logger.Aurora.BrightYellow(
+				fmt.Sprintf("   :house_with_garden: - entrypoint: %s", entrypoint))))
+	e.Emitter.InfoLog(true,
+		logger.Aurora.Bold(
+			logger.Aurora.BrightYellow("   :house_with_garden: - "+command)))
 
 	// Convert envs to array list
 	elist := os.Environ()
@@ -418,15 +432,17 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string, en
 		entryPoint)
 
 	if e.ShowCmdsOutput && len(outBuffer.String()) > 0 {
-		logger.Info(logger.Aurora.Bold(
-			logger.Aurora.BrightYellow(
-				fmt.Sprintf(">>> [stdout]\n%s", outBuffer.String()))))
+		e.Emitter.InfoLog(false,
+			logger.Aurora.Bold(
+				logger.Aurora.BrightYellow(
+					fmt.Sprintf(">>> [stdout]\n%s", outBuffer.String()))))
 	}
 
 	if e.ShowCmdsOutput && len(errBuffer.String()) > 0 {
-		logger.Info(logger.Aurora.Bold(
-			logger.Aurora.BrightRed(
-				fmt.Sprintf(">>> [stderr]\n%s", errBuffer.String()))))
+		e.Emitter.InfoLog(false,
+			logger.Aurora.Bold(
+				logger.Aurora.BrightRed(
+					fmt.Sprintf(">>> [stderr]\n%s", errBuffer.String()))))
 	}
 
 	return res, err
@@ -443,15 +459,17 @@ func (e *LxdCExecutor) RunHostCommandWithOutput4Var(command, outVar, errVar stri
 	if err == nil {
 
 		if e.ShowCmdsOutput && len(outBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightYellow(
-					fmt.Sprintf(">>> [stdout]\n%s", outBuffer.String()))))
+			e.Emitter.InfoLog(false,
+				logger.Aurora.Bold(
+					logger.Aurora.BrightYellow(
+						fmt.Sprintf(">>> [stdout]\n%s", outBuffer.String()))))
 		}
 
 		if e.ShowCmdsOutput && len(errBuffer.String()) > 0 {
-			logger.Info(logger.Aurora.Bold(
-				logger.Aurora.BrightRed(
-					fmt.Sprintf(">>> [stderr]\n%s", errBuffer.String()))))
+			e.Emitter.InfoLog(false,
+				logger.Aurora.Bold(
+					logger.Aurora.BrightRed(
+						fmt.Sprintf(">>> [stderr]\n%s", errBuffer.String()))))
 		}
 
 		if outVar != "" {
@@ -492,7 +510,7 @@ func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
 
 	err = e.DoAction2Container(containerName, "stop")
 	if err != nil {
-		log.GetDefaultLogger().Error("Error on stop container: " + err.Error())
+		e.Emitter.ErrorLog(false, "Error on stop container: "+err.Error())
 		return err
 	}
 
@@ -500,7 +518,7 @@ func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
 		// Delete container
 		currOper, err := e.LxdClient.DeleteContainer(containerName)
 		if err != nil {
-			log.GetDefaultLogger().Error("Error on delete container: " + err.Error())
+			e.Emitter.ErrorLog(false, "Error on delete container: "+err.Error())
 			return err
 		}
 		_ = e.waitOperation(currOper, nil)

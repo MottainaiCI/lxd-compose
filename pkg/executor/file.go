@@ -89,7 +89,7 @@ func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os
 			Type: "directory",
 		}
 
-		log.GetDefaultLogger().Debug(fmt.Sprintf("Creating %s (%s)", cur, args.Type))
+		e.Emitter.DebugLog(false, fmt.Sprintf("Creating %s (%s)", cur, args.Type))
 
 		err := e.LxdClient.CreateContainerFile(nameContainer, cur, args)
 		if err != nil {
@@ -204,7 +204,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 					Handler: func(percent int64, speed int64) {
 
 						if logger.Config.GetLogging().PushProgressBar {
-							logger.InfoC(
+							e.Emitter.InfoLog(true,
 								logger.Aurora.Italic(
 									logger.Aurora.BrightMagenta(
 										fmt.Sprintf("%d%% (%s/s)", percent,
@@ -220,7 +220,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 		}
 
 		if logger.Config.GetLogging().PushProgressBar {
-			logger.InfoC(
+			e.Emitter.InfoLog(true,
 				logger.Aurora.Italic(
 					logger.Aurora.BrightMagenta(
 						fmt.Sprintf(">>> [%s] Pushing %s -> %s (%s)",
