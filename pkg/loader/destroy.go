@@ -61,7 +61,8 @@ func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProj
 	// Initialize executor
 	executor := executor.NewLxdCExecutor(group.Connection,
 		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
-		i.Config.GetLogging().CmdsOutput)
+		i.Config.GetLogging().CmdsOutput,
+		i.Config.GetLogging().RuntimeCmdsOutput)
 	err := executor.Setup()
 	if err != nil {
 		i.Logger.Error("Error on initialize executor for group " + group.Name + ": " + err.Error())

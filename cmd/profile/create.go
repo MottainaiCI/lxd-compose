@@ -98,7 +98,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			if endpoint != "" {
 
 				executor := executor.NewLxdCExecutor(endpoint, confdir, nil, true,
-					config.GetLogging().CmdsOutput)
+					config.GetLogging().CmdsOutput,
+					config.GetLogging().RuntimeCmdsOutput)
 				err = executor.Setup()
 				if err != nil {
 					fmt.Println("Error on setup executor:" + err.Error() + "\n")
@@ -120,7 +121,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					for _, grp := range proj.Groups {
 
 						executor := executor.NewLxdCExecutor(grp.Connection, confdir, nil, true,
-							config.GetLogging().CmdsOutput)
+							config.GetLogging().CmdsOutput,
+							config.GetLogging().RuntimeCmdsOutput)
 						err = executor.Setup()
 						if err != nil {
 							fmt.Println("Error on setup executor for group " + grp.Name + ":" + err.Error() + "\n")

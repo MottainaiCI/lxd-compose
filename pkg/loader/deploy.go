@@ -162,7 +162,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						// Initialize executor
 						executor = lxd_executor.NewLxdCExecutor(grp.Connection,
 							i.Config.GetGeneral().LxdConfDir, []string{}, grp.Ephemeral,
-							i.Config.GetLogging().CmdsOutput)
+							i.Config.GetLogging().CmdsOutput,
+							i.Config.GetLogging().RuntimeCmdsOutput)
 						err := executor.Setup()
 						if err != nil {
 							return err
@@ -178,7 +179,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 						executor = lxd_executor.NewLxdCExecutor(group.Connection,
 							i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
-							i.Config.GetLogging().CmdsOutput)
+							i.Config.GetLogging().CmdsOutput,
+							i.Config.GetLogging().RuntimeCmdsOutput)
 						err := executor.Setup()
 						if err != nil {
 							return err
@@ -208,7 +210,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 				// Initialize executor with local LXD connection
 				executor = lxd_executor.NewLxdCExecutor(connection,
 					i.Config.GetGeneral().LxdConfDir, []string{}, ephemeral,
-					i.Config.GetLogging().CmdsOutput)
+					i.Config.GetLogging().CmdsOutput,
+					i.Config.GetLogging().RuntimeCmdsOutput)
 				err := executor.Setup()
 				if err != nil {
 					return err
@@ -233,7 +236,18 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 				if storeVar {
 					res, err = executor.RunCommandWithOutput4Var(node, cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint)
 				} else {
-					res, err = executor.RunCommand(node, cmds, envs, h.Entrypoint)
+					if i.Config.GetLogging().RuntimeCmdsOutput {
+						emitter := executor.GetEmitter()
+						res, err = executor.RunCommandWithOutput(
+							node, cmds, envs,
+							(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStdout(),
+							(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStderr(),
+							h.Entrypoint)
+					} else {
+						res, err = executor.RunCommand(
+							node, cmds, envs, h.Entrypoint,
+						)
+					}
 				}
 
 			}
@@ -321,7 +335,8 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	// Initialize executor
 	executor := lxd_executor.NewLxdCExecutor(group.Connection,
 		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
-		i.Config.GetLogging().CmdsOutput)
+		i.Config.GetLogging().CmdsOutput,
+		i.Config.GetLogging().RuntimeCmdsOutput)
 	err := executor.Setup()
 	if err != nil {
 		return err

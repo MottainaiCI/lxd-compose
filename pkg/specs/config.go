@@ -62,8 +62,9 @@ type LxdCLogging struct {
 	Color bool `mapstructure:"color,omitempty" json:"color,omitempty" yaml:"color,omitempty"`
 
 	// Enable/Disable commands output logging
-	CmdsOutput      bool `mapstructure:"cmds_output,omitempty" json:"cmds_output,omitempty" yaml:"cmds_output,omitempty"`
-	PushProgressBar bool `mapstructure:"push_progressbar,omitempty" json:"push_progressbar,omitempty" yaml:"push_progressbar,omitempty"`
+	RuntimeCmdsOutput bool `mapstructure:"runtime_cmds_output,omitempty" json:"runtime_cmds_output,omitempty" yaml:"runtime_cmds_output,omitempty"`
+	CmdsOutput        bool `mapstructure:"cmds_output,omitempty" json:"cmds_output,omitempty" yaml:"cmds_output,omitempty"`
+	PushProgressBar   bool `mapstructure:"push_progressbar,omitempty" json:"push_progressbar,omitempty" yaml:"push_progressbar,omitempty"`
 }
 
 func NewLxdComposeConfig(viper *v.Viper) *LxdComposeConfig {
@@ -117,6 +118,7 @@ func GenDefault(viper *v.Viper) {
 	viper.SetDefault("logging.enable_emoji", true)
 	viper.SetDefault("logging.color", true)
 	viper.SetDefault("logging.cmds_output", true)
+	viper.SetDefault("logging.runtime_cmds_output", true)
 	viper.SetDefault("logging.push_progressbar", false)
 
 	viper.SetDefault("env_dirs", []string{"./lxd-compose/envs"})

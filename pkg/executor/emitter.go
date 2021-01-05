@@ -22,27 +22,51 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package executor
 
 import (
+	"io"
+
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 )
 
-type LxdCEmitter struct{}
+type LxdCEmitter struct {
+	HostWriterStdout io.Writer
+	HostWriterStderr io.Writer
+	LxdWriterStdout  io.WriteCloser
+	LxdWriterStderr  io.WriteCloser
+}
 
-func NewLxdCEmitter() *LxdCEmitter { return &LxdCEmitter{} }
+func NewLxdCEmitter() *LxdCEmitter {
+	return &LxdCEmitter{
+		HostWriterStdout: NewLxdCEmitterWriter("host_stdout"),
+		HostWriterStderr: NewLxdCEmitterWriter("host_stderr"),
+		LxdWriterStdout:  NewLxdCEmitterWriter("lxd_stdout"),
+		LxdWriterStderr:  NewLxdCEmitterWriter("lxd_stderr"),
+	}
+}
+
+func (e *LxdCEmitter) GetHostWriterStdout() io.Writer  { return e.HostWriterStdout }
+func (e *LxdCEmitter) GetHostWriterStderr() io.Writer  { return e.HostWriterStderr }
+func (e *LxdCEmitter) SetHostWriterStdout(w io.Writer) { e.HostWriterStdout = w }
+func (e *LxdCEmitter) SetHostWriterStderr(w io.Writer) { e.HostWriterStderr = w }
+
+func (e *LxdCEmitter) GetLxdWriterStdout() io.WriteCloser  { return e.LxdWriterStdout }
+func (e *LxdCEmitter) GetLxdWriterStderr() io.WriteCloser  { return e.LxdWriterStderr }
+func (e *LxdCEmitter) SetLxdWriterStdout(w io.WriteCloser) { e.LxdWriterStdout = w }
+func (e *LxdCEmitter) SetLxdWriterStderr(w io.WriteCloser) { e.LxdWriterStderr = w }
 
 func (e *LxdCEmitter) DebugLog(color bool, args ...interface{}) {
-	log.GetDefaultLogger().Msg("debug", color, args...)
+	log.GetDefaultLogger().Msg("debug", color, true, args...)
 }
 
 func (e *LxdCEmitter) InfoLog(color bool, args ...interface{}) {
-	log.GetDefaultLogger().Msg("info", color, args...)
+	log.GetDefaultLogger().Msg("info", color, true, args...)
 }
 
 func (e *LxdCEmitter) WarnLog(color bool, args ...interface{}) {
-	log.GetDefaultLogger().Msg("warning", color, args...)
+	log.GetDefaultLogger().Msg("warning", color, true, args...)
 }
 
 func (e *LxdCEmitter) ErrorLog(color bool, args ...interface{}) {
-	log.GetDefaultLogger().Msg("error", color, args...)
+	log.GetDefaultLogger().Msg("error", color, true, args...)
 }
 
 func (e *LxdCEmitter) Emits(eType LxdCExecutorEvent, data map[string]interface{}) {

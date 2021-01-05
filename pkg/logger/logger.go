@@ -131,7 +131,7 @@ func level2AtomicLevel(level string) zap.AtomicLevel {
 	}
 }
 
-func (l *LxdCLogger) Msg(level string, withoutColor bool, msg ...interface{}) {
+func (l *LxdCLogger) Msg(level string, withoutColor, ln bool, msg ...interface{}) {
 	var message string
 	var confLevel, msgLevel int
 
@@ -145,8 +145,11 @@ func (l *LxdCLogger) Msg(level string, withoutColor bool, msg ...interface{}) {
 		return
 	}
 
-	for _, m := range msg {
-		message += " " + fmt.Sprintf("%v", m)
+	for idx, m := range msg {
+		if idx > 0 {
+			message += " "
+		}
+		message += fmt.Sprintf("%v", m)
 	}
 
 	var levelMsg string
@@ -177,34 +180,38 @@ func (l *LxdCLogger) Msg(level string, withoutColor bool, msg ...interface{}) {
 		l.log2File(level, message)
 	}
 
-	fmt.Println(levelMsg)
+	if ln {
+		fmt.Println(levelMsg)
+	} else {
+		fmt.Print(levelMsg)
+	}
 }
 
 func (l *LxdCLogger) Warning(mess ...interface{}) {
-	l.Msg("warning", false, mess...)
+	l.Msg("warning", false, true, mess...)
 	//if l.FatalWarns {
 	//	os.Exit(2)
 	//}
 }
 
 func (l *LxdCLogger) Debug(mess ...interface{}) {
-	l.Msg("debug", false, mess...)
+	l.Msg("debug", false, true, mess...)
 }
 
 func (l *LxdCLogger) DebugC(mess ...interface{}) {
-	l.Msg("debug", true, mess...)
+	l.Msg("debug", true, true, mess...)
 }
 
 func (l *LxdCLogger) Info(mess ...interface{}) {
-	l.Msg("info", false, mess...)
+	l.Msg("info", false, true, mess...)
 }
 
 func (l *LxdCLogger) InfoC(mess ...interface{}) {
-	l.Msg("info", true, mess...)
+	l.Msg("info", true, true, mess...)
 }
 
 func (l *LxdCLogger) Error(mess ...interface{}) {
-	l.Msg("error", false, mess...)
+	l.Msg("error", false, true, mess...)
 }
 
 func (l *LxdCLogger) Fatal(mess ...interface{}) {
