@@ -28,8 +28,8 @@ import (
 )
 
 type LxdCEmitter struct {
-	HostWriterStdout io.Writer
-	HostWriterStderr io.Writer
+	HostWriterStdout io.WriteCloser
+	HostWriterStderr io.WriteCloser
 	LxdWriterStdout  io.WriteCloser
 	LxdWriterStderr  io.WriteCloser
 }
@@ -43,10 +43,10 @@ func NewLxdCEmitter() *LxdCEmitter {
 	}
 }
 
-func (e *LxdCEmitter) GetHostWriterStdout() io.Writer  { return e.HostWriterStdout }
-func (e *LxdCEmitter) GetHostWriterStderr() io.Writer  { return e.HostWriterStderr }
-func (e *LxdCEmitter) SetHostWriterStdout(w io.Writer) { e.HostWriterStdout = w }
-func (e *LxdCEmitter) SetHostWriterStderr(w io.Writer) { e.HostWriterStderr = w }
+func (e *LxdCEmitter) GetHostWriterStdout() io.WriteCloser  { return e.HostWriterStdout }
+func (e *LxdCEmitter) GetHostWriterStderr() io.WriteCloser  { return e.HostWriterStderr }
+func (e *LxdCEmitter) SetHostWriterStdout(w io.WriteCloser) { e.HostWriterStdout = w }
+func (e *LxdCEmitter) SetHostWriterStderr(w io.WriteCloser) { e.HostWriterStderr = w }
 
 func (e *LxdCEmitter) GetLxdWriterStdout() io.WriteCloser  { return e.LxdWriterStdout }
 func (e *LxdCEmitter) GetLxdWriterStderr() io.WriteCloser  { return e.LxdWriterStderr }
