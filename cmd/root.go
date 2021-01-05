@@ -28,7 +28,6 @@ import (
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
-	utils "github.com/MottainaiCI/mottainai-server/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -131,7 +130,9 @@ func Execute() {
 
 			// Parse configuration file
 			err = config.Unmarshal()
-			utils.CheckError(err)
+			if err != nil {
+				panic(err)
+			}
 		},
 	}
 

@@ -26,7 +26,6 @@ import (
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
-	utils "github.com/MottainaiCI/mottainai-server/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +37,9 @@ func newPrintCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			data, err := config.Yaml()
-			utils.CheckError(err)
+			if err != nil {
+				panic(err)
+			}
 			fmt.Println(string(data))
 		},
 	}
