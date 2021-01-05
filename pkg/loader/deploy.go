@@ -229,7 +229,17 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 				if storeVar {
 					res, err = executor.RunHostCommandWithOutput4Var(cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint)
 				} else {
-					res, err = executor.RunHostCommand(cmds, envs, h.Entrypoint)
+					if i.Config.GetLogging().RuntimeCmdsOutput {
+						emitter := executor.GetEmitter()
+						res, err = executor.RunHostCommandWithOutput(
+							cmds, envs,
+							(emitter.(*lxd_executor.LxdCEmitter)).GetHostWriterStdout(),
+							(emitter.(*lxd_executor.LxdCEmitter)).GetHostWriterStderr(),
+							h.Entrypoint,
+						)
+					} else {
+						res, err = executor.RunHostCommand(cmds, envs, h.Entrypoint)
+					}
 				}
 			} else {
 
