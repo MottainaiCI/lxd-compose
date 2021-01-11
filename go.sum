@@ -316,10 +316,10 @@ github.com/logrusorgru/aurora v0.0.0-20190417123914-21d75270181e h1:yRWBTwWfMy5Y
 github.com/logrusorgru/aurora v0.0.0-20190417123914-21d75270181e/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
 github.com/logrusorgru/aurora v2.0.3+incompatible h1:tOpm7WcpBTn4fjmVfgpQq0EfczGlG91VSDkswnjF5A8=
 github.com/logrusorgru/aurora v2.0.3+incompatible/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
-github.com/lxc/lxd v0.0.0-20201210211746-eace244b40c5 h1:LPKP3IwydG/04oumI1erF9rOKLc4uk7sAsWTYU6tP3o=
-github.com/lxc/lxd v0.0.0-20201210211746-eace244b40c5/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
 github.com/lxc/lxd v0.0.0-20210104202605-f952956d74a4 h1:JYi29yS7y2uNLMVTRXkj2mXEQ01YTi4fdDxDGstdPyQ=
 github.com/lxc/lxd v0.0.0-20210104202605-f952956d74a4/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
+github.com/lxc/lxd v0.0.0-20210108191059-8b2c22660f5a h1:XgpckLTw4tvJktZKnH3gic9QXeX57YjPNQNOB8fq1ak=
+github.com/lxc/lxd v0.0.0-20210108191059-8b2c22660f5a/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/magiconair/properties v1.8.1 h1:ZC2Vc7/ZFkGmsVC9KvOjumD+G5lXy2RtTKyzRKO2BQ4=
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=

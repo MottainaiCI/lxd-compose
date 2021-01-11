@@ -27,7 +27,7 @@ require (
 	github.com/klauspost/compress v1.11.1 // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/lxc/lxd v0.0.0-20210104202605-f952956d74a4
+	github.com/lxc/lxd v0.0.0-20210108191059-8b2c22660f5a
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mudler/luet v0.0.0-20200717204249-ffa6fc3829d2
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
