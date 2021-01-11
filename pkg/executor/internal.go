@@ -32,6 +32,11 @@ import (
 )
 
 func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []string) error {
+	return e.LaunchContainerType(name, fingerprint, profiles, e.Ephemeral)
+}
+
+func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []string, ephemeral bool) error {
+
 	var err error
 	var image *lxd_api.Image
 	var remoteOperation lxd.RemoteOperation
@@ -53,7 +58,7 @@ func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []stri
 	req.Config = configMap
 	req.Devices = devicesMap
 	req.Profiles = profiles
-	req.Ephemeral = e.Ephemeral
+	req.Ephemeral = ephemeral
 
 	// Retrieve image info
 	image, _, err = e.LxdClient.GetImage(fingerprint)
@@ -79,7 +84,7 @@ func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []stri
 		return err
 	}
 
-	err = e.waitOperation(remoteOperation, &progress)
+	err = e.WaitOperation(remoteOperation, &progress)
 	if err != nil {
 		progress.Done("")
 		return err
@@ -107,7 +112,7 @@ func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []stri
 	return e.DoAction2Container(name, "start")
 }
 
-func (e *LxdCExecutor) waitOperation(rawOp interface{}, p *lxd_utils.ProgressRenderer) error {
+func (e *LxdCExecutor) WaitOperation(rawOp interface{}, p *lxd_utils.ProgressRenderer) error {
 	var err error = nil
 
 	// NOTE: currently on ARM we have a weird behavior where the process that waits
@@ -181,7 +186,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 		return err
 	}
 
-	err = e.waitOperation(operation, &progress)
+	err = e.WaitOperation(operation, &progress)
 	progress.Done("")
 	if err != nil {
 		e.Emitter.ErrorLog(false,
@@ -305,7 +310,7 @@ func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer
 		return err
 	}
 
-	err = e.waitOperation(remoteOperation, &progress)
+	err = e.WaitOperation(remoteOperation, &progress)
 	progress.Done("")
 	if err != nil {
 		e.Emitter.ErrorLog(false, "Error on copy image "+err.Error())

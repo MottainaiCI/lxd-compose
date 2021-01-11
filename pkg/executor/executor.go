@@ -270,7 +270,7 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 	}
 
 	// Wait for the operation to complete
-	err = e.waitOperation(currOper, nil)
+	err = e.WaitOperation(currOper, nil)
 	if err != nil {
 		logger.Error("Error on waiting execution of commands: " + err.Error())
 		return 1, err
@@ -371,6 +371,17 @@ func (e *LxdCExecutor) GetContainerList() ([]string, error) {
 	return e.LxdClient.GetContainerNames()
 }
 
+func (e *LxdCExecutor) IsEphemeralContainer(containerName string) (bool, error) {
+	ans := false
+
+	cInfo, _, err := e.LxdClient.GetContainer(containerName)
+	if err != nil {
+		return ans, err
+	}
+
+	return cInfo.ContainerPut.Ephemeral, nil
+}
+
 func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
 	ans := false
 	list, err := e.GetContainerList()
@@ -390,7 +401,13 @@ func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
 }
 
 func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
-	var err error
+
+	ephemeral, err := e.IsEphemeralContainer(containerName)
+	if err != nil {
+		e.Emitter.ErrorLog(false,
+			fmt.Sprintf("Error on retrieve info of the container %s", containerName))
+		return err
+	}
 
 	err = e.DoAction2Container(containerName, "stop")
 	if err != nil {
@@ -398,14 +415,16 @@ func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
 		return err
 	}
 
-	if !e.Ephemeral {
+	// TODO: Ignore ephemeral container and retrieve info from LXD API.
+
+	if !ephemeral {
 		// Delete container
 		currOper, err := e.LxdClient.DeleteContainer(containerName)
 		if err != nil {
 			e.Emitter.ErrorLog(false, "Error on delete container: "+err.Error())
 			return err
 		}
-		_ = e.waitOperation(currOper, nil)
+		_ = e.WaitOperation(currOper, nil)
 	}
 
 	return nil
