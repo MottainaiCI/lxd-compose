@@ -79,7 +79,7 @@ func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProj
 		}
 
 		if isPresent {
-			err = executor.CleanUpContainer(node.GetName())
+			err = executor.DeleteContainer(node.GetName())
 			if err != nil {
 				i.Logger.Error("Error on destroy container " + node.GetName() +
 					": " + err.Error())

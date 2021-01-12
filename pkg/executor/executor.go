@@ -58,7 +58,9 @@ func NewLxdCExecutor(endpoint, configdir string, entrypoint []string, ephemeral,
 	)
 }
 
-func NewLxdCExecutorWithEmitter(endpoint, configdir string, entrypoint []string, ephemeral, showCmdsOutput, runtimeCmdsOutput bool, emitter LxdCExecutorEmitter) *LxdCExecutor {
+func NewLxdCExecutorWithEmitter(endpoint, configdir string,
+	entrypoint []string, ephemeral, showCmdsOutput,
+	runtimeCmdsOutput bool, emitter LxdCExecutorEmitter) *LxdCExecutor {
 	return &LxdCExecutor{
 		ConfigDir:         configdir,
 		Endpoint:          endpoint,
@@ -209,10 +211,6 @@ func (e *LxdCExecutor) StartContainer(name string) error {
 	return e.DoAction2Container(name, "start")
 }
 
-func (e *LxdCExecutor) DeleteContainer(name string) error {
-	return e.CleanUpContainer(name)
-}
-
 func (e *LxdCExecutor) GetContainerList() ([]string, error) {
 	return e.LxdClient.GetContainerNames()
 }
@@ -246,7 +244,7 @@ func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
 	return ans, nil
 }
 
-func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
+func (e *LxdCExecutor) DeleteContainer(containerName string) error {
 
 	ephemeral, err := e.IsEphemeralContainer(containerName)
 	if err != nil {
@@ -260,8 +258,6 @@ func (e *LxdCExecutor) CleanUpContainer(containerName string) error {
 		e.Emitter.ErrorLog(false, "Error on stop container: "+err.Error())
 		return err
 	}
-
-	// TODO: Ignore ephemeral container and retrieve info from LXD API.
 
 	if !ephemeral {
 		// Delete container
