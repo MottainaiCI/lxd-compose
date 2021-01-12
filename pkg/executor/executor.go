@@ -208,6 +208,14 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, pr
 	return nil
 }
 
+func (e *LxdCExecutor) StopContainer(name string) error {
+	return e.DoAction2Container(name, "stop")
+}
+
+func (e *LxdCExecutor) StartContainer(name string) error {
+	return e.DoAction2Container(name, "start")
+}
+
 func (e *LxdCExecutor) DeleteContainer(name string) error {
 	return e.CleanUpContainer(name)
 }
