@@ -459,3 +459,90 @@ func (l *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.I
 
 	return fingerprint, srv, srv_name, err
 }
+
+func (l *LxdCExecutor) CreateImageFromContainer(containerName string, aliases []string, properties map[string]string, compressionAlgorithm string, public bool) (string, error) {
+
+	var err error
+	imageAliases := []lxd_api.ImageAlias{}
+	compression := "none"
+
+	// TODO: Check how enable Expires on image created.
+
+	// Check if there is already a local image with same alias. If yes I drop alias.
+	for _, aliasName := range aliases {
+		aliasEntry, _, _ := l.LxdClient.GetImageAlias(aliasName)
+		if aliasEntry != nil {
+			l.Emitter.DebugLog(false, fmt.Sprintf(
+				"Found old image %s with alias %s. I drop alias from it.",
+				aliasEntry.Target, aliasName))
+
+			err = l.LxdClient.DeleteImageAlias(aliasName)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		// Reformat aliases
+		alias := lxd_api.ImageAlias{}
+		alias.Name = aliasName
+		imageAliases = append(imageAliases, alias)
+	}
+
+	if compressionAlgorithm != "" {
+		compression = compressionAlgorithm
+	}
+
+	// Create the image
+	req := lxd_api.ImagesPost{
+		Source: &lxd_api.ImagesPostSource{
+			Type: "container",
+			Name: containerName,
+		},
+		// CompressionAlgorithm contains name of the binary called by LXD for compression.
+		// For any customization create custom script that wrap compression tools.
+		CompressionAlgorithm: compression,
+	}
+	req.Properties = properties
+	req.Public = public
+
+	// TODO: Take time and calculate how much time is required for create image
+	l.Emitter.InfoLog(false,
+		fmt.Sprintf("Starting creation of Image with aliases %s...", aliases))
+
+	op, err := l.LxdClient.CreateImage(req, nil)
+	if err != nil {
+		return "", err
+	}
+
+	err = l.WaitOperation(nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	opAPI := op.Get()
+
+	// Grab the fingerprint
+	fingerprint := opAPI.Metadata["fingerprint"].(string)
+
+	// Get the source image
+	_, _, err = l.LxdClient.GetImage(fingerprint)
+	if err != nil {
+		return "", err
+	}
+
+	l.Emitter.InfoLog(false, fmt.Sprintf(
+		"For container %s created image %s. Adding aliases %s to image.",
+		containerName, fingerprint, aliases))
+
+	for _, alias := range imageAliases {
+		aliasPost := lxd_api.ImageAliasesPost{}
+		aliasPost.Name = alias.Name
+		aliasPost.Target = fingerprint
+		err := l.LxdClient.CreateImageAlias(aliasPost)
+		if err != nil {
+			return "", fmt.Errorf("Failed to create alias %s", alias.Name)
+		}
+	}
+
+	return fingerprint, nil
+}
