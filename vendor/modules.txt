@@ -7,45 +7,24 @@ github.com/Masterminds/semver
 # github.com/Masterminds/sprig v2.22.0+incompatible
 ## explicit
 github.com/Masterminds/sprig
-# github.com/Microsoft/hcsshim v0.8.7
-github.com/Microsoft/hcsshim/osversion
 # github.com/MottainaiCI/mottainai-cli v0.0.0-20201020080515-9b8c52d6981f
 ## explicit
 github.com/MottainaiCI/mottainai-cli/cmd/task/template
-# github.com/containerd/continuity v0.0.0-20200228182428-0f16d7a0959c
-github.com/containerd/continuity/fs
-github.com/containerd/continuity/syscallx
-github.com/containerd/continuity/sysx
-# github.com/docker/docker v17.12.0-ce-rc1.0.20200417035958-130b0bc6032c+incompatible => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.20200605210607-749178b8f80d+incompatible
-github.com/docker/docker/pkg/archive
-github.com/docker/docker/pkg/fileutils
-github.com/docker/docker/pkg/idtools
-github.com/docker/docker/pkg/ioutils
-github.com/docker/docker/pkg/longpath
-github.com/docker/docker/pkg/pools
-github.com/docker/docker/pkg/system
-# github.com/docker/go-units v0.4.0
-github.com/docker/go-units
 # github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915
 ## explicit
 github.com/flosch/pongo2
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.6.5
-## explicit
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
-# github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
-## explicit
 # github.com/golang/protobuf v1.4.3
 ## explicit
 github.com/golang/protobuf/proto
-# github.com/golang/snappy v0.0.2
-## explicit
 # github.com/google/go-cmp v0.5.2
 ## explicit
 # github.com/google/uuid v1.1.2
+## explicit
 github.com/google/uuid
 # github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c
 ## explicit
@@ -91,10 +70,6 @@ github.com/juju/schema
 github.com/juju/webbrowser
 # github.com/julienschmidt/httprouter v1.2.0
 github.com/julienschmidt/httprouter
-# github.com/klauspost/compress v1.11.1
-## explicit
-# github.com/konsorten/go-windows-terminal-sequences v1.0.2
-github.com/konsorten/go-windows-terminal-sequences
 # github.com/kyokomi/emoji v2.2.4+incompatible
 ## explicit
 github.com/kyokomi/emoji
@@ -129,13 +104,6 @@ github.com/mitchellh/copystructure
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v1.0.0
 github.com/mitchellh/reflectwalk
-# github.com/moby/sys/mount v0.1.1-0.20200320164225-6154f11e6840
-github.com/moby/sys/mount
-# github.com/moby/sys/mountinfo v0.1.0
-github.com/moby/sys/mountinfo
-# github.com/mudler/luet v0.0.0-20200717204249-ffa6fc3829d2
-## explicit
-github.com/mudler/luet/pkg/helpers
 # github.com/nxadm/tail v1.4.4
 github.com/nxadm/tail
 github.com/nxadm/tail/ratelimiter
@@ -180,16 +148,6 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/opencontainers/go-digest v1.0.0-rc1
-github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.1
-github.com/opencontainers/image-spec/specs-go
-github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v0.1.1
-github.com/opencontainers/runc/libcontainer/system
-github.com/opencontainers/runc/libcontainer/user
-# github.com/otiai10/copy v1.0.2
-github.com/otiai10/copy
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
@@ -197,12 +155,15 @@ github.com/pborman/uuid
 ## explicit
 github.com/pelletier/go-toml
 # github.com/pkg/errors v0.9.1
+## explicit
 github.com/pkg/errors
 # github.com/rogpeppe/fastuuid v1.2.0
+## explicit
 github.com/rogpeppe/fastuuid
-# github.com/sirupsen/logrus v1.4.2
-github.com/sirupsen/logrus
+# github.com/smartystreets/assertions v1.0.1
+## explicit
 # github.com/spf13/afero v1.2.2
+## explicit
 github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/spf13/cast v1.3.0
@@ -211,8 +172,10 @@ github.com/spf13/cast
 ## explicit
 github.com/spf13/cobra
 # github.com/spf13/jwalterweatherman v1.1.0
+## explicit
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
+## explicit
 github.com/spf13/pflag
 # github.com/spf13/viper v1.7.0
 ## explicit
@@ -221,10 +184,6 @@ github.com/spf13/viper
 ## explicit
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# github.com/urfave/cli v1.22.4
-## explicit
-# go.opencensus.io v0.22.5
-## explicit
 # go.uber.org/atomic v1.6.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.5.0
@@ -259,9 +218,6 @@ golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/publicsuffix
-# golang.org/x/sync v0.0.0-20201008141435-b3e1573b7520
-## explicit
-golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20201017003518-b09fb700fbb7
 ## explicit
 golang.org/x/sys/cpu
@@ -292,12 +248,6 @@ golang.org/x/text/unicode/norm
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/appengine v1.6.7
-## explicit
-# google.golang.org/genproto v0.0.0-20201015140912-32ed001d685c
-## explicit
-# google.golang.org/grpc v1.33.0
-## explicit
 # google.golang.org/protobuf v1.25.0
 ## explicit
 google.golang.org/protobuf/encoding/prototext
@@ -326,6 +276,8 @@ google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
+# gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
+## explicit
 # gopkg.in/errgo.v1 v1.0.1
 gopkg.in/errgo.v1
 # gopkg.in/httprequest.v1 v1.2.0
