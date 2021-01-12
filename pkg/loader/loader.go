@@ -28,10 +28,9 @@ import (
 	"path/filepath"
 	"regexp"
 
+	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
-
-	helpers "github.com/mudler/luet/pkg/helpers"
 )
 
 type LxdCInstance struct {
