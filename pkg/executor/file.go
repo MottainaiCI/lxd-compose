@@ -242,3 +242,94 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 
 	return filepath.Walk(source, sendFile)
 }
+
+// Based on code of lxc client tool https://github.com/lxc/lxd/blob/master/lxc/file.go
+func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, localPath string, localAsTarget bool) error {
+
+	buf, resp, err := l.LxdClient.GetContainerFile(nameContainer, destPath)
+	if err != nil {
+		return err
+	}
+
+	var target string
+	// Default loging is to append tree to target directory
+	if localAsTarget {
+		target = localPath
+	} else {
+		target = filepath.Join(localPath, filepath.Base(destPath))
+	}
+	//target := localPath
+	l.Emitter.DebugLog(false, fmt.Sprintf("Pulling %s from %s (%s)\n", target, destPath, resp.Type))
+
+	if resp.Type == "directory" {
+		err := os.MkdirAll(target, os.FileMode(resp.Mode))
+		if err != nil {
+			l.Emitter.InfoLog(false, fmt.Sprintf("directory %s is already present. Nothing to do.\n", target))
+		}
+
+		for _, ent := range resp.Entries {
+			nextP := path.Join(destPath, ent)
+
+			err = l.RecursivePullFile(nameContainer, nextP, target, false)
+			if err != nil {
+				return err
+			}
+		}
+	} else if resp.Type == "file" {
+		f, err := os.Create(target)
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		err = os.Chmod(target, os.FileMode(resp.Mode))
+		if err != nil {
+			return err
+		}
+
+		progress := lxd_utils.ProgressRenderer{
+			Format: fmt.Sprintf("Pulling %s from %s: %%s", destPath, target),
+			Quiet:  false,
+		}
+
+		writer := &ioprogress.ProgressWriter{
+			WriteCloser: f,
+			Tracker: &ioprogress.ProgressTracker{
+				Handler: func(bytesReceived int64, speed int64) {
+
+					l.Emitter.DebugLog(false, fmt.Sprintf("%s (%s/s)\n",
+						lxd_units.GetByteSizeString(bytesReceived, 2),
+						lxd_units.GetByteSizeString(speed, 2)))
+
+					progress.UpdateProgress(ioprogress.ProgressData{
+						Text: fmt.Sprintf("%s (%s/s)",
+							lxd_units.GetByteSizeString(bytesReceived, 2),
+							lxd_units.GetByteSizeString(speed, 2))})
+				},
+			},
+		}
+
+		_, err = io.Copy(writer, buf)
+		progress.Done("")
+		if err != nil {
+			l.Emitter.ErrorLog(false, fmt.Sprintf("Error on pull file %s", target))
+			return err
+		}
+
+	} else if resp.Type == "symlink" {
+		linkTarget, err := ioutil.ReadAll(buf)
+		if err != nil {
+			return err
+		}
+
+		err = os.Symlink(strings.TrimSpace(string(linkTarget)), target)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("Unknown file type '%s'", resp.Type)
+	}
+
+	return nil
+}
