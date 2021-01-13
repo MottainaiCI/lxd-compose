@@ -40,6 +40,7 @@ func newNodeCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		NewExecCommand(config),
 		NewSyncCommand(config),
 		NewListCommand(config),
+		NewPushCommand(config),
 	)
 
 	return cmd
