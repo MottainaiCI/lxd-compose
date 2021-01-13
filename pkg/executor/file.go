@@ -105,27 +105,30 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 	var targetIsFile bool = true
 	var sourceIsFile bool = true
 
-	// Determine the target mode
-	mode := os.FileMode(0755)
-	// Create directory as root. TODO: see if we can use a specific user.
-	var uid int64 = 0
-	var gid int64 = 0
-	err := e.RecursiveMkdir(nameContainer, filepath.Dir(target), &mode, uid, gid)
-	if err != nil {
-		return errors.New("Error on create dir " + filepath.Dir(target) + ": " + err.Error())
+	if strings.HasSuffix(source, "/") {
+		sourceIsFile = false
 	}
-
-	//source = filepath.Clean(source)
-	//sourceDir, _ := filepath.Split(source)
-	sourceDir := filepath.Dir(filepath.Clean(source))
-	sourceLen := len(sourceDir)
 
 	if strings.HasSuffix(target, "/") {
 		targetIsFile = false
 	}
 
-	if strings.HasSuffix(source, "/") {
-		sourceIsFile = false
+	dir := filepath.Dir(target)
+	sourceDir := filepath.Dir(filepath.Clean(source))
+	if !sourceIsFile && targetIsFile {
+		dir = target
+		sourceDir = source
+	}
+	sourceLen := len(sourceDir)
+
+	// Determine the target mode
+	mode := os.FileMode(0755)
+	// Create directory as root. TODO: see if we can use a specific user.
+	var uid int64 = 0
+	var gid int64 = 0
+	err := e.RecursiveMkdir(nameContainer, dir, &mode, uid, gid)
+	if err != nil {
+		return errors.New("Error on create dir " + filepath.Dir(target) + ": " + err.Error())
 	}
 
 	sendFile := func(p string, fInfo os.FileInfo, err error) error {
@@ -141,8 +144,14 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 		// Prepare for file transfer
 		targetPath := path.Join(target, filepath.ToSlash(p[sourceLen:]))
 
-		if p == source && targetIsFile && sourceIsFile {
-			targetPath = target
+		if p == source {
+			if targetIsFile && sourceIsFile {
+				targetPath = target
+			} else if targetIsFile && !sourceIsFile {
+				// Nothing to do. The directory is already been created.
+				e.Emitter.DebugLog(false, fmt.Sprintf("Skipping dir %s", p))
+				return nil
+			}
 		}
 
 		mode, uid, gid := lxd_shared.GetOwnerMode(fInfo)
