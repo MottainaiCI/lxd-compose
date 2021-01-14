@@ -159,13 +159,13 @@ func (l *LxdCLogger) Msg(level string, withoutColor, ln bool, msg ...interface{}
 	} else {
 		switch level {
 		case "warning":
-			levelMsg = aurora.Bold(aurora.Yellow(":construction: " + message)).BgBlack().String()
+			levelMsg = l.Aurora.Bold(l.Aurora.Yellow(":construction: " + message)).BgBlack().String()
 		case "debug":
-			levelMsg = aurora.White(message).BgBlack().String()
+			levelMsg = l.Aurora.White(message).BgBlack().String()
 		case "info":
-			levelMsg = aurora.Bold(aurora.White(message)).BgBlack().String()
+			levelMsg = l.Aurora.Bold(l.Aurora.White(message)).BgBlack().String()
 		case "error":
-			levelMsg = aurora.Bold(aurora.Red(":bomb: " + message + ":fire:")).BgBlack().String()
+			levelMsg = l.Aurora.Bold(l.Aurora.Red(":bomb: " + message + ":fire:")).BgBlack().String()
 		}
 	}
 
