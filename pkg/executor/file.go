@@ -23,6 +23,7 @@ package executor
 
 import (
 	"bytes"
+	"container/list"
 	"errors"
 	"fmt"
 	"io"
@@ -338,6 +339,57 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 		}
 	} else {
 		return fmt.Errorf("Unknown file type '%s'", resp.Type)
+	}
+
+	return nil
+}
+
+func (e *LxdCExecutor) recursiveListFile(nameContainer string, targetPath string, list *list.List) error {
+	buf, resp, err := e.LxdClient.GetContainerFile(nameContainer, targetPath)
+	if err != nil {
+		return err
+	}
+	if buf != nil {
+		// Needed to avoid: dial unix /var/lib/lxd/unix.socket: socket: too many open files
+		buf.Close()
+	}
+
+	if resp.Type == "directory" {
+		for _, ent := range resp.Entries {
+			nextP := path.Join(targetPath, ent)
+			err = e.recursiveListFile(nameContainer, nextP, list)
+			if err != nil {
+				return err
+			}
+		}
+		list.PushBack(targetPath)
+	} else if resp.Type == "file" || resp.Type == "symlink" {
+		list.PushFront(targetPath)
+
+	} else {
+		e.Emitter.WarnLog(false, "Find unsupported file type "+resp.Type+". Skipped.")
+	}
+
+	return nil
+}
+
+func (e *LxdCExecutor) DeleteContainerDir(name, dir string) error {
+	var err error
+	var list *list.List = list.New()
+
+	// Create list of files/directories to remove. (files are pushed before directories)
+	err = e.recursiveListFile(name, dir, list)
+	if err != nil {
+		return err
+	}
+
+	for f := list.Front(); f != nil; f = f.Next() {
+		e.Emitter.DebugLog(false, fmt.Sprintf("Removing file %s...", f.Value.(string)))
+		err = e.LxdClient.DeleteContainerFile(name, f.Value.(string))
+		if err != nil {
+			e.Emitter.ErrorLog(false, fmt.Sprintf("ERROR: Error on removing %s: %s",
+				f.Value, err.Error()))
+		}
 	}
 
 	return nil
