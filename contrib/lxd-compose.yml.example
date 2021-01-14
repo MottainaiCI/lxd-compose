@@ -1,6 +1,10 @@
 general:
   debug: true
 
+  # Enable P2P Mode on search images
+  # used for the container creation.
+  # p2pmode: false
+
 # Define the directories list where load
 # environments.
 # env_dirs:
