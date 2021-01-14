@@ -414,7 +414,7 @@ func (l *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.I
 
 	for remote, server := range l.LxdConfig.Remotes {
 
-		if imageRemoteServer != "" && remote != imageRemoteServer {
+		if imageRemoteServer != "" && remote != imageRemoteServer && !l.P2PMode {
 
 			l.Emitter.DebugLog(false, fmt.Sprintf(
 				"Skipping remote %s. I will use %s.", remote, imageRemoteServer))

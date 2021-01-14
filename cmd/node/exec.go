@@ -92,6 +92,7 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println("Error on setup executor:" + err.Error() + "\n")
 				os.Exit(1)
 			}
+
 			envs, err := proj.GetEnvsMap()
 			if err != nil {
 				fmt.Println("Error on convert variables in envs:" + err.Error() + "\n")

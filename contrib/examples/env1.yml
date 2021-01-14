@@ -144,8 +144,7 @@ projects:
           - name: node1
             image_source: "alpine/3.12"
             #image_source: "20d2712090d1"
-            # By deafult it use remote images"
-            image_remote_server: "images"
+            #image_remote_server: "images"
 
             # Define labels to node for particular configuration tasks.
             # labels:

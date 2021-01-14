@@ -46,6 +46,7 @@ type LxdCExecutor struct {
 	Ephemeral         bool
 	ShowCmdsOutput    bool
 	RuntimeCmdsOutput bool
+	P2PMode           bool
 	WaitSleep         int
 
 	Emitter LxdCExecutorEmitter
@@ -70,6 +71,7 @@ func NewLxdCExecutorWithEmitter(endpoint, configdir string,
 		RuntimeCmdsOutput: runtimeCmdsOutput,
 		WaitSleep:         1,
 		Emitter:           emitter,
+		P2PMode:           false,
 	}
 }
 
@@ -95,6 +97,8 @@ func getLxcDefaultConfDir() (string, error) {
 
 func (e *LxdCExecutor) GetEmitter() LxdCExecutorEmitter        { return e.Emitter }
 func (e *LxdCExecutor) SetEmitter(emitter LxdCExecutorEmitter) { e.Emitter = emitter }
+func (e *LxdCExecutor) SetP2PMode(m bool)                      { e.P2PMode = m }
+func (e *LxdCExecutor) GetP2PMode() bool                       { return e.P2PMode }
 
 func (e *LxdCExecutor) Setup() error {
 	var client lxd.ContainerServer

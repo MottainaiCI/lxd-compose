@@ -168,6 +168,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						if err != nil {
 							return err
 						}
+
+						executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
 						executorMap[node] = executor
 					} else {
 
@@ -185,7 +187,7 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						if err != nil {
 							return err
 						}
-
+						executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
 					}
 
 					// Initialize entrypoint to ensure to set always the
@@ -217,6 +219,7 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 					return err
 				}
 
+				executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
 			}
 
 			if h.Out2Var != "" || h.Err2Var != "" {
@@ -351,6 +354,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	if err != nil {
 		return err
 	}
+	executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
 
 	var syncSourceDir string
 	envBaseAbs, err := filepath.Abs(filepath.Dir(env.File))

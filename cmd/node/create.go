@@ -102,6 +102,9 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					os.Exit(1)
 				}
 
+				// Set p2p mode
+				executor.SetP2PMode(config.GetGeneral().P2PMode)
+
 				// Create container
 				fmt.Println("Creating ... ", n)
 

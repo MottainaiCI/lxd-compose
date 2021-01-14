@@ -43,6 +43,7 @@ type LxdComposeConfig struct {
 type LxdCGeneral struct {
 	Debug      bool   `mapstructure:"debug,omitempty" json:"debug,omitempty" yaml:"debug,omitempty"`
 	LxdConfDir string `mapstructure:"lxd_confdir,omitempty" yaml:"lxd_confdir,omitempty"`
+	P2PMode    bool   `mapstructure:"p2pmode,omitempty" json:"p2pmode,omitempty" yaml:"p2pmode,omitempty"`
 }
 
 type LxdCLogging struct {
@@ -109,6 +110,7 @@ func (c *LxdComposeConfig) Yaml() ([]byte, error) {
 
 func GenDefault(viper *v.Viper) {
 	viper.SetDefault("general.debug", false)
+	viper.SetDefault("general.p2pmode", false)
 	viper.SetDefault("general.lxd_confdir", "")
 
 	viper.SetDefault("logging.level", "info")
