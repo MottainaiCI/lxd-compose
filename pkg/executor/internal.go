@@ -219,12 +219,18 @@ func (e *LxdCExecutor) GetImage(image string, remote lxd.ImageServer) (*lxd_api.
 		// POST: no image found with input fingerprint
 		//       Try to search an image as alias.
 
+		connInfo, _ := remote.GetConnectionInfo()
+		remoteURL := ""
+		if connInfo != nil {
+			remoteURL = connInfo.URL
+		}
+
 		// Check if exists an image with input alias
 		aliasEntry, _, err = remote.GetImageAlias(image)
 		if err != nil {
 			e.Emitter.DebugLog(false,
-				fmt.Sprintf("On search image with alias %s receive from remote: %s",
-					image, err.Error()))
+				fmt.Sprintf("On search image with alias %s receive from remote '%s': %s",
+					image, remoteURL, err.Error()))
 			img = nil
 		} else {
 			// POST: Find image with alias and so I try to retrieve api.Image

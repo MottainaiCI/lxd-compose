@@ -149,7 +149,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 				targetPath = target
 			} else if targetIsFile && !sourceIsFile {
 				// Nothing to do. The directory is already been created.
-				e.Emitter.DebugLog(false, fmt.Sprintf("Skipping dir %s", p))
+				e.Emitter.DebugLog(false, fmt.Sprintf("Skipping dir %s. Already created.", p))
 				return nil
 			}
 		}
