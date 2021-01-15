@@ -405,36 +405,40 @@ func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, 
 	return imageFingerprint, err
 }
 
-func (l *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.ImageServer, string, error) {
+func (e *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.ImageServer, string, error) {
 	var err error
 	var tmp_srv, srv lxd.ImageServer
 	var img, tmp_img *lxd_api.Image
 	var fingerprint string = ""
 	var srv_name string = ""
 
-	for remote, server := range l.LxdConfig.Remotes {
+	for remote, server := range e.LxdConfig.Remotes {
 
-		if imageRemoteServer != "" && remote != imageRemoteServer && !l.P2PMode {
+		if remote == "local" && e.LocalDisable {
+			continue
+		}
 
-			l.Emitter.DebugLog(false, fmt.Sprintf(
+		if imageRemoteServer != "" && remote != imageRemoteServer && !e.P2PMode {
+
+			e.Emitter.DebugLog(false, fmt.Sprintf(
 				"Skipping remote %s. I will use %s.", remote, imageRemoteServer))
 			continue
 		}
 
-		l.Emitter.DebugLog(false, fmt.Sprintf(
+		e.Emitter.DebugLog(false, fmt.Sprintf(
 			"Found remote %s. I will search the image %s",
 			remote, image))
-		tmp_srv, err = l.LxdConfig.GetImageServer(remote)
+		tmp_srv, err = e.LxdConfig.GetImageServer(remote)
 		if err != nil {
 			err = nil
 
-			l.Emitter.ErrorLog(false, fmt.Sprintf(
+			e.Emitter.ErrorLog(false, fmt.Sprintf(
 				"Error on retrieve ImageServer for remote %s at addr %s",
 				remote, server.Addr,
 			))
 			continue
 		}
-		tmp_img, err = l.GetImage(image, tmp_srv)
+		tmp_img, err = e.GetImage(image, tmp_srv)
 		if err != nil {
 			// POST: No image found with input alias/fingerprint.
 			//       I go ahead to next remote
