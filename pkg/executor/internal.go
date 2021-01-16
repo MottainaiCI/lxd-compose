@@ -412,6 +412,11 @@ func (e *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.I
 	var fingerprint string = ""
 	var srv_name string = ""
 
+	if imageRemoteServer == "" && !e.P2PMode {
+		// Force images if p2m mode is disabled.
+		imageRemoteServer = "images"
+	}
+
 	for remote, server := range e.LxdConfig.Remotes {
 
 		if remote == "local" && e.LocalDisable {
