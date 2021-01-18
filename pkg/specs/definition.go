@@ -31,6 +31,7 @@ type LxdCEnvironment struct {
 	Projects []LxdCProject `json:"projects" yaml:"projects"`
 
 	Profiles []LxdCProfile `json:"profiles,omitempty" yaml:"profiles,omitempty"`
+	Networks []LxdCNetwork `json:"networks,omitempty" yaml:"networks,omitempty"`
 }
 
 type LxdCProfile struct {
@@ -38,6 +39,13 @@ type LxdCProfile struct {
 	Description string                       `json:"description" yaml:"description"`
 	Config      map[string]string            `json:"config" yaml:"config"`
 	Devices     map[string]map[string]string `json:"devices" yaml:"devices"`
+}
+
+type LxdCNetwork struct {
+	Name        string            `json:"name" yaml:"name"`
+	Type        string            `json:"type" yaml:"type"`
+	Description string            `json:"description" yaml:"description"`
+	Config      map[string]string `json:"config" yaml:"config"`
 }
 
 type LxdCHook struct {

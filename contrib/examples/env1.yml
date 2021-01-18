@@ -32,6 +32,21 @@ template_engine:
 #    devices:
       # map[string]map[string]string
 
+
+networks:
+  - name: "mottainai1"
+    type: "bridge"
+    config:
+      bridge.driver: native
+      dns.domain: mottainai.local
+      dns.mode: managed
+      ipv4.address: 172.18.10.1/23
+      ipv4.dhcp: "true"
+      ipv4.firewall: "true"
+      ipv4.nat: "true"
+      ipv6.nat: "true"
+
+
 projects:
 
   - name: "lxd-compose-example1"

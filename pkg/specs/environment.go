@@ -70,3 +70,19 @@ func (e *LxdCEnvironment) GetProfile(name string) (LxdCProfile, error) {
 
 	return ans, errors.New("Profile " + name + " not available.")
 }
+
+func (e *LxdCEnvironment) GetNetworks() *[]LxdCNetwork {
+	return &e.Networks
+}
+
+func (e *LxdCEnvironment) GetNetwork(name string) (LxdCNetwork, error) {
+	ans := LxdCNetwork{}
+
+	for _, net := range e.Networks {
+		if net.Name == name {
+			return net, nil
+		}
+	}
+
+	return ans, errors.New("Network " + name + " not available.")
+}
