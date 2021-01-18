@@ -102,12 +102,20 @@ projects:
           - |
             echo '[{ "user": "user1" }]'
         out2var: "json_var"
+      - event: pre-group
+        node: "host"
+        commands:
+          - |
+            echo '[{ "user": "user1" }]'
+        out2var: "json_var"
 
+{{- if .Values.run }}
       - event: post-group
         node: "node1"
         commands:
           - echo "run post-project command on node1"
           - hostname
+{{ end }}
 
     # A fast way to define environments for template
     vars:

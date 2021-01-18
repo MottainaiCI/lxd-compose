@@ -302,6 +302,20 @@ func (i *LxdCInstance) LoadEnvironments() error {
 				continue
 			}
 
+			if i.Config.RenderValuesFile != "" {
+				// Render file
+				renderOut, err := helpers.RenderContent(string(content),
+					i.Config.RenderValuesFile,
+					i.Config.RenderDefaultFile,
+					file.Name(),
+				)
+				if err != nil {
+					return err
+				}
+
+				content = []byte(renderOut)
+			}
+
 			env, err := specs.EnvironmentFromYaml(content, path.Join(edir, file.Name()))
 			if err != nil {
 				i.Logger.Debug("On parse file", file.Name(), ":", err.Error())
@@ -347,6 +361,20 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					i.Logger.Debug("On read file", gfile, ":", err.Error())
 					i.Logger.Debug("File", gfile, "skipped.")
 					continue
+				}
+
+				if i.Config.RenderValuesFile != "" {
+					// Render file
+					renderOut, err := helpers.RenderContent(string(content),
+						i.Config.RenderValuesFile,
+						i.Config.RenderDefaultFile,
+						gfile,
+					)
+					if err != nil {
+						return err
+					}
+
+					content = []byte(renderOut)
 				}
 
 				grp, err := specs.GroupFromYaml(content)

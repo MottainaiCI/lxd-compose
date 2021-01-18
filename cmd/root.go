@@ -73,6 +73,8 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 
 	pflags.StringP("config", "c", "", "LXD Compose configuration file")
 	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
+	pflags.String("render-values", "", "Override render values file.")
+	pflags.String("render-default", "", "Override render default file.")
 	pflags.Bool("cmds-output", config.Viper.GetBool("logging.cmds_output"),
 		"Show hooks commands output or not.")
 	pflags.BoolP("debug", "d", config.Viper.GetBool("general.debug"),
@@ -84,6 +86,8 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		"Enable/Disable p2p mode.")
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
+	config.Viper.BindPFlag("render_default_file", pflags.Lookup("render-default"))
+	config.Viper.BindPFlag("render_values_file", pflags.Lookup("render-values"))
 	config.Viper.BindPFlag("general.debug", pflags.Lookup("debug"))
 	config.Viper.BindPFlag("general.p2pmode", pflags.Lookup("p2p-mode"))
 	config.Viper.BindPFlag("general.lxd_confdir", pflags.Lookup("lxd-config-dir"))

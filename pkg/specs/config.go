@@ -38,6 +38,9 @@ type LxdComposeConfig struct {
 	General         LxdCGeneral `mapstructure:"general" json:"general,omitempty" yaml:"general,omitempty"`
 	Logging         LxdCLogging `mapstructure:"logging" json:"logging,omitempty" yaml:"logging,omitempty"`
 	EnvironmentDirs []string    `mapstructure:"env_dirs,omitempty" json:"env_dirs,omitempty" yaml:"env_dirs,omitempty"`
+
+	RenderDefaultFile string `mapstructure:"render_default_file,omitempty" json:"render_default_file,omitempty" yaml:"render_default_file,omitempty"`
+	RenderValuesFile  string `mapstructure:"render_values_file,omitempty" json:"render_values_file,omitempty" yaml:"render_values_file,omitempty"`
 }
 
 type LxdCGeneral struct {
@@ -114,6 +117,8 @@ func GenDefault(viper *v.Viper) {
 	viper.SetDefault("general.p2pmode", false)
 	viper.SetDefault("general.lxd_local_disable", false)
 	viper.SetDefault("general.lxd_confdir", "")
+	viper.SetDefault("render_default_file", "")
+	viper.SetDefault("render_values_file", "")
 
 	viper.SetDefault("logging.level", "info")
 	viper.SetDefault("logging.enable_logfile", false)
