@@ -77,11 +77,11 @@ func (e *LxdCEmitter) Emits(eType LxdCExecutorEvent, data map[string]interface{}
 	case LxdContainerStarted:
 		e.InfoLog(true,
 			logger.Aurora.Bold(logger.Aurora.BrightCyan(
-				">>> ["+data["name"].(string)+"] - [stopped] :bomb:")))
+				">>> ["+data["name"].(string)+"] - [started] :bomb:")))
 
 	case LxdContainerStopped:
 		e.InfoLog(true,
 			logger.Aurora.Bold(logger.Aurora.BrightCyan(
-				">>> ["+data["name"].(string)+"] - [started] :check_mark:")))
+				">>> ["+data["name"].(string)+"] - [stopped] :check_mark:")))
 	}
 }
