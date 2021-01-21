@@ -38,6 +38,8 @@ func (p *LxdCProject) Init() {
 	}
 }
 
+func (p *LxdCProject) GetGroups() *[]LxdCGroup { return &p.Groups }
+
 func (p *LxdCProject) AddGroup(grp *LxdCGroup) {
 	p.Groups = append(p.Groups, *grp)
 }

@@ -45,7 +45,12 @@ func GroupFromYaml(data []byte) (*LxdCGroup, error) {
 	return ans, nil
 }
 
-func (g *LxdCGroup) GetNodesPrefix() string { return g.NodesPrefix }
+func (g *LxdCGroup) GetNodesPrefix() string      { return g.NodesPrefix }
+func (g *LxdCGroup) GetName() string             { return g.Name }
+func (g *LxdCGroup) GetDescription() string      { return g.Description }
+func (g *LxdCGroup) GetConnection() string       { return g.Connection }
+func (g *LxdCGroup) IsEphemeral() bool           { return g.Ephemeral }
+func (g *LxdCGroup) GetCommonProfiles() []string { return g.CommonProfiles }
 
 func (g *LxdCGroup) SetNodesPrefix(prefix string) {
 	g.NodesPrefix = prefix
