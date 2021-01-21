@@ -62,7 +62,7 @@ projects:
     # Environments files to use with engine. Supported files depends on
     # template engine
     include_env_files:
-      - envs/file1.yml
+      - ../vars/file1.yml
     #  - envs/file2.yml
 
     # hooks:
