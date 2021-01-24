@@ -37,6 +37,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledGroups []string
 	var disabledGroups []string
 	var envs []string
+	var varsFiles []string
 
 	var cmd = &cobra.Command{
 		Use:   "apply [list-of-projects]",
@@ -80,6 +81,17 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					os.Exit(1)
 				}
 
+				pObj := env.GetProjectByName(proj)
+				for _, varFile := range varsFiles {
+					err := pObj.LoadEnvVarsFile(varFile)
+					if err != nil {
+						fmt.Println(fmt.Sprintf(
+							"Error on load additional envs var file %s: %s",
+							varFile, err.Error()))
+						os.Exit(1)
+					}
+				}
+
 				if len(envs) > 0 {
 
 					evars := specs.NewEnvVars()
@@ -91,7 +103,6 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 						}
 					}
 
-					pObj := env.GetProjectByName(proj)
 					pObj.AddEnvironment(evars)
 				}
 
@@ -119,6 +130,8 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Apply only selected groups.")
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
+		"Add additional environments vars file.")
 	flags.Bool("skip-sync", false, "Disable sync of files.")
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 

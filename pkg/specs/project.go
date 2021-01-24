@@ -23,6 +23,7 @@ package specs
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/ghodss/yaml"
 	"github.com/icza/dyno"
@@ -123,4 +124,20 @@ func (p *LxdCProject) SetNodesPrefix(prefix string) {
 	for idx, _ := range p.Groups {
 		p.Groups[idx].SetNodesPrefix(prefix)
 	}
+}
+
+func (p *LxdCProject) LoadEnvVarsFile(file string) error {
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	evars, err := EnvVarsFromYaml(content)
+	if err != nil {
+		return err
+	}
+
+	p.AddEnvironment(evars)
+
+	return nil
 }
