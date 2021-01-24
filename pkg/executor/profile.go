@@ -52,7 +52,6 @@ func (e *LxdCExecutor) IsPresentProfile(profileName string) (bool, error) {
 }
 
 func (e *LxdCExecutor) CreateProfile(profile specs.LxdCProfile) error {
-
 	if profile.Name == "" {
 		return errors.New("Invalid profile with empty name")
 	}
@@ -73,4 +72,24 @@ func (e *LxdCExecutor) CreateProfile(profile specs.LxdCProfile) error {
 	}
 
 	return e.LxdClient.CreateProfile(lxdProfile)
+}
+
+func (e *LxdCExecutor) UpdateProfile(profile specs.LxdCProfile) error {
+	if profile.Name == "" {
+		return errors.New("Invalid profile with empty name")
+	}
+
+	lxdProfilePut := lxd_api.ProfilePut{
+		Config:  profile.Config,
+		Devices: profile.Devices,
+	}
+
+	if lxdProfilePut.Config == nil {
+		lxdProfilePut.Config = make(map[string]string, 0)
+	}
+	if lxdProfilePut.Devices == nil {
+		lxdProfilePut.Devices = make(map[string]map[string]string, 0)
+	}
+
+	return e.LxdClient.UpdateProfile(profile.Name, lxdProfilePut, "")
 }
