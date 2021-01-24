@@ -56,6 +56,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			composer := loader.NewLxdCInstance(config)
 			endpoint, _ := cmd.Flags().GetString("endpoint")
 			all, _ := cmd.Flags().GetBool("all")
+			upd, _ := cmd.Flags().GetBool("update")
 
 			err := composer.LoadEnvironments()
 			if err != nil {
@@ -107,10 +108,27 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				}
 
 				for _, prof := range profiles {
-					err := executor.CreateProfile(prof)
+					isPresent, err := executor.IsPresentProfile(prof.Name)
 					if err != nil {
-						fmt.Println("Error on create profile " + prof.Name + ": " + err.Error())
+						fmt.Println("Error on check if profile " + prof.Name + " is already present: " +
+							err.Error())
 						os.Exit(1)
+					}
+
+					if !isPresent {
+						err := executor.CreateProfile(prof)
+						if err != nil {
+							fmt.Println("Error on create profile " + prof.Name + ": " + err.Error())
+							os.Exit(1)
+						}
+					} else if upd {
+						err := executor.UpdateProfile(prof)
+						if err != nil {
+							fmt.Println("Error on update profile " + prof.Name + ": " + err.Error())
+							os.Exit(1)
+						}
+					} else {
+						fmt.Println("Profile " + prof.Name + " already present. Nothing to do.")
 					}
 				}
 			} else {
@@ -144,6 +162,12 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 									fmt.Println("Error on create profile " + prof.Name + ": " + err.Error())
 									os.Exit(1)
 								}
+							} else if upd {
+								err := executor.UpdateProfile(prof)
+								if err != nil {
+									fmt.Println("Error on update profile " + prof.Name + ": " + err.Error())
+									os.Exit(1)
+								}
 							} else {
 								fmt.Println("Profile " + prof.Name + " already present. Nothing to do.")
 							}
@@ -161,6 +185,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 	pflags.BoolP("all", "a", false, "Create all available profiles.")
+	pflags.BoolP("update", "u", false, "Update the profiles if it's already present.")
 
 	return cmd
 }
