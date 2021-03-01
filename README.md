@@ -47,6 +47,10 @@ and then to use `local-snapd` in `connection` option.
 
 Instead, if it's used the HTTPS API this is not needed.
 
+## Documentation
+
+The complete *lxd-compose* documentation is available [here](https://mottainaici.github.io/lxd-compose-docs/docs/).
+
 ## Examples
 
 We maintain a project that supply ready to build environments at [LXD Compose Galaxy](https://github.com/MottainaiCI/lxd-compose-galaxy).
