@@ -49,7 +49,7 @@ Instead, if it's used the HTTPS API this is not needed.
 
 ## Documentation
 
-The complete *lxd-compose* documentation is available [here](https://mottainaici.github.io/lxd-compose-docs/docs/).
+The complete *lxd-compose* documentation is available [here](https://mottainaici.github.io/lxd-compose-docs/).
 
 ## Examples
 
