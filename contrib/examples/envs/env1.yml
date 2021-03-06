@@ -17,9 +17,6 @@ template_engine:
     - "/usr/lib/python3.7/site-packages/ansible/plugins/filter/core.py"
     - "contrib/filters/from_json.py"
 
-# Override LXD_CONF_DIR. Default use $HOME/.config/lxc/
-# lxd_config_dir: ""
-
 # Define the list of LXD Profiles used by all projects.
 # This profiles are not mandatory. An user could create and
 # handle his profiles without define the list here.

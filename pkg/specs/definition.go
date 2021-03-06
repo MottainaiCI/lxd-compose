@@ -22,9 +22,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package specs
 
 type LxdCEnvironment struct {
-	Version      string `json:"version,omitempty" yaml:"version,omitempty"`
-	File         string `json:"-" yaml:"-"`
-	LxdConfigDir string `json:"lxd_config_dir,omitempty" yaml:"lxd_config_dir,omitempty"`
+	Version string `json:"version,omitempty" yaml:"version,omitempty"`
+	File    string `json:"-" yaml:"-"`
 
 	TemplateEngine LxdCTemplateEngine `json:"template_engine,omitempty" yaml:"template_engine,omitempty"`
 
