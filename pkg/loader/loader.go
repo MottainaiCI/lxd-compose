@@ -302,7 +302,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 				continue
 			}
 
-			if i.Config.RenderValuesFile != "" {
+			if i.Config.IsEnableRenderEngine() {
 				// Render file
 				renderOut, err := helpers.RenderContent(string(content),
 					i.Config.RenderValuesFile,
@@ -363,7 +363,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					continue
 				}
 
-				if i.Config.RenderValuesFile != "" {
+				if i.Config.IsEnableRenderEngine() {
 					// Render file
 					renderOut, err := helpers.RenderContent(string(content),
 						i.Config.RenderValuesFile,

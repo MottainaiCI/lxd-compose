@@ -93,6 +93,13 @@ func (c *LxdComposeConfig) GetLogging() *LxdCLogging {
 	return &c.Logging
 }
 
+func (c *LxdComposeConfig) IsEnableRenderEngine() bool {
+	if c.RenderValuesFile != "" || c.RenderDefaultFile != "" {
+		return true
+	}
+	return false
+}
+
 func (c *LxdComposeConfig) Unmarshal() error {
 	var err error
 

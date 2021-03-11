@@ -33,18 +33,31 @@ import (
 )
 
 func RenderContent(raw, valuesFile, defaultFile, originFile string) (string, error) {
-	if !Exists(valuesFile) {
-		return "", errors.New(fmt.Sprintf(
-			"Render value file %s not existing ", valuesFile))
-	}
-	val, err := ioutil.ReadFile(valuesFile)
-	if err != nil {
-		return "", errors.New(fmt.Sprintf(
-			"Error on reading Render value file %s: %s", valuesFile, err.Error()))
+
+	if valuesFile == "" && defaultFile == "" {
+		return "", errors.New("Both render files are missing")
 	}
 
-	var values map[string]interface{}
+	values := make(map[string]interface{}, 0)
 	d := make(map[string]interface{}, 0)
+
+	if valuesFile != "" {
+		if !Exists(valuesFile) {
+			return "", errors.New(fmt.Sprintf(
+				"Render value file %s not existing ", valuesFile))
+		}
+		val, err := ioutil.ReadFile(valuesFile)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf(
+				"Error on reading Render value file %s: %s", valuesFile, err.Error()))
+		}
+
+		if err = yaml.Unmarshal(val, &values); err != nil {
+			return "", errors.New(fmt.Sprintf(
+				"Error on unmarsh file %s: %s", valuesFile, err.Error()))
+		}
+	}
+
 	if defaultFile != "" {
 		if !Exists(defaultFile) {
 			return "", errors.New(fmt.Sprintf(
@@ -61,11 +74,6 @@ func RenderContent(raw, valuesFile, defaultFile, originFile string) (string, err
 			return "", errors.New(fmt.Sprintf(
 				"Error on unmarshal file %s: %s", defaultFile, err.Error()))
 		}
-	}
-
-	if err = yaml.Unmarshal(val, &values); err != nil {
-		return "", errors.New(fmt.Sprintf(
-			"Error on unmarsh file %s: %s", valuesFile, err.Error()))
 	}
 
 	c := &chart.Chart{
