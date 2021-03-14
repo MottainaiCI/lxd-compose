@@ -132,6 +132,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 							fmt.Println("Error on update profile " + prof.Name + ": " + err.Error())
 							os.Exit(1)
 						}
+						fmt.Println("Profile " + prof.Name + " updated correctly.")
 					} else {
 						fmt.Println("Profile " + prof.Name + " already present. Nothing to do.")
 					}
@@ -174,6 +175,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 									fmt.Println("Error on update profile " + prof.Name + ": " + err.Error())
 									os.Exit(1)
 								}
+								fmt.Println("Profile " + prof.Name + " updated correctly.")
 							} else {
 								fmt.Println("Profile " + prof.Name + " already present. Nothing to do.")
 							}
