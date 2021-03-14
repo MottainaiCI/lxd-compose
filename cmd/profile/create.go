@@ -67,6 +67,10 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			proj := args[0]
 			profiles := []specs.LxdCProfile{}
 
+			if confdir == "" {
+				confdir = composer.GetConfig().GetGeneral().LxdConfDir
+			}
+
 			// Retrieve project
 			env := composer.GetEnvByProjectName(proj)
 			if env == nil {
