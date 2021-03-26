@@ -1,12 +1,15 @@
 package validate
 
 import (
+	"bytes"
 	"fmt"
 	"net"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/pborman/uuid"
 
 	"github.com/lxc/lxd/shared/units"
@@ -151,6 +154,26 @@ func IsDeviceID(value string) error {
 	return nil
 }
 
+// IsInterfaceName validates a real network interface name.
+func IsInterfaceName(value string) error {
+	// Validate the length.
+	if len(value) < 2 {
+		return fmt.Errorf("Network interface is too short (minimum 2 characters)")
+	}
+
+	if len(value) > 15 {
+		return fmt.Errorf("Network interface is too long (maximum 15 characters)")
+	}
+
+	// Validate the character set.
+	match, _ := regexp.MatchString("^[-_a-zA-Z0-9.]+$", value)
+	if !match {
+		return fmt.Errorf("Network interface contains invalid characters")
+	}
+
+	return nil
+}
+
 // IsNetworkMAC validates an Ethernet MAC address. e.g. "00:00:5e:00:53:01".
 func IsNetworkMAC(value string) error {
 	_, err := net.ParseMAC(value)
@@ -207,6 +230,44 @@ func IsNetworkList(value string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// IsNetworkAddressCIDR validates an IP addresss string in CIDR format.
+func IsNetworkAddressCIDR(value string) error {
+	_, _, err := net.ParseCIDR(value)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IsNetworkRange validates an IP range in the format "start-end".
+func IsNetworkRange(value string) error {
+	ips := strings.SplitN(value, "-", 2)
+	if len(ips) != 2 {
+		return fmt.Errorf("IP range must contain start and end IP addresses")
+	}
+
+	startIP := net.ParseIP(ips[0])
+	if startIP == nil {
+		return fmt.Errorf("Start not an IP address %q", ips[0])
+	}
+
+	endIP := net.ParseIP(ips[1])
+	if endIP == nil {
+		return fmt.Errorf("End not an IP address %q", ips[1])
+	}
+
+	if (startIP.To4() != nil) != (endIP.To4() != nil) {
+		return fmt.Errorf("Start and end IP addresses are not in same family")
+	}
+
+	if bytes.Compare(startIP, endIP) > 0 {
+		return fmt.Errorf("Start IP address must be before or equal to end IP address")
 	}
 
 	return nil
@@ -443,6 +504,37 @@ func IsNetworkMTU(value string) error {
 	return nil
 }
 
+// IsNetworkPort validates an IP port number >= 0 and <= 65535.
+func IsNetworkPort(value string) error {
+	port, err := strconv.ParseUint(value, 10, 32)
+	if err != nil {
+		return fmt.Errorf("Invalid port number %q", value)
+	}
+
+	if port < 0 || port > 65535 {
+		return fmt.Errorf("Out of port number range (0-65535) %q", value)
+	}
+
+	return nil
+}
+
+// IsNetworkPortRange validates an IP port range in the format "start-end".
+func IsNetworkPortRange(value string) error {
+	ports := strings.SplitN(value, "-", 2)
+	if len(ports) != 2 {
+		return fmt.Errorf("Port range must contain start and end port numbers")
+	}
+
+	for _, port := range ports {
+		err := IsNetworkPort(port)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // IsURLSegmentSafe validates whether value can be used in a URL segment.
 func IsURLSegmentSafe(value string) error {
 	for _, char := range []string{"/", "?", "&", "+"} {
@@ -461,4 +553,39 @@ func IsUUID(value string) error {
 	}
 
 	return nil
+}
+
+// IsPCIAddress validates whether a value is a PCI address.
+func IsPCIAddress(value string) error {
+	regexHex, err := regexp.Compile(`^([0-9a-f]{4}?:)?[0-9a-f]{2}:[0-9a-f]{2}\.[0-9a-f]$`)
+	if err != nil {
+		return err
+	}
+
+	if !regexHex.MatchString(value) {
+		return fmt.Errorf("Invalid PCI address")
+	}
+
+	return nil
+}
+
+// IsCompressionAlgorithm validates whether a value is a valid compression algorithm and is available on the system.
+func IsCompressionAlgorithm(value string) error {
+	if value == "none" {
+		return nil
+	}
+
+	// Going to look up tar2sqfs executable binary
+	if value == "squashfs" {
+		value = "tar2sqfs"
+	}
+
+	// Parse the command.
+	fields, err := shellquote.Split(value)
+	if err != nil {
+		return err
+	}
+
+	_, err = exec.LookPath(fields[0])
+	return err
 }

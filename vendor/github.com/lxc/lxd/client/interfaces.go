@@ -153,6 +153,7 @@ type InstanceServer interface {
 	RenameInstance(name string, instance api.InstancePost) (op Operation, err error)
 	MigrateInstance(name string, instance api.InstancePost) (op Operation, err error)
 	DeleteInstance(name string) (op Operation, err error)
+	UpdateInstances(state api.InstancesPut, ETag string) (op Operation, err error)
 
 	ExecInstance(instanceName string, exec api.InstanceExecPost, args *InstanceExecArgs) (op Operation, err error)
 	ConsoleInstance(instanceName string, console api.InstanceConsolePost, args *InstanceConsoleArgs) (op Operation, err error)
@@ -192,12 +193,11 @@ type InstanceServer interface {
 	DeleteInstanceLogfile(name string, filename string) (err error)
 
 	GetInstanceMetadata(name string) (metadata *api.ImageMetadata, ETag string, err error)
-	SetInstanceMetadata(name string, metadata api.ImageMetadata, ETag string) (err error)
+	UpdateInstanceMetadata(name string, metadata api.ImageMetadata, ETag string) (err error)
 
 	GetInstanceTemplateFiles(instanceName string) (templates []string, err error)
 	GetInstanceTemplateFile(instanceName string, templateName string) (content io.ReadCloser, err error)
 	CreateInstanceTemplateFile(instanceName string, templateName string, content io.ReadSeeker) (err error)
-	UpdateInstanceTemplateFile(instanceName string, templateName string, content io.ReadSeeker) (err error)
 	DeleteInstanceTemplateFile(name string, templateName string) (err error)
 
 	// Event handling functions
@@ -225,6 +225,15 @@ type InstanceServer interface {
 	UpdateNetwork(name string, network api.NetworkPut, ETag string) (err error)
 	RenameNetwork(name string, network api.NetworkPost) (err error)
 	DeleteNetwork(name string) (err error)
+
+	// Network ACL functions ("network_acl" API extension)
+	GetNetworkACLNames() (names []string, err error)
+	GetNetworkACLs() (acls []api.NetworkACL, err error)
+	GetNetworkACL(name string) (acl *api.NetworkACL, ETag string, err error)
+	CreateNetworkACL(acl api.NetworkACLsPost) (err error)
+	UpdateNetworkACL(name string, acl api.NetworkACLPut, ETag string) (err error)
+	RenameNetworkACL(name string, acl api.NetworkACLPost) (err error)
+	DeleteNetworkACL(name string) (err error)
 
 	// Operation functions
 	GetOperationUUIDs() (uuids []string, err error)
@@ -266,6 +275,7 @@ type InstanceServer interface {
 	GetStoragePoolVolumeNames(pool string) (names []string, err error)
 	GetStoragePoolVolumes(pool string) (volumes []api.StorageVolume, err error)
 	GetStoragePoolVolume(pool string, volType string, name string) (volume *api.StorageVolume, ETag string, err error)
+	GetStoragePoolVolumeState(pool string, volType string, name string) (state *api.StorageVolumeState, err error)
 	CreateStoragePoolVolume(pool string, volume api.StorageVolumesPost) (err error)
 	UpdateStoragePoolVolume(pool string, volType string, name string, volume api.StorageVolumePut, ETag string) (err error)
 	DeleteStoragePoolVolume(pool string, volType string, name string) (err error)

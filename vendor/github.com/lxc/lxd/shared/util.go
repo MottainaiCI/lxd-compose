@@ -6,11 +6,12 @@ import (
 	"crypto/rand"
 	"encoding/gob"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"hash"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
+	mrand "math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -279,15 +280,6 @@ func ParseLXDFileHeaders(headers http.Header) (uid int64, gid int64, mode int, t
 	}
 
 	return uid, gid, mode, type_, write
-}
-
-func ReadToJSON(r io.Reader, req interface{}) error {
-	buf, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(buf, req)
 }
 
 func ReaderToChannel(r io.Reader, bufferSize int) <-chan []byte {
@@ -1236,4 +1228,40 @@ func InSnap() bool {
 	}
 
 	return false
+}
+
+// JoinUrlPath return the join of the input urls/paths sanitized.
+func JoinUrls(baseUrl, p string) (string, error) {
+	u, err := url.Parse(baseUrl)
+	if err != nil {
+		return "", err
+	}
+	u.Path = path.Join(u.Path, p)
+	return u.String(), nil
+}
+
+// GetStableRandomGenerator returns a stable random generator.
+func GetStableRandomGenerator(seed string) (*mrand.Rand, error) {
+	hash := fnv.New64a()
+
+	_, err := io.WriteString(hash, seed)
+	if err != nil {
+		return nil, err
+	}
+
+	return mrand.New(mrand.NewSource(int64(hash.Sum64()))), nil
+}
+
+// GetStableRandomInt64FromList returns a stable random value from a given list.
+func GetStableRandomInt64FromList(seed int, list []int64) (int64, error) {
+	if len(list) <= 0 {
+		return 0, fmt.Errorf("Cannot get stable random value from empty list")
+	}
+
+	r, err := GetStableRandomGenerator(fmt.Sprintf("%d", seed))
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to get stable random generator")
+	}
+
+	return list[r.Int63n(int64(len(list)))], nil
 }

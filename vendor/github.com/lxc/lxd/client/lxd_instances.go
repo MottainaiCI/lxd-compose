@@ -91,6 +91,22 @@ func (r *ProtocolLXD) GetInstances(instanceType api.InstanceType) ([]api.Instanc
 	return instances, nil
 }
 
+// UpdateInstances updates all instances to match the requested state.
+func (r *ProtocolLXD) UpdateInstances(state api.InstancesPut, ETag string) (Operation, error) {
+	path, v, err := r.instanceTypeToPath(api.InstanceTypeAny)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send the request
+	op, _, err := r.queryOperation("PUT", fmt.Sprintf("%s?%s", path, v.Encode()), state, ETag)
+	if err != nil {
+		return nil, err
+	}
+
+	return op, nil
+}
+
 // GetInstancesFull returns a list of instances including snapshots, backups and state.
 func (r *ProtocolLXD) GetInstancesFull(instanceType api.InstanceType) ([]api.InstanceFull, error) {
 	instances := []api.InstanceFull{}
@@ -677,6 +693,10 @@ func (r *ProtocolLXD) MigrateInstance(name string, instance api.InstancePost) (O
 		if !r.HasExtension("container_only_migration") {
 			return nil, fmt.Errorf("The server is missing the required \"container_only_migration\" API extension")
 		}
+	}
+
+	if instance.Pool != "" && !r.HasExtension("instance_pool_move") {
+		return nil, fmt.Errorf("The server is missing the required \"instance_pool_move\" API extension")
 	}
 
 	// Sanity check
@@ -1642,8 +1662,8 @@ func (r *ProtocolLXD) GetInstanceMetadata(name string) (*api.ImageMetadata, stri
 	return &metadata, etag, err
 }
 
-// SetInstanceMetadata sets the content of the instance metadata file.
-func (r *ProtocolLXD) SetInstanceMetadata(name string, metadata api.ImageMetadata, ETag string) error {
+// UpdateInstanceMetadata sets the content of the instance metadata file.
+func (r *ProtocolLXD) UpdateInstanceMetadata(name string, metadata api.ImageMetadata, ETag string) error {
 	path, _, err := r.instanceTypeToPath(api.InstanceTypeAny)
 	if err != nil {
 		return err
@@ -1731,15 +1751,6 @@ func (r *ProtocolLXD) GetInstanceTemplateFile(instanceName string, templateName 
 
 // CreateInstanceTemplateFile creates an a template for a instance.
 func (r *ProtocolLXD) CreateInstanceTemplateFile(instanceName string, templateName string, content io.ReadSeeker) error {
-	return r.setInstanceTemplateFile(instanceName, templateName, content, "POST")
-}
-
-// UpdateInstanceTemplateFile updates the content for a instance template file.
-func (r *ProtocolLXD) UpdateInstanceTemplateFile(instanceName string, templateName string, content io.ReadSeeker) error {
-	return r.setInstanceTemplateFile(instanceName, templateName, content, "PUT")
-}
-
-func (r *ProtocolLXD) setInstanceTemplateFile(instanceName string, templateName string, content io.ReadSeeker, httpMethod string) error {
 	path, _, err := r.instanceTypeToPath(api.InstanceTypeAny)
 	if err != nil {
 		return err
@@ -1756,7 +1767,7 @@ func (r *ProtocolLXD) setInstanceTemplateFile(instanceName string, templateName 
 		return err
 	}
 
-	req, err := http.NewRequest(httpMethod, url, content)
+	req, err := http.NewRequest("POST", url, content)
 	if err != nil {
 		return err
 	}

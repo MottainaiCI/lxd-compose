@@ -28,6 +28,13 @@ type InstancesPost struct {
 	Type         InstanceType   `json:"type" yaml:"type"`
 }
 
+// InstancesPut represents the fields available for a mass update.
+//
+// API extension: instance_bulk_state_change
+type InstancesPut struct {
+	State *InstanceStatePut `json:"state" yaml:"state"`
+}
+
 // InstancePost represents the fields required to rename/move a LXD instance.
 //
 // API extension: instances
@@ -38,6 +45,9 @@ type InstancePost struct {
 	InstanceOnly  bool                `json:"instance_only" yaml:"instance_only"`
 	ContainerOnly bool                `json:"container_only" yaml:"container_only"` // Deprecated, use InstanceOnly.
 	Target        *InstancePostTarget `json:"target" yaml:"target"`
+
+	// API extension: instance_pool_move
+	Pool string `json:"pool" yaml:"pool"`
 }
 
 // InstancePostTarget represents the migration target host and operation.
