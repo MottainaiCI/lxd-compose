@@ -26,7 +26,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/MottainaiCI/lxd-compose/pkg/executor"
+	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
@@ -84,7 +84,7 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				proj.AddEnvironment(evars)
 			}
 
-			executor := executor.NewLxdCExecutor(endpoint, confdir, nodeConf.Entrypoint,
+			executor := lxd_executor.NewLxdCExecutor(endpoint, confdir, nodeConf.Entrypoint,
 				grp.Ephemeral, config.GetLogging().CmdsOutput,
 				config.GetLogging().RuntimeCmdsOutput)
 			err = executor.Setup()
@@ -102,7 +102,13 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				envs["HOME"] = "/"
 			}
 
-			res, err := executor.RunCommand(node, strings.Join(commands, " "), envs, []string{})
+			emitter := executor.GetEmitter()
+			res, err := executor.RunCommandWithOutput(
+				node, strings.Join(commands, " "), envs,
+				(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStdout(),
+				(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStderr(),
+				[]string{},
+			)
 
 			os.Exit(res)
 		},
