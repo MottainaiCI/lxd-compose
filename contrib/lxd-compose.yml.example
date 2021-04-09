@@ -1,3 +1,6 @@
+#######################################
+# General configuration options
+#######################################
 general:
   debug: true
 
@@ -13,6 +16,9 @@ general:
   # lxd-compose reads LXD remotes and certificates.
   # lxd_confdir: /dir
 
+#######################################
+# Logging configuration options
+#######################################
 logging:
   # Define the path of the logfile.
   # path: "./logs/lxd-compose.log"
@@ -43,6 +49,23 @@ logging:
   # Enable/Disable Progress bar for synced files.
   # push_progressbar: false
 
+#######################################
+# Render engine configuration options
+#######################################
+
+# Define the default YAML file used by the Render engine to
+# elaborate the specifications.
+#render_default_file: ""
+
+# Define the values YAML file used by the Render engine to
+# elaborate the specifications. The variables defined on both
+# default and values files are overridden by values file.
+# Normally the render values file is pass from cli.
+#render_values_file: ""
+
+#######################################
+# Environments configuration options
+#######################################
 # Define the directories list where load
 # environments.
 # env_dirs:
