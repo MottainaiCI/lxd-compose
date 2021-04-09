@@ -5,6 +5,44 @@ general:
   # used for the container creation.
   # p2pmode: false
 
+  # Skip the check of the local LXD remote on P2P Mode.
+  # This option is used only when P2P mode is enabled.
+  # lxd_local_disable: false
+
+  # Override LXD_CONF directory where
+  # lxd-compose reads LXD remotes and certificates.
+  # lxd_confdir: /dir
+
+logging:
+  # Define the path of the logfile.
+  # path: "./logs/lxd-compose.log"
+
+  # Enable/Disable file logging.
+  # enable_logfile: false
+
+  # Enable JSON for logging in file
+  # json_format: false
+
+  # Set the log level.
+  # level: "info"
+
+  # Enable/Disable emoji
+  # enable_emoji: true
+
+  # Enable/Disable color in logging
+  # color: true
+
+  # Enable/Disable commands output logging in realtime.
+  # runtime_cmds_output: true
+
+  # Enable/Disable commands output logging at the end of the commands execution.
+  # If runtime_cmds_output is a true the output is not repeat.
+  # Enable this to see output of the hooks with out2var or err2var.
+  # cmds_output: true
+
+  # Enable/Disable Progress bar for synced files.
+  # push_progressbar: false
+
 # Define the directories list where load
 # environments.
 # env_dirs:
