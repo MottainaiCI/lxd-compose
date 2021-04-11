@@ -1276,6 +1276,16 @@ func (r *ProtocolLXD) CopyInstanceSnapshot(source InstanceServer, instanceName s
 		return &rop, nil
 	}
 
+	// If deadling with migration, we need to set the type.
+	if source.HasExtension("virtual-machines") {
+		inst, _, err := source.GetInstance(instanceName)
+		if err != nil {
+			return nil, err
+		}
+
+		req.Type = api.InstanceType(inst.Type)
+	}
+
 	// Source request
 	sourceReq := api.InstanceSnapshotPost{
 		Migration: true,
@@ -1571,8 +1581,8 @@ func (r *ProtocolLXD) GetInstanceLogfiles(name string) ([]string, error) {
 	}
 
 	// Parse it
-	logfiles := []string{}
-	for _, uri := range logfiles {
+	logfiles := make([]string, 0, len(urls))
+	for _, uri := range urls {
 		fields := strings.Split(uri, fmt.Sprintf("%s/%s/logs/", path, url.PathEscape(name)))
 		logfiles = append(logfiles, fields[len(fields)-1])
 	}

@@ -8,10 +8,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash"
-	"hash/fnv"
 	"io"
 	"io/ioutil"
-	mrand "math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -993,18 +991,6 @@ func TimeIsSet(ts time.Time) bool {
 	return true
 }
 
-// WriteTempFile creates a temp file with the specified content
-func WriteTempFile(dir string, prefix string, content string) (string, error) {
-	f, err := ioutil.TempFile(dir, prefix)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	_, err = f.WriteString(content)
-	return f.Name(), err
-}
-
 // EscapePathFstab escapes a path fstab-style.
 // This ensures that getmntent_r() and friends can correctly parse stuff like
 // /some/wacky path with spaces /some/wacky target with spaces
@@ -1238,30 +1224,4 @@ func JoinUrls(baseUrl, p string) (string, error) {
 	}
 	u.Path = path.Join(u.Path, p)
 	return u.String(), nil
-}
-
-// GetStableRandomGenerator returns a stable random generator.
-func GetStableRandomGenerator(seed string) (*mrand.Rand, error) {
-	hash := fnv.New64a()
-
-	_, err := io.WriteString(hash, seed)
-	if err != nil {
-		return nil, err
-	}
-
-	return mrand.New(mrand.NewSource(int64(hash.Sum64()))), nil
-}
-
-// GetStableRandomInt64FromList returns a stable random value from a given list.
-func GetStableRandomInt64FromList(seed int, list []int64) (int64, error) {
-	if len(list) <= 0 {
-		return 0, fmt.Errorf("Cannot get stable random value from empty list")
-	}
-
-	r, err := GetStableRandomGenerator(fmt.Sprintf("%d", seed))
-	if err != nil {
-		return 0, errors.Wrap(err, "Failed to get stable random generator")
-	}
-
-	return list[r.Int63n(int64(len(list)))], nil
 }
