@@ -37,9 +37,9 @@ func Open(url *url.URL) error {
 var ErrNoBrowser = errors.New("cannot find a browser to open the web page")
 
 var browser = map[string]string{
-	"linux":   "sensible-browser",
 	"darwin":  "open",
 	"freebsd": "xdg-open",
+	"linux":   "xdg-open",
 	"netbsd":  "xdg-open",
 	"openbsd": "xdg-open",
 }

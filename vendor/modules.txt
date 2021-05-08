@@ -12,9 +12,9 @@ github.com/Masterminds/semver/v3
 github.com/Masterminds/sprig
 # github.com/Masterminds/sprig/v3 v3.2.0
 github.com/Masterminds/sprig/v3
-# github.com/MottainaiCI/mottainai-cli v0.0.0-20201020080515-9b8c52d6981f
+# github.com/MottainaiCI/mottainai-server v0.0.0-20210508100055-c7e87a8199bf
 ## explicit
-github.com/MottainaiCI/mottainai-cli/cmd/task/template
+github.com/MottainaiCI/mottainai-server/mottainai-cli/cmd/task/template
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
@@ -38,7 +38,7 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
-# github.com/gogo/protobuf v1.3.1
+# github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 # github.com/golang/protobuf v1.4.3
@@ -96,7 +96,7 @@ github.com/juju/go4/lock
 github.com/juju/persistent-cookiejar
 # github.com/juju/schema v1.0.0
 github.com/juju/schema
-# github.com/juju/webbrowser v0.0.0-20160309143629-54b8c57083b4
+# github.com/juju/webbrowser v0.0.0-20180907093207-efb9432b2bcb
 github.com/juju/webbrowser
 # github.com/julienschmidt/httprouter v1.2.0
 github.com/julienschmidt/httprouter
@@ -134,7 +134,7 @@ github.com/mattn/go-runewidth
 github.com/mitchellh/copystructure
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
-# github.com/mitchellh/reflectwalk v1.0.0
+# github.com/mitchellh/reflectwalk v1.0.1
 github.com/mitchellh/reflectwalk
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
@@ -263,7 +263,7 @@ golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/publicsuffix
-# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+# golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
@@ -295,12 +295,10 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
-## explicit
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/appengine v1.6.5
+# google.golang.org/appengine v1.6.7
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore

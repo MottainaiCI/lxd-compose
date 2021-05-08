@@ -7,7 +7,7 @@ replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.2
 require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
-	github.com/MottainaiCI/mottainai-cli v0.0.0-20201020080515-9b8c52d6981f
+	github.com/MottainaiCI/mottainai-server v0.0.0-20210508100055-c7e87a8199bf
 	github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
@@ -36,7 +36,6 @@ require (
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/mod v0.3.1-0.20200828183125-ce943fd02449 // indirect
 	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
-	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.2.0 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
