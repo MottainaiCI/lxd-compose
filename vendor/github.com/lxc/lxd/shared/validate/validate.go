@@ -535,6 +535,20 @@ func IsNetworkPortRange(value string) error {
 		}
 	}
 
+	startPort, err := strconv.ParseUint(ports[0], 10, 32)
+	if err != nil {
+		return fmt.Errorf("Invalid start port number %q", value)
+	}
+
+	endPort, err := strconv.ParseUint(ports[1], 10, 32)
+	if err != nil {
+		return fmt.Errorf("Invalid port number %q", value)
+	}
+
+	if startPort >= endPort {
+		return fmt.Errorf("Start port %d must be lower than end port %d", startPort, endPort)
+	}
+
 	return nil
 }
 
@@ -601,22 +615,34 @@ func IsArchitecture(value string) error {
 // IsCron checks that it's a valid cron pattern or alias.
 func IsCron(aliases []string) func(value string) error {
 	return func(value string) error {
-		value = strings.ToLower(value)
-
-		// Accept valid aliases.
-		for _, alias := range aliases {
-			if alias == value {
-				return nil
+		isValid := func(value string) error {
+			// Accept valid aliases.
+			for _, alias := range aliases {
+				if alias == value {
+					return nil
+				}
 			}
+
+			if len(strings.Split(value, " ")) != 5 {
+				return fmt.Errorf("Schedule must be of the form: <minute> <hour> <day-of-month> <month> <day-of-week>")
+			}
+
+			_, err := cron.Parse(fmt.Sprintf("* %s", value))
+			if err != nil {
+				return errors.Wrap(err, "Error parsing schedule")
+			}
+
+			return nil
 		}
 
-		if len(strings.Split(value, " ")) != 5 {
-			return fmt.Errorf("Schedule must be of the form: <minute> <hour> <day-of-month> <month> <day-of-week>")
-		}
-
-		_, err := cron.Parse(fmt.Sprintf("* %s", value))
-		if err != nil {
-			return errors.Wrap(err, "Error parsing schedule")
+		// Can be comma+space separated (just commas are valid cron pattern).
+		value = strings.ToLower(value)
+		triggers := strings.Split(value, ", ")
+		for _, trigger := range triggers {
+			err := isValid(trigger)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

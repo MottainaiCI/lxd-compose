@@ -553,6 +553,8 @@ github.com/logrusorgru/aurora v2.0.3+incompatible/go.mod h1:7rIyQOR62GCctdiQpZ/z
 github.com/lxc/lxd v0.0.0-20210108191059-8b2c22660f5a/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
 github.com/lxc/lxd v0.0.0-20210409185147-75019bf015fb h1:I0RvIKNAYCRFiCidujIhnO3tKN5IhlMl+kDwK5zskVU=
 github.com/lxc/lxd v0.0.0-20210409185147-75019bf015fb/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
+github.com/lxc/lxd v0.0.0-20210507013419-5ff45e701cb8 h1:EtLtVuk4nn5gb1vsNL1ziMcIwCqqKSrdj8qaaI+SOQ0=
+github.com/lxc/lxd v0.0.0-20210507013419-5ff45e701cb8/go.mod h1:2BaZflfwsv8a3uy3/Vw+de4Avn4DSrAiqaHJjCIXMV4=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/magiconair/properties v1.8.1 h1:ZC2Vc7/ZFkGmsVC9KvOjumD+G5lXy2RtTKyzRKO2BQ4=

@@ -109,7 +109,7 @@ github.com/kyokomi/emoji
 # github.com/logrusorgru/aurora v2.0.3+incompatible
 ## explicit
 github.com/logrusorgru/aurora
-# github.com/lxc/lxd v0.0.0-20210409185147-75019bf015fb
+# github.com/lxc/lxd v0.0.0-20210507013419-5ff45e701cb8
 ## explicit
 github.com/lxc/lxd/client
 github.com/lxc/lxd/lxc/config
