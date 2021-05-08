@@ -28,7 +28,7 @@ import (
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
-	t "github.com/MottainaiCI/mottainai-cli/cmd/task/template"
+	t "github.com/MottainaiCI/mottainai-server/mottainai-cli/cmd/task/template"
 )
 
 type MottainaiCompiler struct {
