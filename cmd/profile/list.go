@@ -50,6 +50,10 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			if confdir == "" {
+				confdir = config.GetGeneral().LxdConfDir
+			}
+
 			executor := executor.NewLxdCExecutor(endpoint, confdir, nil, true,
 				config.GetLogging().CmdsOutput,
 				config.GetLogging().RuntimeCmdsOutput)

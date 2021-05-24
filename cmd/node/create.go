@@ -60,6 +60,10 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			composer.SetFlagsEnabled(enabledFlags)
 			composer.SetNodesPrefix(prefix)
 
+			if confdir == "" {
+				confdir = config.GetGeneral().LxdConfDir
+			}
+
 			nodes := args[0:]
 
 			for _, n := range nodes {
@@ -72,10 +76,6 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 				if endpoint == "" {
 					endpoint = grp.Connection
-				}
-
-				if confdir == "" {
-					confdir = config.GetGeneral().LxdConfDir
 				}
 
 				if len(envs) > 0 {

@@ -61,6 +61,11 @@ func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			if confdir == "" {
+				// Using lxd-compose config option if available
+				confdir = config.GetGeneral().LxdConfDir
+			}
+
 			composer.SetNodesPrefix(prefix)
 
 			node := args[0]
