@@ -345,6 +345,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					file.Name(),
+					i.Config.RenderEnvsVars,
 				)
 				if err != nil {
 					return err
@@ -406,6 +407,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 						i.Config.RenderValuesFile,
 						i.Config.RenderDefaultFile,
 						gfile,
+						i.Config.RenderEnvsVars,
 					)
 					if err != nil {
 						return err

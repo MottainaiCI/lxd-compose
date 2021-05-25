@@ -32,7 +32,8 @@ import (
 	"helm.sh/helm/v3/pkg/engine"
 )
 
-func RenderContent(raw, valuesFile, defaultFile, originFile string) (string, error) {
+func RenderContent(raw, valuesFile, defaultFile, originFile string,
+	overrideValues map[string]interface{}) (string, error) {
 
 	if valuesFile == "" && defaultFile == "" {
 		return "", errors.New("Both render files are missing")
@@ -73,6 +74,12 @@ func RenderContent(raw, valuesFile, defaultFile, originFile string) (string, err
 		if err = yaml.Unmarshal(def, &d); err != nil {
 			return "", errors.New(fmt.Sprintf(
 				"Error on unmarshal file %s: %s", defaultFile, err.Error()))
+		}
+	}
+
+	if len(overrideValues) > 0 {
+		for k, v := range overrideValues {
+			values[k] = v
 		}
 	}
 

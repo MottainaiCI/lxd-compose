@@ -37,6 +37,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledGroups []string
 	var disabledGroups []string
 	var envs []string
+	var renderEnvs []string
 	var varsFiles []string
 
 	var cmd = &cobra.Command{
@@ -53,7 +54,14 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
 
-			err := composer.LoadEnvironments()
+			// We need set this before loading phase
+			err := config.SetRenderEnvs(renderEnvs)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			err = composer.LoadEnvironments()
 			if err != nil {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
@@ -130,6 +138,8 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Apply only selected groups.")
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
+		"Append render engine environments in the format key=value.")
 	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
 		"Add additional environments vars file.")
 	flags.Bool("skip-sync", false, "Disable sync of files.")

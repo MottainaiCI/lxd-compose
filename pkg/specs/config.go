@@ -39,8 +39,9 @@ type LxdComposeConfig struct {
 	Logging         LxdCLogging `mapstructure:"logging" json:"logging,omitempty" yaml:"logging,omitempty"`
 	EnvironmentDirs []string    `mapstructure:"env_dirs,omitempty" json:"env_dirs,omitempty" yaml:"env_dirs,omitempty"`
 
-	RenderDefaultFile string `mapstructure:"render_default_file,omitempty" json:"render_default_file,omitempty" yaml:"render_default_file,omitempty"`
-	RenderValuesFile  string `mapstructure:"render_values_file,omitempty" json:"render_values_file,omitempty" yaml:"render_values_file,omitempty"`
+	RenderDefaultFile string                 `mapstructure:"render_default_file,omitempty" json:"render_default_file,omitempty" yaml:"render_default_file,omitempty"`
+	RenderValuesFile  string                 `mapstructure:"render_values_file,omitempty" json:"render_values_file,omitempty" yaml:"render_values_file,omitempty"`
+	RenderEnvsVars    map[string]interface{} `mapstructure:"-" json:"-" yaml:"-"`
 }
 
 type LxdCGeneral struct {
@@ -117,6 +118,23 @@ func (c *LxdComposeConfig) Unmarshal() error {
 
 func (c *LxdComposeConfig) Yaml() ([]byte, error) {
 	return yaml.Marshal(c)
+}
+
+func (c *LxdComposeConfig) SetRenderEnvs(envs []string) error {
+	e := NewEnvVars()
+
+	for _, env := range envs {
+		err := e.AddKVAggregated(env)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(e.EnvVars) > 0 {
+		c.RenderEnvsVars = e.EnvVars
+	}
+
+	return nil
 }
 
 func GenDefault(viper *v.Viper) {

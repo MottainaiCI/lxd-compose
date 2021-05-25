@@ -59,6 +59,8 @@ func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance, proj *spe
 }
 
 func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var renderEnvs []string
+
 	var cmd = &cobra.Command{
 		Use:   "run <project> <command>",
 		Short: "Run a command of environment commands.",
@@ -103,6 +105,10 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			fmt.Println("All done.")
 		},
 	}
+
+	flags := cmd.Flags()
+	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
+		"Append render engine environments in the format key=value.")
 
 	return cmd
 }
