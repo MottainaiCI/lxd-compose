@@ -55,6 +55,7 @@ type LxdCHook struct {
 	Err2Var    string   `json:"err2var,omitempty" yaml:"err2var,omitempty"`
 	Entrypoint []string `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
 	Flags      []string `json:"flags,omitempty" yaml:"flags,omitempty"`
+	Disable    bool     `json:"disable,omitempty" yaml:"disable,omitempty"`
 }
 
 type LxdCTemplateEngine struct {

@@ -75,6 +75,10 @@ func (h *LxdCHook) SetNode(node string) {
 func (h *LxdCHook) ToProcess(enabledFlags, disabledFlags []string) bool {
 	ans := false
 
+	if h.Disable && len(enabledFlags) == 0 {
+		return false
+	}
+
 	if len(h.Flags) == 0 && len(enabledFlags) == 0 {
 		return true
 	}
