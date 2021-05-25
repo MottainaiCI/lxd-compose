@@ -49,6 +49,7 @@ template_engine:
 				TemplateEngine: LxdCTemplateEngine{
 					Engine: "jinja2",
 				},
+				Commands: []LxdCCommand{},
 			}
 
 			Expect(err).Should(BeNil())
