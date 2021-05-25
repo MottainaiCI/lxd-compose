@@ -44,6 +44,34 @@ networks:
       ipv6.nat: "true"
 
 
+# Define commands / alias to apply
+commands:
+  - name: "command1"
+    description: |
+      Run command 1.
+
+    project: "lxd-compose-example1"
+    apply_alias: true
+
+    enable_groups:
+      - group1
+
+    envs:
+      key2: "value2"
+
+  - name: "disable-hook"
+    description: |
+      Run hook disabled.
+
+    project: "lxd-compose-example1"
+    apply_alias: true
+
+    enable_flags:
+      - disabled
+
+    envs:
+      key2: "value2"
+
 projects:
 
   - name: "lxd-compose-example1"
@@ -91,9 +119,15 @@ projects:
       # Get stderr of the commands and store it to a project
       # environment. Optional parameter.
       #  err2var: "myvar2"
+      #
+      # Disable the hook. The only way to run a disabled hook
+      # is to set a flag that is pass with --enable-flag option.
+      #  disable: true.
 
     hooks:
       - event: pre-group
+        flags:
+          - disabled
         node: "host"
         commands:
           - |
@@ -101,6 +135,8 @@ projects:
         out2var: "json_var"
       - event: pre-group
         node: "host"
+        flags:
+          - disabled
         commands:
           - |
             echo '[{ "user": "user1" }]'
@@ -274,6 +310,13 @@ projects:
               - event: post-node-sync
                 commands:
                   - echo "${runtime_var}"
+
+              - event: post-node-sync
+                flags:
+                  - disabled
+                disable: true
+                commands:
+                  - echo "Command DISABLED!"
 
             # List of templates files to compiles before push the
             # result inside container.

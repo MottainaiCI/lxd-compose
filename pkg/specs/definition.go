@@ -29,6 +29,8 @@ type LxdCEnvironment struct {
 
 	Projects []LxdCProject `json:"projects" yaml:"projects"`
 
+	Commands []LxdCCommand `json:"commands,omitempty" yaml:"commands,omitempty"`
+
 	Profiles []LxdCProfile `json:"profiles,omitempty" yaml:"profiles,omitempty"`
 	Networks []LxdCNetwork `json:"networks,omitempty" yaml:"networks,omitempty"`
 }
@@ -139,4 +141,24 @@ type LxdCConfigTemplate struct {
 type LxdCSyncResource struct {
 	Source      string `json:"source" yaml:"source"`
 	Destination string `json:"dst" yaml:"dst"`
+}
+
+type LxdCCommand struct {
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
+	Project     string `json:"project" yaml:"project"`
+	ApplyAlias  bool   `json:"apply_alias,omitempty" yaml:"apply_alias,omitempty"`
+
+	SkipSync bool `json:"skip_sync,omitempty" yaml:"skip_sync,omitempty"`
+
+	NodesPrefix string `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
+
+	EnableFlags  []string `json:"enable_flags,omitempty" yaml:"enable_flags,omitempty"`
+	DisableFlags []string `json:"disable_flags,omitempty" yaml:"disable_flags,omitempty"`
+
+	EnableGroups  []string `json:"enable_groups,omitempty" yaml:"enable_groups,omitempty"`
+	DisableGroups []string `json:"disable_groups,omitempty" yaml:"disable_groups,omitempty"`
+
+	Envs     LxdCEnvVars `json:"envs,omitempty" yaml:"envs,omitempty"`
+	VarFiles []string    `json:"vars_files,omitempty" yaml:"vars_files,omitempty"`
 }

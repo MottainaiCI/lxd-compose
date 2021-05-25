@@ -23,6 +23,7 @@ package loader
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -136,13 +137,49 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 	mproj := make(map[string]int, 0)
 	mnodes := make(map[string]int, 0)
 	mgroups := make(map[string]int, 0)
+	mcommands := make(map[string]int, 0)
 	dupProjs := 0
 	dupNodes := 0
 	dupGroups := 0
+	dupCommands := 0
 	wrongHooks := 0
 
 	// Check for duplicated project name
 	for _, env := range i.Environments {
+
+		for _, cmd := range env.Commands {
+			if _, isPresent := mcommands[cmd.Name]; isPresent {
+				if !ignoreError {
+					return errors.New("Duplicated command " + cmd.Name)
+				}
+
+				i.Logger.Warning("Found duplicated command " + cmd.Name)
+				dupCommands++
+
+			} else {
+				mcommands[cmd.Name] = 1
+			}
+
+			if cmd.Project == "" {
+				if !ignoreError {
+					return errors.New("Command " + cmd.Name + " with an empty project")
+				}
+
+				i.Logger.Warning("Command " + cmd.Name + " with an empty project.")
+			}
+
+			if !cmd.ApplyAlias {
+				msg := fmt.Sprintf("Command %s wih apply_alias disable. Not yet supported.",
+					cmd.Name)
+
+				if !ignoreError {
+					return errors.New(msg)
+				}
+
+				i.Logger.Warning(msg)
+			}
+
+		}
 
 		for _, proj := range env.Projects {
 

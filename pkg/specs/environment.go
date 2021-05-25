@@ -34,6 +34,10 @@ func EnvironmentFromYaml(data []byte, file string) (*LxdCEnvironment, error) {
 	}
 	ans.File = file
 
+	if ans.Commands == nil {
+		ans.Commands = []LxdCCommand{}
+	}
+
 	for idx, _ := range ans.Projects {
 		ans.Projects[idx].Init()
 	}
@@ -57,6 +61,20 @@ func (e *LxdCEnvironment) GetProjects() *[]LxdCProject {
 
 func (e *LxdCEnvironment) GetProfiles() *[]LxdCProfile {
 	return &e.Profiles
+}
+
+func (e *LxdCEnvironment) GetCommands() *[]LxdCCommand {
+	return &e.Commands
+}
+
+func (e *LxdCEnvironment) GetCommand(name string) (*LxdCCommand, error) {
+	for idx, cmd := range e.Commands {
+		if cmd.Name == name {
+			return &e.Commands[idx], nil
+		}
+	}
+
+	return nil, errors.New("Command + " + name + " not available.")
 }
 
 func (e *LxdCEnvironment) GetProfile(name string) (LxdCProfile, error) {
