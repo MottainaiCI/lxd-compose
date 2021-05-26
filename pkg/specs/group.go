@@ -51,6 +51,7 @@ func (g *LxdCGroup) GetDescription() string      { return g.Description }
 func (g *LxdCGroup) GetConnection() string       { return g.Connection }
 func (g *LxdCGroup) IsEphemeral() bool           { return g.Ephemeral }
 func (g *LxdCGroup) GetCommonProfiles() []string { return g.CommonProfiles }
+func (g *LxdCGroup) GetNodes() *[]LxdCNode       { return &g.Nodes }
 
 func (g *LxdCGroup) SetNodesPrefix(prefix string) {
 	g.NodesPrefix = prefix

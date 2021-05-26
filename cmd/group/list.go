@@ -22,18 +22,20 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd_group
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
+	tablewriter "github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
 func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "list [project]",
+		Use:   "list <project>",
 		Short: "list of groups available int the project.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
@@ -42,6 +44,8 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+
+			jsonOutput, _ := cmd.Flags().GetBool("json")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -61,11 +65,33 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			proj := env.GetProjectByName(project)
 
-			for _, c := range *proj.GetGroups() {
-				fmt.Println("- ", c.GetName())
+			if jsonOutput {
+
+				data, _ := json.Marshal(*proj.GetGroups())
+				fmt.Println(string(data))
+			} else {
+
+				table := tablewriter.NewWriter(os.Stdout)
+				table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+				table.SetCenterSeparator("|")
+				table.SetHeader([]string{
+					"Group Name", "Description", "# Nodes",
+				})
+
+				for _, g := range *proj.GetGroups() {
+					table.Append([]string{
+						g.GetName(),
+						g.GetDescription(),
+						fmt.Sprintf("%d", len(*g.GetNodes())),
+					})
+				}
+				table.Render()
 			}
 		},
 	}
+
+	var flags = cmd.Flags()
+	flags.Bool("json", false, "JSON output")
 
 	return cmd
 }
