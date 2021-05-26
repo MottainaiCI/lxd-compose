@@ -22,6 +22,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd_command
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -39,6 +40,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Short: "list of environment commands.",
 		Run: func(cmd *cobra.Command, args []string) {
 
+			jsonOutput, _ := cmd.Flags().GetBool("json")
 			commands := []specs.LxdCCommand{}
 
 			// Create Instance
@@ -57,34 +59,44 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				}
 			}
 
-			if len(commands) > 0 {
-				table := tablewriter.NewWriter(os.Stdout)
-				table.SetBorders(tablewriter.Border{
-					Left:   true,
-					Top:    true,
-					Right:  true,
-					Bottom: true})
-				table.SetHeader([]string{"Command", "Project", "Description"})
-				table.SetColMinWidth(1, 10)
-				table.SetColMinWidth(2, 50)
-				table.SetColWidth(150)
+			if jsonOutput {
 
-				for _, c := range commands {
-					table.Append([]string{
-						c.Name,
-						c.Project,
-						c.Description,
-					})
-				}
-
-				table.Render()
+				data, _ := json.Marshal(commands)
+				fmt.Println(string(data))
 
 			} else {
-				fmt.Println("No commands available.")
+				if len(commands) > 0 {
+					table := tablewriter.NewWriter(os.Stdout)
+					table.SetBorders(tablewriter.Border{
+						Left:   true,
+						Top:    true,
+						Right:  true,
+						Bottom: true})
+					table.SetHeader([]string{"Command", "Project", "Description"})
+					table.SetColMinWidth(1, 10)
+					table.SetColMinWidth(2, 50)
+					table.SetColWidth(150)
+
+					for _, c := range commands {
+						table.Append([]string{
+							c.Name,
+							c.Project,
+							c.Description,
+						})
+					}
+
+					table.Render()
+
+				} else {
+					fmt.Println("No commands available.")
+				}
 			}
 
 		},
 	}
+
+	var flags = cmd.Flags()
+	flags.Bool("json", false, "JSON output")
 
 	return cmd
 }
