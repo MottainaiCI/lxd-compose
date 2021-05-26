@@ -21,7 +21,7 @@ require (
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/lxc/lxd v0.0.0-20210507013419-5ff45e701cb8
-	github.com/olekukonko/tablewriter v0.0.4 // indirect
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
 	github.com/pborman/uuid v1.2.1 // indirect
@@ -32,7 +32,7 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.0
-	go.uber.org/zap v1.15.0
+	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/mod v0.3.1-0.20200828183125-ce943fd02449 // indirect
 	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
