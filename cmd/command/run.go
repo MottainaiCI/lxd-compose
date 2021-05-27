@@ -32,7 +32,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance, proj *specs.LxdCProject) error {
+func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance,
+	proj *specs.LxdCProject, envs []string) error {
 
 	err := c.PrepareProject(proj)
 	if err != nil {
@@ -45,6 +46,22 @@ func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance, proj *spe
 	composer.SetGroupsEnabled(c.EnableGroups)
 	composer.SetSkipSync(c.SkipSync)
 	composer.SetNodesPrefix(c.NodesPrefix)
+
+	if len(envs) > 0 {
+		evars := specs.NewEnvVars()
+		for _, e := range envs {
+			err := evars.AddKVAggregated(e)
+			if err != nil {
+				return errors.New(
+					fmt.Sprintf(
+						"Error on elaborate var string %s: %s",
+						e, err.Error(),
+					))
+			}
+		}
+
+		proj.AddEnvironment(evars)
+	}
 
 	err = composer.ApplyProject(proj.GetName())
 	if err != nil {
@@ -60,6 +77,7 @@ func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance, proj *spe
 
 func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var renderEnvs []string
+	var envs []string
 
 	var cmd = &cobra.Command{
 		Use:   "run <project> <command>",
@@ -74,10 +92,17 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
 
+			// We need set this before loading phase
+			err := config.SetRenderEnvs(renderEnvs)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
 			pname := args[0]
 			cname := args[1]
 
-			err := composer.LoadEnvironments()
+			err = composer.LoadEnvironments()
 			if err != nil {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
@@ -96,7 +121,7 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			err = ApplyCommand(command, composer, env.GetProjectByName(pname))
+			err = ApplyCommand(command, composer, env.GetProjectByName(pname), envs)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
@@ -109,6 +134,8 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
+	flags.StringSliceVar(&envs, "env", []string{},
+		"Append project environments in the format key=value.")
 
 	return cmd
 }
