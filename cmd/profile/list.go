@@ -22,13 +22,17 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd_profile
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/MottainaiCI/lxd-compose/pkg/executor"
+	"github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
+	tablewriter "github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -39,10 +43,12 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
+			jsonOutput, _ := cmd.Flags().GetBool("json")
+			endpoint, _ := cmd.Flags().GetString("endpoint")
+			search, _ := cmd.Flags().GetString("search")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
-			endpoint, _ := cmd.Flags().GetString("endpoint")
 
 			err := composer.LoadEnvironments()
 			if err != nil {
@@ -68,14 +74,59 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println("Error on retrieve profile list: " + err.Error() + "\n")
 				os.Exit(1)
 			}
-			for _, c := range list {
-				fmt.Println("- ", c)
+
+			if search != "" {
+				list = helpers.RegexEntry(search, list)
 			}
+
+			if jsonOutput {
+				data, _ := json.Marshal(list)
+				fmt.Println(string(data))
+
+			} else {
+
+				table := tablewriter.NewWriter(os.Stdout)
+				table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+				table.SetCenterSeparator("|")
+				table.SetHeader([]string{
+					"Profile Name", "Description", "Environments Mapped",
+				})
+
+				for _, c := range list {
+
+					mappedEnvs := ""
+					profileDescr := ""
+					envs := composer.GetEnvsUsingProfile(c)
+					if len(envs) > 0 {
+						for idx, e := range envs {
+							profile, _ := e.GetProfile(c)
+							profileDescr = profile.Description
+							if idx > 0 {
+								mappedEnvs += "\n" + filepath.Base(e.File)
+							} else {
+								mappedEnvs += filepath.Base(e.File)
+							}
+						}
+					}
+
+					table.Append([]string{
+						c,
+						profileDescr,
+						mappedEnvs,
+					})
+
+				}
+
+				table.Render()
+			}
+
 		},
 	}
 
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
+	pflags.Bool("json", false, "JSON output")
+	pflags.StringP("search", "s", "", "Regex filter to use with network name.")
 
 	return cmd
 }
