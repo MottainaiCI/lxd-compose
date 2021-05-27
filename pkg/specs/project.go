@@ -40,6 +40,8 @@ func (p *LxdCProject) Init() {
 }
 
 func (p *LxdCProject) GetGroups() *[]LxdCGroup { return &p.Groups }
+func (p *LxdCProject) GetDescription() string  { return p.Description }
+func (p *LxdCProject) GetName() string         { return p.Name }
 
 func (p *LxdCProject) AddGroup(grp *LxdCGroup) {
 	p.Groups = append(p.Groups, *grp)
@@ -47,10 +49,6 @@ func (p *LxdCProject) AddGroup(grp *LxdCGroup) {
 
 func (p *LxdCProject) AddEnvironment(e *LxdCEnvVars) {
 	p.Environments = append(p.Environments, *e)
-}
-
-func (p *LxdCProject) GetName() string {
-	return p.Name
 }
 
 func (p *LxdCProject) GetEnvsMap() (map[string]string, error) {
@@ -116,6 +114,10 @@ func (p *LxdCProject) Sanitize() *LxdCProjectSanitized {
 		ConfigTemplates:   p.ConfigTemplates,
 	}
 }
+
+func (p *LxdCProjectSanitized) GetName() string         { return p.Name }
+func (p *LxdCProjectSanitized) GetDescription() string  { return p.Description }
+func (p *LxdCProjectSanitized) GetGroups() *[]LxdCGroup { return &p.Groups }
 
 func (p *LxdCProject) GetNodesPrefix() string { return p.NodesPrefix }
 
