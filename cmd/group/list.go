@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
@@ -46,6 +47,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			jsonOutput, _ := cmd.Flags().GetBool("json")
+			search, _ := cmd.Flags().GetString("search")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -64,10 +66,24 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			proj := env.GetProjectByName(project)
+			groups := *proj.GetGroups()
+
+			if search != "" {
+				ngroups := []specs.LxdCGroup{}
+
+				for _, g := range groups {
+					res := helpers.RegexEntry(search, []string{g.GetName()})
+					if len(res) > 0 {
+						ngroups = append(ngroups, g)
+					}
+				}
+
+				groups = ngroups
+			}
 
 			if jsonOutput {
 
-				data, _ := json.Marshal(*proj.GetGroups())
+				data, _ := json.Marshal(groups)
 				fmt.Println(string(data))
 			} else {
 
@@ -78,7 +94,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					"Group Name", "Description", "# Nodes",
 				})
 
-				for _, g := range *proj.GetGroups() {
+				for _, g := range groups {
 					table.Append([]string{
 						g.GetName(),
 						g.GetDescription(),
@@ -92,6 +108,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	var flags = cmd.Flags()
 	flags.Bool("json", false, "JSON output")
+	flags.StringP("search", "s", "", "Regex filter to use with network name.")
 
 	return cmd
 }
