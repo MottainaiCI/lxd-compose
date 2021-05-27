@@ -26,11 +26,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
 	tablewriter "github.com/olekukonko/tablewriter"
-
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +41,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			jsonOutput, _ := cmd.Flags().GetBool("json")
+			search, _ := cmd.Flags().GetString("search")
 			commands := []specs.LxdCCommand{}
 
 			// Create Instance
@@ -55,7 +56,16 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			for _, env := range *composer.GetEnvironments() {
 
 				if len(*env.GetCommands()) > 0 {
-					commands = append(commands, *env.GetCommands()...)
+					if search != "" {
+						for _, c := range *env.GetCommands() {
+							res := helpers.RegexEntry(search, []string{c.GetName()})
+							if len(res) > 0 {
+								commands = append(commands, c)
+							}
+						}
+					} else {
+						commands = append(commands, *env.GetCommands()...)
+					}
 				}
 			}
 
@@ -97,6 +107,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	var flags = cmd.Flags()
 	flags.Bool("json", false, "JSON output")
+	flags.StringP("search", "s", "", "Regex filter to use with network name.")
 
 	return cmd
 }
