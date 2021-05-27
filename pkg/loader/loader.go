@@ -101,6 +101,32 @@ func (i *LxdCInstance) AddFlagDisabled(flag string) {
 	i.FlagsDisabled = append(i.FlagsDisabled, flag)
 }
 
+func (i *LxdCInstance) GetEnvsUsingNetwork(name string) []*specs.LxdCEnvironment {
+	ans := []*specs.LxdCEnvironment{}
+
+	for idx, e := range i.Environments {
+		_, err := e.GetNetwork(name)
+		if err == nil {
+			ans = append(ans, &i.Environments[idx])
+		}
+	}
+
+	return ans
+}
+
+func (i *LxdCInstance) GetEnvsUsingProfile(name string) []*specs.LxdCEnvironment {
+	ans := []*specs.LxdCEnvironment{}
+
+	for idx, e := range i.Environments {
+		_, err := e.GetProfile(name)
+		if err == nil {
+			ans = append(ans, &i.Environments[idx])
+		}
+	}
+
+	return ans
+}
+
 func (i *LxdCInstance) GetEnvByProjectName(name string) *specs.LxdCEnvironment {
 	for _, e := range i.Environments {
 		for _, p := range e.Projects {
