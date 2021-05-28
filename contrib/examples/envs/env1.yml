@@ -72,6 +72,10 @@ commands:
     envs:
       key2: "value2"
 
+# Include commands from external file
+include_commands_files:
+  - commands/cmd1.yml
+
 projects:
 
   - name: "lxd-compose-example1"

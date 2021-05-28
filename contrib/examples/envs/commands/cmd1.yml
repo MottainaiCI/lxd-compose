@@ -1,0 +1,12 @@
+name: "command2"
+description: |
+  Run command 2
+
+project: "lxd-compose-example1"
+apply_alias: true
+
+enable_groups:
+  - group1
+
+envs:
+  key2: "value3"
