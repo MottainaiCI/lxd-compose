@@ -23,6 +23,7 @@ package specs
 
 import (
 	"errors"
+	"path"
 
 	"gopkg.in/yaml.v2"
 )
@@ -36,6 +37,9 @@ func EnvironmentFromYaml(data []byte, file string) (*LxdCEnvironment, error) {
 
 	if ans.Commands == nil {
 		ans.Commands = []LxdCCommand{}
+	}
+	if ans.IncludeCommandsFiles == nil {
+		ans.IncludeCommandsFiles = []string{}
 	}
 
 	for idx, _ := range ans.Projects {
@@ -77,6 +81,10 @@ func (e *LxdCEnvironment) GetCommand(name string) (*LxdCCommand, error) {
 	return nil, errors.New("Command + " + name + " not available.")
 }
 
+func (e *LxdCEnvironment) AddCommand(cmd *LxdCCommand) {
+	e.Commands = append(e.Commands, *cmd)
+}
+
 func (e *LxdCEnvironment) GetProfile(name string) (LxdCProfile, error) {
 	ans := LxdCProfile{}
 
@@ -103,4 +111,13 @@ func (e *LxdCEnvironment) GetNetwork(name string) (LxdCNetwork, error) {
 	}
 
 	return ans, errors.New("Network " + name + " not available.")
+}
+
+func (e *LxdCEnvironment) GetBaseFile() string {
+	ans := ""
+	if e.File != "" {
+		ans = path.Base(e.File)
+	}
+
+	return ans
 }

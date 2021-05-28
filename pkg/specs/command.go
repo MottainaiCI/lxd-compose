@@ -24,6 +24,8 @@ package specs
 import (
 	"errors"
 	"fmt"
+
+	"gopkg.in/yaml.v2"
 )
 
 func (c *LxdCCommand) GetName() string            { return c.Name }
@@ -61,4 +63,13 @@ func (c *LxdCCommand) PrepareProject(proj *LxdCProject) error {
 	}
 
 	return nil
+}
+
+func CommandFromYaml(data []byte) (*LxdCCommand, error) {
+	ans := &LxdCCommand{}
+	if err := yaml.Unmarshal(data, ans); err != nil {
+		return nil, err
+	}
+
+	return ans, nil
 }

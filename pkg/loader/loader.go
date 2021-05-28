@@ -406,6 +406,54 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 		return err
 	}
 
+	// Load externl command
+	if len(env.IncludeCommandsFiles) > 0 {
+
+		for _, cfile := range env.IncludeCommandsFiles {
+
+			if !helpers.Exists(path.Join(envBaseDir, cfile)) {
+				i.Logger.Warning("For environment", env.GetBaseFile(),
+					"included command file", cfile,
+					"is not present.")
+				continue
+			}
+
+			content, err := ioutil.ReadFile(path.Join(envBaseDir, cfile))
+			if err != nil {
+				i.Logger.Debug("On read file", cfile, ":", err.Error())
+				i.Logger.Debug("File", cfile, "skipped.")
+				continue
+			}
+
+			if i.Config.IsEnableRenderEngine() {
+				// Render file
+				renderOut, err := helpers.RenderContent(string(content),
+					i.Config.RenderValuesFile,
+					i.Config.RenderDefaultFile,
+					cfile,
+					i.Config.RenderEnvsVars,
+				)
+				if err != nil {
+					return err
+				}
+
+				content = []byte(renderOut)
+			}
+
+			cmd, err := specs.CommandFromYaml(content)
+			if err != nil {
+				i.Logger.Debug("On parse file", cfile, ":", err.Error())
+				i.Logger.Debug("File", cfile, "skipped.")
+				continue
+			}
+
+			i.Logger.Debug("For environment " + env.GetBaseFile() +
+				" add command " + cmd.GetName())
+
+			env.AddCommand(cmd)
+		}
+	}
+
 	for idx, proj := range env.Projects {
 
 		// Load external groups files

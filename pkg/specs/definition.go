@@ -29,7 +29,8 @@ type LxdCEnvironment struct {
 
 	Projects []LxdCProject `json:"projects" yaml:"projects"`
 
-	Commands []LxdCCommand `json:"commands,omitempty" yaml:"commands,omitempty"`
+	Commands             []LxdCCommand `json:"commands,omitempty" yaml:"commands,omitempty"`
+	IncludeCommandsFiles []string      `json:"include_commands_files,omitempty" yaml:"include_commands_files,omitempty"`
 
 	Profiles []LxdCProfile `json:"profiles,omitempty" yaml:"profiles,omitempty"`
 	Networks []LxdCNetwork `json:"networks,omitempty" yaml:"networks,omitempty"`
