@@ -33,9 +33,10 @@ import (
 
 func newValidateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "validate",
-		Short: "Validate environments.",
-		Args:  cobra.NoArgs,
+		Use:     "validate",
+		Short:   "Validate environments.",
+		Aliases: []string{"v"},
+		Args:    cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 
 			ignoreError, _ := cmd.Flags().GetBool("ignore-errors")

@@ -30,9 +30,10 @@ import (
 
 func newDiagnoseCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "diagnose [command] [OPTIONS]",
-		Short: "Execute diagnose on loaded environments.",
-		Args:  cobra.NoArgs,
+		Use:     "diagnose [command] [OPTIONS]",
+		Aliases: []string{"di"},
+		Short:   "Execute diagnose on loaded environments.",
+		Args:    cobra.NoArgs,
 	}
 
 	cmd.AddCommand(

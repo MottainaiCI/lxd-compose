@@ -37,8 +37,9 @@ import (
 
 func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "list",
-		Short: "list of nodes available to the specified endpoint.",
+		Use:     "list",
+		Aliases: []string{"l"},
+		Short:   "list of nodes available to the specified endpoint.",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")

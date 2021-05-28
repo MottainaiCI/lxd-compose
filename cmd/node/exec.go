@@ -37,9 +37,10 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var envs []string
 
 	var cmd = &cobra.Command{
-		Use:   "exec node [command]",
-		Short: "Execute a command to a node or a list of nodes.",
-		Args:  cobra.MinimumNArgs(2),
+		Use:     "exec node [command]",
+		Aliases: []string{"e", "exec"},
+		Short:   "Execute a command to a node or a list of nodes.",
+		Args:    cobra.MinimumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")

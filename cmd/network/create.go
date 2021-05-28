@@ -34,8 +34,9 @@ import (
 
 func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "create [project] [net1] [net1]",
-		Short: "create LXD Networks defined on environment to a specific endpoint or to all groups.",
+		Use:     "create [project] [net1] [net1]",
+		Short:   "create LXD Networks defined on environment to a specific endpoint or to all groups.",
+		Aliases: []string{"c"},
 		PreRun: func(cmd *cobra.Command, args []string) {
 			all, _ := cmd.Flags().GetBool("all")
 			if len(args) == 0 {

@@ -30,9 +30,10 @@ import (
 
 func newGroupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "group [command] [OPTIONS]",
-		Short: "Execute specific operations for groups",
-		Args:  cobra.NoArgs,
+		Use:     "group [command] [OPTIONS]",
+		Aliases: []string{"g"},
+		Short:   "Execute specific operations for groups",
+		Args:    cobra.NoArgs,
 	}
 
 	cmd.AddCommand(

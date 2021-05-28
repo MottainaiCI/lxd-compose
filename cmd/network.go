@@ -30,9 +30,10 @@ import (
 
 func newNetworkCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "network [command] [OPTIONS]",
-		Short: "Execute specific operations for LXD Networks",
-		Args:  cobra.NoArgs,
+		Use:     "network [command] [OPTIONS]",
+		Aliases: []string{"n"},
+		Short:   "Execute specific operations for LXD Networks",
+		Args:    cobra.NoArgs,
 	}
 
 	cmd.AddCommand(

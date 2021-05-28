@@ -34,9 +34,10 @@ import (
 
 func NewPushCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "push [node] [opts]",
-		Short: "Push files to node.",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "push [node] [opts]",
+		Aliases: []string{"p", "pu"},
+		Short:   "Push files to node.",
+		Args:    cobra.MaximumNArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				fmt.Println("Missing node name param")

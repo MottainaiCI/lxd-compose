@@ -33,8 +33,9 @@ import (
 
 func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "destroy [list-of-projects]",
-		Short: "Destroy projects.",
+		Use:     "destroy [list-of-projects]",
+		Short:   "Destroy projects.",
+		Aliases: []string{"d"},
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				fmt.Println("No project selected.")

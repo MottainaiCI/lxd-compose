@@ -34,8 +34,9 @@ import (
 
 func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "create [project] [profile1] [profile2]",
-		Short: "create LXD profiles available on environment to a specific endpoint or to all groups.",
+		Use:     "create [project] [profile1] [profile2]",
+		Aliases: []string{"c"},
+		Short:   "create LXD profiles available on environment to a specific endpoint or to all groups.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			all, _ := cmd.Flags().GetBool("all")
 			if len(args) == 0 {

@@ -35,9 +35,10 @@ import (
 
 func NewSyncCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "sync [node]",
-		Short: "Sync node files.",
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "sync [node]",
+		Short:   "Sync node files.",
+		Aliases: []string{"s"},
+		Args:    cobra.MaximumNArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				fmt.Println("Missing node name param")

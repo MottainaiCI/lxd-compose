@@ -30,9 +30,10 @@ import (
 
 func newProjectCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "project [command] [OPTIONS]",
-		Short: "Execute project operations.",
-		Args:  cobra.NoArgs,
+		Use:     "project [command] [OPTIONS]",
+		Aliases: []string{"p", "pj"},
+		Short:   "Execute project operations.",
+		Args:    cobra.NoArgs,
 	}
 
 	cmd.AddCommand(

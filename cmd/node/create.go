@@ -38,9 +38,10 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var envs []string
 
 	var cmd = &cobra.Command{
-		Use:   "create node1 node2",
-		Short: "Create one or more nodes.",
-		Args:  cobra.MinimumNArgs(1),
+		Use:     "create node1 node2",
+		Aliases: []string{"c"},
+		Short:   "Create one or more nodes.",
+		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 
 			postCreationHooks, _ := cmd.Flags().GetBool("hooks")

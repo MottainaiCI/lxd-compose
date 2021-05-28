@@ -41,8 +41,9 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var varsFiles []string
 
 	var cmd = &cobra.Command{
-		Use:   "apply [list-of-projects]",
-		Short: "Deploy projects.",
+		Use:     "apply [list-of-projects]",
+		Short:   "Deploy projects.",
+		Aliases: []string{"a"},
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				fmt.Println("No project selected.")

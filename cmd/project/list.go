@@ -36,8 +36,9 @@ import (
 
 func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "list",
-		Short: "List all loaded projects.",
+		Use:     "list",
+		Aliases: []string{"l", "li"},
+		Short:   "List all loaded projects.",
 		Run: func(cmd *cobra.Command, args []string) {
 			projects := []specs.LxdCProjectSanitized{}
 

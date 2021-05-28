@@ -36,9 +36,10 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var projects []string
 	var sources []string
 	var cmd = &cobra.Command{
-		Use:   "compile",
-		Short: "Compile project templates.",
-		Args:  cobra.NoArgs,
+		Use:     "compile",
+		Short:   "Compile project templates.",
+		Aliases: []string{"co"},
+		Args:    cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 
 			prefix, _ := cmd.Flags().GetString("nodes-prefix")

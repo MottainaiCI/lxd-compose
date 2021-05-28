@@ -36,8 +36,9 @@ import (
 
 func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "list",
-		Short: "list of environment commands.",
+		Use:     "list",
+		Aliases: []string{"l", "li"},
+		Short:   "list of environment commands.",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			jsonOutput, _ := cmd.Flags().GetBool("json")

@@ -36,8 +36,9 @@ import (
 
 func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "list <project>",
-		Short: "list of groups available int the project.",
+		Use:     "list <project>",
+		Aliases: []string{"l"},
+		Short:   "list of groups available int the project.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				fmt.Println("No project selected.")

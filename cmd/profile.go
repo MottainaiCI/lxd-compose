@@ -30,9 +30,10 @@ import (
 
 func newProfileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "profile [command] [OPTIONS]",
-		Short: "Execute specific operations for LXD profiles",
-		Args:  cobra.NoArgs,
+		Use:     "profile [command] [OPTIONS]",
+		Short:   "Execute specific operations for LXD profiles",
+		Aliases: []string{"pro", "pf"},
+		Args:    cobra.NoArgs,
 	}
 
 	cmd.AddCommand(

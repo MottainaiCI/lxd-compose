@@ -80,8 +80,9 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var envs []string
 
 	var cmd = &cobra.Command{
-		Use:   "run <project> <command>",
-		Short: "Run a command of environment commands.",
+		Use:     "run <project> <command>",
+		Aliases: []string{"r"},
+		Short:   "Run a command of environment commands.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) != 2 {
 				fmt.Println("Invalid argument. You need <project> and <command>.")
