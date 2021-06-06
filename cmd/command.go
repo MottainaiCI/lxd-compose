@@ -33,7 +33,7 @@ func newCommandCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Use:     "command [command] [OPTIONS]",
 		Short:   "Execute commands operations.",
 		Args:    cobra.NoArgs,
-		Aliases: []string{"cmd"},
+		Aliases: []string{"c", "cmd"},
 	}
 
 	cmd.AddCommand(
