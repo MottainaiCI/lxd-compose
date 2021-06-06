@@ -1,0 +1,42 @@
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+
+    goarm:
+      - 6
+      - 7
+
+    ldflags:
+      - >-
+        -s -w -X github.com/MottainaiCI/lxd-compose/cmd.BuildTime={{.Date}}
+        -X github.com/MottainaiCI/lxd-compose/cmd.BuildCommit={{.Commit}}
+
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      386: i386
+      amd64: x86_64
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^scripts:'
+      - '^contrib'
+      - '^lxd-conf'
+      - '^.lxd-compose.yml'
+
