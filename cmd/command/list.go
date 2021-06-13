@@ -109,7 +109,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	var flags = cmd.Flags()
 	flags.Bool("json", false, "JSON output")
-	flags.StringP("search", "s", "", "Regex filter to use with network name.")
+	flags.StringP("search", "s", "", "Regex filter to use with command name.")
 
 	return cmd
 }
