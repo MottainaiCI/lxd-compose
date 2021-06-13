@@ -91,10 +91,10 @@ func RenderContent(raw, valuesFile, defaultFile, originFile string,
 		Templates: []*chart.File{
 			{Name: "templates", Data: []byte(raw)},
 		},
-		Values: map[string]interface{}{"Values": values},
+		Values: map[string]interface{}{"Values": d},
 	}
 
-	v, err := chartutil.CoalesceValues(c, map[string]interface{}{"Values": d})
+	v, err := chartutil.CoalesceValues(c, map[string]interface{}{"Values": values})
 	if err != nil {
 		return "", errors.New(fmt.Sprintf(
 			"Error on coalesce values for file %s: %s", originFile, err.Error()))
