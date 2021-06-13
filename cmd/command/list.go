@@ -87,6 +87,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					table.SetColMinWidth(1, 10)
 					table.SetColMinWidth(2, 50)
 					table.SetColWidth(150)
+					table.SetAutoWrapText(false)
 
 					for _, c := range commands {
 						table.Append([]string{
