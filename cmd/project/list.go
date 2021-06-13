@@ -83,6 +83,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				table.SetHeader([]string{
 					"Project Name", "Description", "# Groups",
 				})
+				table.SetAutoWrapText(false)
 
 				for _, p := range projects {
 
