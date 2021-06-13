@@ -32,6 +32,9 @@ import (
 )
 
 func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var renderEnvs []string
+	var envs []string
+
 	var cmd = &cobra.Command{
 		Use:     "destroy [list-of-projects]",
 		Short:   "Destroy projects.",
@@ -47,7 +50,14 @@ func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
 
-			err := composer.LoadEnvironments()
+			// We need set this before loading phase
+			err := config.SetRenderEnvs(renderEnvs)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			err = composer.LoadEnvironments()
 			if err != nil {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
@@ -59,12 +69,32 @@ func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			projects := args[0:]
 
+			evars := specs.NewEnvVars()
+			if len(envs) > 0 {
+				for _, e := range envs {
+					err := evars.AddKVAggregated(e)
+					if err != nil {
+						fmt.Println(
+							fmt.Sprintf(
+								"Error on elaborate var string %s: %s",
+								e, err.Error(),
+							))
+						os.Exit(1)
+					}
+				}
+			}
+
 			for _, proj := range projects {
 
 				env := composer.GetEnvByProjectName(proj)
 				if env == nil {
 					fmt.Println("Project " + proj + " not found")
 					os.Exit(1)
+				}
+
+				if len(envs) > 0 {
+					p := env.GetProjectByName(proj)
+					p.AddEnvironment(evars)
 				}
 
 				err = composer.DestroyProject(proj)
@@ -81,6 +111,10 @@ func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
+	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
+		"Append render engine environments in the format key=value.")
+	flags.StringSliceVar(&envs, "env", []string{},
+		"Append project environments in the format key=value.")
 
 	return cmd
 }
