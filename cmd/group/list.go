@@ -94,6 +94,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				table.SetHeader([]string{
 					"Group Name", "Description", "# Nodes",
 				})
+				table.SetAutoWrapText(false)
 
 				for _, g := range groups {
 					table.Append([]string{
