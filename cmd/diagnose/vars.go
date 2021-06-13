@@ -36,6 +36,9 @@ import (
 )
 
 func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var renderEnvs []string
+	var envs []string
+
 	var cmd = &cobra.Command{
 		Use:   "vars [project]",
 		Short: "Dump variables of the project.",
@@ -52,7 +55,15 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
-			err := composer.LoadEnvironments()
+
+			// We need set this before loading phase
+			err := config.SetRenderEnvs(renderEnvs)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			err = composer.LoadEnvironments()
 			if err != nil {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
@@ -67,6 +78,23 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			proj := env.GetProjectByName(pName)
+
+			if len(envs) > 0 {
+				evars := specs.NewEnvVars()
+				for _, e := range envs {
+					err := evars.AddKVAggregated(e)
+					if err != nil {
+						fmt.Println(
+							fmt.Sprintf(
+								"Error on elaborate var string %s: %s",
+								e, err.Error(),
+							))
+						os.Exit(1)
+					}
+				}
+
+				proj.AddEnvironment(evars)
+			}
 
 			compiler, err := template.NewProjectTemplateCompiler(env, proj)
 			if err != nil {
@@ -110,8 +138,12 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		},
 	}
 
-	pflags := cmd.Flags()
-	pflags.Bool("json", false, "Dump variables in JSON format.")
+	flags := cmd.Flags()
+	flags.Bool("json", false, "Dump variables in JSON format.")
+	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
+		"Append render engine environments in the format key=value.")
+	flags.StringSliceVar(&envs, "env", []string{},
+		"Append project environments in the format key=value.")
 
 	return cmd
 }
