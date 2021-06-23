@@ -113,6 +113,10 @@ func (e *LxdCEnvironment) GetNetwork(name string) (LxdCNetwork, error) {
 	return ans, errors.New("Network " + name + " not available.")
 }
 
+func (e *LxdCEnvironment) AddNetwork(network *LxdCNetwork) {
+	e.Networks = append(e.Networks, *network)
+}
+
 func (e *LxdCEnvironment) GetBaseFile() string {
 	ans := ""
 	if e.File != "" {
@@ -120,4 +124,8 @@ func (e *LxdCEnvironment) GetBaseFile() string {
 	}
 
 	return ans
+}
+
+func (e *LxdCEnvironment) AddProfile(profile *LxdCProfile) {
+	e.Profiles = append(e.Profiles, *profile)
 }

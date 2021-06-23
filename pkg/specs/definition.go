@@ -32,8 +32,10 @@ type LxdCEnvironment struct {
 	Commands             []LxdCCommand `json:"commands,omitempty" yaml:"commands,omitempty"`
 	IncludeCommandsFiles []string      `json:"include_commands_files,omitempty" yaml:"include_commands_files,omitempty"`
 
-	Profiles []LxdCProfile `json:"profiles,omitempty" yaml:"profiles,omitempty"`
-	Networks []LxdCNetwork `json:"networks,omitempty" yaml:"networks,omitempty"`
+	Profiles             []LxdCProfile `json:"profiles,omitempty" yaml:"profiles,omitempty"`
+	IncludeProfilesFiles []string      `json:"include_profiles_files,omitempty" yaml:"include_profiles_files,omitempty"`
+	Networks             []LxdCNetwork `json:"networks,omitempty" yaml:"networks,omitempty"`
+	IncludeNetworkFiles  []string      `json:"include_networks_files,omitempty" yaml:"include_networks_files,omitempty"`
 }
 
 type LxdCProfile struct {

@@ -29,6 +29,13 @@ template_engine:
 #    devices:
       # map[string]map[string]string
 
+# Include network files
+# include_profiles_files:
+# - profiles/file1.yml
+
+# Include network files
+# include_networks_files:
+# - networks/file1.yml
 
 networks:
   - name: "mottainai1"

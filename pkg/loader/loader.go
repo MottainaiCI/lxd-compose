@@ -406,7 +406,107 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 		return err
 	}
 
-	// Load externl command
+	// Load external networks
+	if len(env.IncludeNetworkFiles) > 0 {
+
+		for _, nfile := range env.IncludeNetworkFiles {
+
+			if !helpers.Exists(path.Join(envBaseDir, nfile)) {
+				i.Logger.Warning("For environment", env.GetBaseFile(),
+					"included network file", nfile,
+					"is not present.")
+				continue
+			}
+
+			content, err := ioutil.ReadFile(path.Join(envBaseDir, nfile))
+			if err != nil {
+				i.Logger.Debug("On read file", nfile, ":", err.Error())
+				i.Logger.Debug("File", nfile, "skipped.")
+				continue
+			}
+
+			if i.Config.IsEnableRenderEngine() {
+				// Render file
+				renderOut, err := helpers.RenderContent(string(content),
+					i.Config.RenderValuesFile,
+					i.Config.RenderDefaultFile,
+					nfile,
+					i.Config.RenderEnvsVars,
+				)
+				if err != nil {
+					return err
+				}
+
+				content = []byte(renderOut)
+			}
+
+			network, err := specs.NetworkFromYaml(content)
+			if err != nil {
+				i.Logger.Debug("On parse file", nfile, ":", err.Error())
+				i.Logger.Debug("File", nfile, "skipped.")
+				continue
+			}
+
+			i.Logger.Debug("For environment " + env.GetBaseFile() +
+				" add network " + network.GetName())
+
+			env.AddNetwork(network)
+
+		}
+
+	}
+
+	// Load external profiles
+	if len(env.IncludeProfilesFiles) > 0 {
+
+		for _, pfile := range env.IncludeProfilesFiles {
+
+			if !helpers.Exists(path.Join(envBaseDir, pfile)) {
+				i.Logger.Warning("For environment", env.GetBaseFile(),
+					"included profile file", pfile,
+					"is not present.")
+				continue
+			}
+
+			content, err := ioutil.ReadFile(path.Join(envBaseDir, pfile))
+			if err != nil {
+				i.Logger.Debug("On read file", pfile, ":", err.Error())
+				i.Logger.Debug("File", pfile, "skipped.")
+				continue
+			}
+
+			if i.Config.IsEnableRenderEngine() {
+				// Render file
+				renderOut, err := helpers.RenderContent(string(content),
+					i.Config.RenderValuesFile,
+					i.Config.RenderDefaultFile,
+					pfile,
+					i.Config.RenderEnvsVars,
+				)
+				if err != nil {
+					return err
+				}
+
+				content = []byte(renderOut)
+			}
+
+			profile, err := specs.ProfileFromYaml(content)
+			if err != nil {
+				i.Logger.Debug("On parse file", pfile, ":", err.Error())
+				i.Logger.Debug("File", pfile, "skipped.")
+				continue
+			}
+
+			i.Logger.Debug("For environment " + env.GetBaseFile() +
+				" add profile " + profile.GetName())
+
+			env.AddProfile(profile)
+
+		}
+
+	}
+
+	// Load external command
 	if len(env.IncludeCommandsFiles) > 0 {
 
 		for _, cfile := range env.IncludeCommandsFiles {
