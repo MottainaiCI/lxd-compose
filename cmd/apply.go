@@ -31,6 +31,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func destroyProject(composer *loader.LxdCInstance, proj string) {
+	err := composer.DestroyProject(proj)
+	if err != nil {
+		fmt.Println("Error on destroy project " + proj + ": " + err.Error())
+	}
+}
+
 func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledFlags []string
 	var disabledFlags []string
@@ -69,6 +76,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			skipSync, _ := cmd.Flags().GetBool("skip-sync")
+			destroy, _ := cmd.Flags().GetBool("destroy")
 			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 
 			composer.SetFlagsDisabled(disabledFlags)
@@ -115,6 +123,9 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					pObj.AddEnvironment(evars)
 				}
 
+				if destroy {
+					defer destroyProject(composer, proj)
+				}
 				err = composer.ApplyProject(proj)
 				if err != nil {
 					fmt.Println("Error on apply project " + proj + ": " + err.Error())
@@ -144,6 +155,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
 		"Add additional environments vars file.")
 	flags.Bool("skip-sync", false, "Disable sync of files.")
+	flags.Bool("destroy", false, "Destroy the selected groups at the end.")
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
