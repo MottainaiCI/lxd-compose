@@ -46,6 +46,11 @@ func (i *LxdCInstance) DestroyProject(projectName string) error {
 
 	for _, grp := range proj.Groups {
 
+		if !grp.ToProcess(i.GroupsEnabled, i.GroupsDisabled) {
+			i.Logger.Debug("Skipped group ", grp.Name)
+			continue
+		}
+
 		err := i.DestroyGroup(&grp, proj, env)
 		if err != nil {
 			return err

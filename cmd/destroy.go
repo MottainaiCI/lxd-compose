@@ -34,6 +34,8 @@ import (
 func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var renderEnvs []string
 	var envs []string
+	var enabledGroups []string
+	var disabledGroups []string
 
 	var cmd = &cobra.Command{
 		Use:     "destroy [list-of-projects]",
@@ -66,6 +68,8 @@ func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 
 			composer.SetNodesPrefix(prefix)
+			composer.SetGroupsDisabled(disabledGroups)
+			composer.SetGroupsEnabled(enabledGroups)
 
 			projects := args[0:]
 
@@ -115,6 +119,10 @@ func newDestroyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Append render engine environments in the format key=value.")
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	flags.StringSliceVar(&disabledGroups, "disable-group", []string{},
+		"Skip selected group from deploy.")
+	flags.StringSliceVar(&enabledGroups, "enable-group", []string{},
+		"Apply only selected groups.")
 
 	return cmd
 }
