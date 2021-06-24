@@ -38,6 +38,8 @@ func (c *LxdCCommand) GetDisableFlags() []string  { return c.DisableFlags }
 func (c *LxdCCommand) GetEnableGroups() []string  { return c.EnableGroups }
 func (c *LxdCCommand) GetDisableGroups() []string { return c.DisableFlags }
 func (c *LxdCCommand) GetVarFiles() []string      { return c.VarFiles }
+func (c *LxdCCommand) GetSkipSync() bool          { return c.SkipSync }
+func (c *LxdCCommand) GetDestroy() bool           { return c.Destroy }
 
 func (c *LxdCCommand) PrepareProject(proj *LxdCProject) error {
 

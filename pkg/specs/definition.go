@@ -153,6 +153,7 @@ type LxdCCommand struct {
 	ApplyAlias  bool   `json:"apply_alias,omitempty" yaml:"apply_alias,omitempty"`
 
 	SkipSync bool `json:"skip_sync,omitempty" yaml:"skip_sync,omitempty"`
+	Destroy  bool `json:"destroy,omitempty" yaml:"destroy,omitempty"`
 
 	NodesPrefix string `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 

@@ -32,6 +32,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func destroyProject(composer *loader.LxdCInstance, proj string) {
+	err := composer.DestroyProject(proj)
+	if err != nil {
+		fmt.Println("Error on destroy project " + proj + ": " + err.Error())
+	}
+}
+
 func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance,
 	proj *specs.LxdCProject, envs []string) error {
 
@@ -61,6 +68,10 @@ func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance,
 		}
 
 		proj.AddEnvironment(evars)
+	}
+
+	if c.GetDestroy() {
+		defer destroyProject(composer, proj.GetName())
 	}
 
 	err = composer.ApplyProject(proj.GetName())
