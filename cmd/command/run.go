@@ -101,6 +101,9 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+
+			destroy, _ := cmd.Flags().GetBool("destroy")
+
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
 
@@ -133,6 +136,10 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			if destroy {
+				command.Destroy = destroy
+			}
+
 			err = ApplyCommand(command, composer, env.GetProjectByName(pname), envs)
 			if err != nil {
 				fmt.Println(err.Error())
@@ -148,6 +155,7 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Append render engine environments in the format key=value.")
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	flags.Bool("destroy", false, "Destroy the selected groups at the end.")
 
 	return cmd
 }
