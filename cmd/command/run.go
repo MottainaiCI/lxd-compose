@@ -103,6 +103,7 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			destroy, _ := cmd.Flags().GetBool("destroy")
+			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -140,6 +141,10 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				command.Destroy = destroy
 			}
 
+			if prefix != "" {
+				command.NodesPrefix = prefix
+			}
+
 			err = ApplyCommand(command, composer, env.GetProjectByName(pname), envs)
 			if err != nil {
 				fmt.Println(err.Error())
@@ -156,6 +161,7 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
 	flags.Bool("destroy", false, "Destroy the selected groups at the end.")
+	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 
 	return cmd
 }
