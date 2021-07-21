@@ -403,6 +403,10 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			return err
 		}
 
+		i.Logger.Debug(fmt.Sprintf(
+			"[%s - %s] Node %s is present: %v.",
+			proj.Name, group.Name, node.GetName(), isPresent))
+
 		if !isPresent {
 
 			// Retrieve pre-node-creation hooks
