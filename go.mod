@@ -33,15 +33,15 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
 	go.uber.org/zap v1.17.0
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/mod v0.3.1-0.20200828183125-ce943fd02449 // indirect
-	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
 	gopkg.in/macaroon-bakery.v2 v2.2.0 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.5.0
+	helm.sh/helm/v3 v3.6.1
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
+	sigs.k8s.io/kustomize v2.0.3+incompatible // indirect
 )
 
 replace github.com/renstrom/dedent v1.1.0 => github.com/lithammer/dedent v1.1.0

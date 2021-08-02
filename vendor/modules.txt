@@ -1,6 +1,6 @@
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
-# github.com/Masterminds/goutils v1.1.0
+# github.com/Masterminds/goutils v1.1.1
 github.com/Masterminds/goutils
 # github.com/Masterminds/semver v1.5.0
 ## explicit
@@ -10,7 +10,7 @@ github.com/Masterminds/semver/v3
 # github.com/Masterminds/sprig v2.22.0+incompatible
 ## explicit
 github.com/Masterminds/sprig
-# github.com/Masterminds/sprig/v3 v3.2.0
+# github.com/Masterminds/sprig/v3 v3.2.2
 github.com/Masterminds/sprig/v3
 # github.com/MottainaiCI/mottainai-server v0.0.0-20210508100055-c7e87a8199bf
 ## explicit
@@ -27,7 +27,7 @@ github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
-# github.com/go-logr/logr v0.2.0
+# github.com/go-logr/logr v0.4.0
 github.com/go-logr/logr
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
@@ -47,6 +47,12 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+# github.com/google/go-cmp v0.5.2
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/flags
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
 # github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
 # github.com/google/uuid v1.1.2
@@ -130,7 +136,7 @@ github.com/lxc/lxd/shared/validate
 github.com/magiconair/properties
 # github.com/mattn/go-runewidth v0.0.9
 github.com/mattn/go-runewidth
-# github.com/mitchellh/copystructure v1.0.0
+# github.com/mitchellh/copystructure v1.1.1
 github.com/mitchellh/copystructure
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
@@ -236,8 +242,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
-## explicit
+# golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
@@ -252,7 +257,7 @@ golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/mod v0.3.1-0.20200828183125-ce943fd02449
 ## explicit
-# golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+# golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -266,12 +271,15 @@ golang.org/x/net/publicsuffix
 # golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+# golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
+golang.org/x/term
 # golang.org/x/text v0.3.4
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -293,7 +301,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+# golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
@@ -368,7 +376,7 @@ gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit
 gopkg.in/yaml.v2
-# helm.sh/helm/v3 v3.5.0
+# helm.sh/helm/v3 v3.6.1
 ## explicit
 helm.sh/helm/v3/internal/ignore
 helm.sh/helm/v3/internal/sympath
@@ -379,7 +387,7 @@ helm.sh/helm/v3/pkg/chartutil
 helm.sh/helm/v3/pkg/engine
 # honnef.co/go/tools v0.0.1-2020.1.4
 ## explicit
-# k8s.io/api v0.20.1
+# k8s.io/api v0.21.0
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
 k8s.io/api/apiserverinternal/v1alpha1
@@ -395,13 +403,12 @@ k8s.io/api/autoscaling/v2beta1
 k8s.io/api/autoscaling/v2beta2
 k8s.io/api/batch/v1
 k8s.io/api/batch/v1beta1
-k8s.io/api/batch/v2alpha1
 k8s.io/api/certificates/v1
 k8s.io/api/certificates/v1beta1
 k8s.io/api/coordination/v1
 k8s.io/api/coordination/v1beta1
 k8s.io/api/core/v1
-k8s.io/api/discovery/v1alpha1
+k8s.io/api/discovery/v1
 k8s.io/api/discovery/v1beta1
 k8s.io/api/events/v1
 k8s.io/api/events/v1beta1
@@ -413,6 +420,7 @@ k8s.io/api/networking/v1beta1
 k8s.io/api/node/v1
 k8s.io/api/node/v1alpha1
 k8s.io/api/node/v1beta1
+k8s.io/api/policy/v1
 k8s.io/api/policy/v1beta1
 k8s.io/api/rbac/v1
 k8s.io/api/rbac/v1alpha1
@@ -423,11 +431,11 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apiextensions-apiserver v0.20.1
+# k8s.io/apiextensions-apiserver v0.21.0
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1
-# k8s.io/apimachinery v0.20.1
+# k8s.io/apimachinery v0.21.0
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -464,7 +472,7 @@ k8s.io/apimachinery/pkg/util/yaml
 k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/client-go v0.20.1
+# k8s.io/client-go v0.21.0
 k8s.io/client-go/discovery
 k8s.io/client-go/dynamic
 k8s.io/client-go/kubernetes/scheme
@@ -483,12 +491,14 @@ k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
-# k8s.io/klog/v2 v2.4.0
+# k8s.io/klog/v2 v2.8.0
 k8s.io/klog/v2
 # k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 k8s.io/utils/integer
 k8s.io/utils/pointer
-# sigs.k8s.io/structured-merge-diff/v4 v4.0.2
+# sigs.k8s.io/kustomize v2.0.3+incompatible
+## explicit
+# sigs.k8s.io/structured-merge-diff/v4 v4.1.0
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
