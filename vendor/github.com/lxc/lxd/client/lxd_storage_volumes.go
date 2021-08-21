@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
 	"github.com/lxc/lxd/shared/cancel"
 	"github.com/lxc/lxd/shared/ioprogress"
@@ -254,7 +255,7 @@ func (r *ProtocolLXD) MigrateStoragePoolVolume(pool string, volume api.StorageVo
 		return nil, fmt.Errorf("The server is missing the required \"storage_api_remote_volume_handling\" API extension")
 	}
 
-	// Sanity check
+	// Quick check.
 	if !volume.Migration {
 		return nil, fmt.Errorf("Can't ask for a rename through MigrateStoragePoolVolume")
 	}
@@ -283,14 +284,14 @@ func (r *ProtocolLXD) tryMigrateStoragePoolVolume(source InstanceServer, pool st
 	// Forward targetOp to remote op
 	go func() {
 		success := false
-		errors := map[string]error{}
+		var errors []remoteOperationResult
 		for _, serverURL := range urls {
 			req.Target.Operation = fmt.Sprintf("%s/1.0/operations/%s", serverURL, url.PathEscape(operation))
 
 			// Send the request
 			top, err := source.MigrateStoragePoolVolume(pool, req)
 			if err != nil {
-				errors[serverURL] = err
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
 				continue
 			}
 
@@ -305,8 +306,13 @@ func (r *ProtocolLXD) tryMigrateStoragePoolVolume(source InstanceServer, pool st
 
 			err = rop.targetOp.Wait()
 			if err != nil {
-				errors[serverURL] = err
-				continue
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
+
+				if shared.IsConnectionError(err) {
+					continue
+				}
+
+				break
 			}
 
 			success = true
@@ -337,7 +343,7 @@ func (r *ProtocolLXD) tryCreateStoragePoolVolume(pool string, req api.StorageVol
 	// Forward targetOp to remote op
 	go func() {
 		success := false
-		errors := map[string]error{}
+		var errors []remoteOperationResult
 		for _, serverURL := range urls {
 			req.Source.Operation = fmt.Sprintf("%s/1.0/operations/%s", serverURL, url.PathEscape(operation))
 
@@ -345,7 +351,7 @@ func (r *ProtocolLXD) tryCreateStoragePoolVolume(pool string, req api.StorageVol
 			path := fmt.Sprintf("/storage-pools/%s/volumes/%s", url.PathEscape(pool), url.PathEscape(req.Type))
 			top, _, err := r.queryOperation("POST", path, req, "")
 			if err != nil {
-				errors[serverURL] = err
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
 				continue
 			}
 
@@ -360,8 +366,13 @@ func (r *ProtocolLXD) tryCreateStoragePoolVolume(pool string, req api.StorageVol
 
 			err = rop.targetOp.Wait()
 			if err != nil {
-				errors[serverURL] = err
-				continue
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
+
+				if shared.IsConnectionError(err) {
+					continue
+				}
+
+				break
 			}
 
 			success = true
@@ -402,7 +413,25 @@ func (r *ProtocolLXD) CopyStoragePoolVolume(pool string, source InstanceServer, 
 	req.Description = volume.Description
 	req.ContentType = volume.ContentType
 
-	if r == source {
+	sourceInfo, err := source.GetConnectionInfo()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get source connection info: %v", err)
+	}
+
+	destInfo, err := r.GetConnectionInfo()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get destination connection info: %v", err)
+	}
+
+	if destInfo.URL == sourceInfo.URL && destInfo.SocketPath == sourceInfo.SocketPath {
+		// Project handling
+		if destInfo.Project != sourceInfo.Project {
+			if !r.HasExtension("storage_api_project") {
+				return nil, fmt.Errorf("The server is missing the required \"storage_api_project\" API extension")
+			}
+			req.Source.Project = sourceInfo.Project
+		}
+
 		// Send the request
 		op, _, err := r.queryOperation("POST", fmt.Sprintf("/storage-pools/%s/volumes/%s", url.PathEscape(pool), url.PathEscape(volume.Type)), req, "")
 		if err != nil {
@@ -428,10 +457,12 @@ func (r *ProtocolLXD) CopyStoragePoolVolume(pool string, source InstanceServer, 
 	}
 
 	sourceReq := api.StorageVolumePost{
-		Migration:  true,
-		Name:       volume.Name,
-		Pool:       sourcePool,
-		VolumeOnly: args.VolumeOnly,
+		Migration: true,
+		Name:      volume.Name,
+		Pool:      sourcePool,
+	}
+	if args != nil {
+		sourceReq.VolumeOnly = args.VolumeOnly
 	}
 
 	// Push mode migration
@@ -822,11 +853,6 @@ func (r *ProtocolLXD) CreateStoragePoolVolumeFromBackup(pool string, args Storag
 
 	if args.Name != "" {
 		req.Header.Set("X-LXD-name", args.Name)
-	}
-
-	// Set the user agent.
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
 	}
 
 	// Send the request.

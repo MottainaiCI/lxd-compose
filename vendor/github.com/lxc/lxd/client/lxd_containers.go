@@ -117,11 +117,6 @@ func (r *ProtocolLXD) CreateContainerFromBackup(args ContainerBackupArgs) (Opera
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("X-LXD-pool", args.PoolName)
 
-	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
-	}
-
 	// Send the request
 	resp, err := r.do(req)
 	if err != nil {
@@ -182,7 +177,7 @@ func (r *ProtocolLXD) tryCreateContainer(req api.ContainersPost, urls []string) 
 	// Forward targetOp to remote op
 	go func() {
 		success := false
-		errors := map[string]error{}
+		var errors []remoteOperationResult
 		for _, serverURL := range urls {
 			if operation == "" {
 				req.Source.Server = serverURL
@@ -192,7 +187,7 @@ func (r *ProtocolLXD) tryCreateContainer(req api.ContainersPost, urls []string) 
 
 			op, err := r.CreateContainer(req)
 			if err != nil {
-				errors[serverURL] = err
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
 				continue
 			}
 
@@ -204,8 +199,13 @@ func (r *ProtocolLXD) tryCreateContainer(req api.ContainersPost, urls []string) 
 
 			err = rop.targetOp.Wait()
 			if err != nil {
-				errors[serverURL] = err
-				continue
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
+
+				if shared.IsConnectionError(err) {
+					continue
+				}
+
+				break
 			}
 
 			success = true
@@ -296,7 +296,7 @@ func (r *ProtocolLXD) CopyContainer(source InstanceServer, container api.Contain
 
 	// Process the copy arguments
 	if args != nil {
-		// Sanity checks
+		// Quick checks.
 		if args.ContainerOnly {
 			if !r.HasExtension("container_only_migration") {
 				return nil, fmt.Errorf("The target server is missing the required \"container_only_migration\" API extension")
@@ -512,7 +512,7 @@ func (r *ProtocolLXD) UpdateContainer(name string, container api.ContainerPut, E
 
 // RenameContainer requests that LXD renames the container
 func (r *ProtocolLXD) RenameContainer(name string, container api.ContainerPost) (Operation, error) {
-	// Sanity check
+	// Quick check.
 	if container.Migration {
 		return nil, fmt.Errorf("Can't ask for a migration through RenameContainer")
 	}
@@ -540,13 +540,13 @@ func (r *ProtocolLXD) tryMigrateContainer(source InstanceServer, name string, re
 	// Forward targetOp to remote op
 	go func() {
 		success := false
-		errors := map[string]error{}
+		var errors []remoteOperationResult
 		for _, serverURL := range urls {
 			req.Target.Operation = fmt.Sprintf("%s/1.0/operations/%s", serverURL, url.PathEscape(operation))
 
 			op, err := source.MigrateContainer(name, req)
 			if err != nil {
-				errors[serverURL] = err
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
 				continue
 			}
 
@@ -558,8 +558,13 @@ func (r *ProtocolLXD) tryMigrateContainer(source InstanceServer, name string, re
 
 			err = rop.targetOp.Wait()
 			if err != nil {
-				errors[serverURL] = err
-				continue
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
+
+				if shared.IsConnectionError(err) {
+					continue
+				}
+
+				break
 			}
 
 			success = true
@@ -584,7 +589,7 @@ func (r *ProtocolLXD) MigrateContainer(name string, container api.ContainerPost)
 		}
 	}
 
-	// Sanity check
+	// Quick check.
 	if !container.Migration {
 		return nil, fmt.Errorf("Can't ask for a rename through MigrateContainer")
 	}
@@ -772,11 +777,6 @@ func (r *ProtocolLXD) GetContainerFile(containerName string, path string) (io.Re
 		return nil, nil, err
 	}
 
-	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
-	}
-
 	// Send the request
 	resp, err := r.do(req)
 	if err != nil {
@@ -856,11 +856,6 @@ func (r *ProtocolLXD) CreateContainerFile(containerName string, path string, arg
 	req, err := http.NewRequest("POST", requestURL, args.Content)
 	if err != nil {
 		return err
-	}
-
-	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
 	}
 
 	// Set the various headers
@@ -1006,7 +1001,7 @@ func (r *ProtocolLXD) CopyContainerSnapshot(source InstanceServer, containerName
 
 	// Process the copy arguments
 	if args != nil {
-		// Sanity checks
+		// Quick checks.
 		if shared.StringInSlice(args.Mode, []string{"push", "relay"}) {
 			if !r.HasExtension("container_push") {
 				return nil, fmt.Errorf("The target server is missing the required \"container_push\" API extension")
@@ -1188,7 +1183,7 @@ func (r *ProtocolLXD) CopyContainerSnapshot(source InstanceServer, containerName
 
 // RenameContainerSnapshot requests that LXD renames the snapshot
 func (r *ProtocolLXD) RenameContainerSnapshot(containerName string, name string, container api.ContainerSnapshotPost) (Operation, error) {
-	// Sanity check
+	// Quick check.
 	if container.Migration {
 		return nil, fmt.Errorf("Can't ask for a migration through RenameContainerSnapshot")
 	}
@@ -1216,13 +1211,13 @@ func (r *ProtocolLXD) tryMigrateContainerSnapshot(source InstanceServer, contain
 	// Forward targetOp to remote op
 	go func() {
 		success := false
-		errors := map[string]error{}
+		var errors []remoteOperationResult
 		for _, serverURL := range urls {
 			req.Target.Operation = fmt.Sprintf("%s/1.0/operations/%s", serverURL, url.PathEscape(operation))
 
 			op, err := source.MigrateContainerSnapshot(containerName, name, req)
 			if err != nil {
-				errors[serverURL] = err
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
 				continue
 			}
 
@@ -1234,8 +1229,13 @@ func (r *ProtocolLXD) tryMigrateContainerSnapshot(source InstanceServer, contain
 
 			err = rop.targetOp.Wait()
 			if err != nil {
-				errors[serverURL] = err
-				continue
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
+
+				if shared.IsConnectionError(err) {
+					continue
+				}
+
+				break
 			}
 
 			success = true
@@ -1254,7 +1254,7 @@ func (r *ProtocolLXD) tryMigrateContainerSnapshot(source InstanceServer, contain
 
 // MigrateContainerSnapshot requests that LXD prepares for a snapshot migration
 func (r *ProtocolLXD) MigrateContainerSnapshot(containerName string, name string, container api.ContainerSnapshotPost) (Operation, error) {
-	// Sanity check
+	// Quick check.
 	if !container.Migration {
 		return nil, fmt.Errorf("Can't ask for a rename through MigrateContainerSnapshot")
 	}
@@ -1356,11 +1356,6 @@ func (r *ProtocolLXD) GetContainerLogfile(name string, filename string) (io.Read
 		return nil, err
 	}
 
-	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
-	}
-
 	// Send the request
 	resp, err := r.do(req)
 	if err != nil {
@@ -1456,11 +1451,6 @@ func (r *ProtocolLXD) GetContainerTemplateFile(containerName string, templateNam
 		return nil, err
 	}
 
-	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
-	}
-
 	// Send the request
 	resp, err := r.do(req)
 	if err != nil {
@@ -1496,11 +1486,6 @@ func (r *ProtocolLXD) CreateContainerTemplateFile(containerName string, template
 		return err
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
-
-	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
-	}
 
 	// Send the request
 	resp, err := r.do(req)
@@ -1617,11 +1602,6 @@ func (r *ProtocolLXD) GetContainerConsoleLog(containerName string, args *Contain
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
-	}
-
-	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
 	}
 
 	// Send the request

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -28,6 +29,92 @@ type Event struct {
 	Location string `yaml:"location,omitempty" json:"location,omitempty"`
 }
 
+// ToLogging creates log record for the event
+func (event *Event) ToLogging() (EventLogRecord, error) {
+	if event.Type == "logging" {
+		e := &EventLogging{}
+		err := json.Unmarshal(event.Metadata, &e)
+		if err != nil {
+			return EventLogRecord{}, err
+		}
+
+		ctx := []interface{}{}
+		for k, v := range e.Context {
+			ctx = append(ctx, k)
+			ctx = append(ctx, v)
+		}
+
+		record := EventLogRecord{
+			Time: event.Timestamp,
+			Lvl:  e.Level,
+			Msg:  e.Message,
+			Ctx:  ctx,
+		}
+		return record, nil
+	} else if event.Type == "lifecycle" {
+		e := &EventLifecycle{}
+		err := json.Unmarshal(event.Metadata, &e)
+		if err != nil {
+			return EventLogRecord{}, err
+		}
+
+		ctx := []interface{}{}
+		for k, v := range e.Context {
+			ctx = append(ctx, k)
+			ctx = append(ctx, v)
+		}
+
+		record := EventLogRecord{
+			Time: event.Timestamp,
+			Lvl:  "info",
+			Ctx:  ctx,
+		}
+
+		if e.Requestor != nil {
+			requestor := fmt.Sprintf("%s/%s (%s)", e.Requestor.Protocol, e.Requestor.Username, e.Requestor.Address)
+			record.Msg = fmt.Sprintf("Action: %s, Source: %s, Requestor: %s", e.Action, e.Source, requestor)
+		} else {
+			record.Msg = fmt.Sprintf("Action: %s, Source: %s", e.Action, e.Source)
+		}
+
+		return record, nil
+	} else if event.Type == "operation" {
+		e := &Operation{}
+		err := json.Unmarshal(event.Metadata, &e)
+		if err != nil {
+			return EventLogRecord{}, err
+		}
+
+		record := EventLogRecord{
+			Time: event.Timestamp,
+			Lvl:  "info",
+			Msg:  fmt.Sprintf("ID: %s, Class: %s, Description: %s", e.ID, e.Class, e.Description),
+			Ctx: []interface{}{
+				"CreatedAt", e.CreatedAt,
+				"UpdatedAt", e.UpdatedAt,
+				"Status", e.Status,
+				"StatusCode", e.StatusCode,
+				"Resources", e.Resources,
+				"Metadata", e.Metadata,
+				"MayCancel", e.MayCancel,
+				"Err", e.Err,
+				"Location", e.Location,
+			},
+		}
+		return record, nil
+	}
+
+	return EventLogRecord{}, fmt.Errorf("Not supported event type: %s", event.Type)
+}
+
+// EventLogRecord represents single log record
+type EventLogRecord struct {
+	Time time.Time
+	Lvl  string
+	Msg  string
+	Ctx  []interface{}
+}
+
 // EventLogging represents a logging type event entry (admin only)
 type EventLogging struct {
 	Message string            `yaml:"message" json:"message"`
@@ -42,4 +129,21 @@ type EventLifecycle struct {
 	Action  string                 `yaml:"action" json:"action"`
 	Source  string                 `yaml:"source" json:"source"`
 	Context map[string]interface{} `yaml:"context,omitempty" json:"context,omitempty"`
+
+	// API extension: event_lifecycle_requestor
+	Requestor *EventLifecycleRequestor `yaml:"requestor,omitempty" json:"requestor,omitempty"`
+}
+
+// EventLifecycleRequestor represents the initial requestor for an event
+//
+// API extension: event_lifecycle_requestor
+type EventLifecycleRequestor struct {
+	Username string `yaml:"username" json:"username"`
+	Protocol string `yaml:"protocol" json:"protocol"`
+
+	// Requestor address
+	// Example: 10.0.2.15
+	//
+	// API extension: event_lifecycle_requestor_address
+	Address string `yaml:"address" json:"address"`
 }

@@ -104,7 +104,7 @@ func (r *ProtocolLXD) GetPrivateImage(fingerprint string, secret string) (*api.I
 
 // GetPrivateImageFile is similar to GetImageFile but allows passing a secret download token
 func (r *ProtocolLXD) GetPrivateImageFile(fingerprint string, secret string, req ImageFileRequest) (*ImageFileResponse, error) {
-	// Sanity checks
+	// Quick checks.
 	if req.MetaFile == nil && req.RootfsFile == nil {
 		return nil, fmt.Errorf("No file requested")
 	}
@@ -496,10 +496,6 @@ func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (
 	}
 
 	// Set the user agent
-	if r.httpUserAgent != "" {
-		req.Header.Set("User-Agent", r.httpUserAgent)
-	}
-
 	if image.Source != nil && image.Source.Fingerprint != "" && image.Source.Secret != "" && image.Source.Mode == "push" {
 		// Set fingerprint
 		req.Header.Set("X-LXD-fingerprint", image.Source.Fingerprint)
@@ -583,13 +579,13 @@ func (r *ProtocolLXD) tryCopyImage(req api.ImagesPost, urls []string) (RemoteOpe
 	// Forward targetOp to remote op
 	go func() {
 		success := false
-		errors := map[string]error{}
+		var errors []remoteOperationResult
 		for _, serverURL := range urls {
 			req.Source.Server = serverURL
 
 			op, err := r.CreateImage(req, nil)
 			if err != nil {
-				errors[serverURL] = err
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
 				continue
 			}
 
@@ -603,8 +599,13 @@ func (r *ProtocolLXD) tryCopyImage(req api.ImagesPost, urls []string) (RemoteOpe
 
 			err = rop.targetOp.Wait()
 			if err != nil {
-				errors[serverURL] = err
-				continue
+				errors = append(errors, remoteOperationResult{URL: serverURL, Error: err})
+
+				if shared.IsConnectionError(err) {
+					continue
+				}
+
+				break
 			}
 
 			success = true
@@ -623,7 +624,7 @@ func (r *ProtocolLXD) tryCopyImage(req api.ImagesPost, urls []string) (RemoteOpe
 
 // CopyImage copies an image from a remote server. Additional options can be passed using ImageCopyArgs
 func (r *ProtocolLXD) CopyImage(source ImageServer, image api.Image, args *ImageCopyArgs) (RemoteOperation, error) {
-	// Sanity checks
+	// Quick checks.
 	if r == source {
 		return nil, fmt.Errorf("The source and target servers must be different")
 	}

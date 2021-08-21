@@ -20,7 +20,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/lxc/lxd v0.0.0-20210507013419-5ff45e701cb8
+	github.com/lxc/lxd v0.0.0-20210805235317-774489441569
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3

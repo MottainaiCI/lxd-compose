@@ -115,17 +115,21 @@ github.com/kyokomi/emoji
 # github.com/logrusorgru/aurora v2.0.3+incompatible
 ## explicit
 github.com/logrusorgru/aurora
-# github.com/lxc/lxd v0.0.0-20210507013419-5ff45e701cb8
+# github.com/lxc/lxd v0.0.0-20210805235317-774489441569
 ## explicit
 github.com/lxc/lxd/client
 github.com/lxc/lxd/lxc/config
 github.com/lxc/lxd/lxc/utils
 github.com/lxc/lxd/lxd/include
+github.com/lxc/lxd/lxd/instance/instancetype
 github.com/lxc/lxd/shared
 github.com/lxc/lxd/shared/api
 github.com/lxc/lxd/shared/cancel
 github.com/lxc/lxd/shared/i18n
 github.com/lxc/lxd/shared/ioprogress
+github.com/lxc/lxd/shared/log15
+github.com/lxc/lxd/shared/log15/stack
+github.com/lxc/lxd/shared/log15/term
 github.com/lxc/lxd/shared/logger
 github.com/lxc/lxd/shared/osarch
 github.com/lxc/lxd/shared/simplestreams
@@ -134,6 +138,10 @@ github.com/lxc/lxd/shared/units
 github.com/lxc/lxd/shared/validate
 # github.com/magiconair/properties v1.8.5
 github.com/magiconair/properties
+# github.com/mattn/go-colorable v0.1.2
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.10
+github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.9
 github.com/mattn/go-runewidth
 # github.com/mitchellh/copystructure v1.1.1

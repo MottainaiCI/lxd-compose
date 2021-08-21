@@ -107,16 +107,14 @@ func IsBool(value string) error {
 }
 
 // IsOneOf checks whether the string is present in the supplied slice of strings.
-func IsOneOf(value string, valid []string) error {
-	if value == "" {
+func IsOneOf(valid ...string) func(value string) error {
+	return func(value string) error {
+		if !stringInSlice(value, valid) {
+			return fmt.Errorf("Invalid value %q (not one of %s)", value, valid)
+		}
+
 		return nil
 	}
-
-	if !stringInSlice(value, valid) {
-		return fmt.Errorf("Invalid value %q (not one of %s)", value, valid)
-	}
-
-	return nil
 }
 
 // IsAny accepts all strings as valid.
@@ -609,7 +607,7 @@ func IsCompressionAlgorithm(value string) error {
 
 // IsArchitecture validates whether the value is a valid LXD architecture name.
 func IsArchitecture(value string) error {
-	return IsOneOf(value, osarch.SupportedArchitectures())
+	return IsOneOf(osarch.SupportedArchitectures()...)(value)
 }
 
 // IsCron checks that it's a valid cron pattern or alias.
@@ -643,6 +641,47 @@ func IsCron(aliases []string) func(value string) error {
 			if err != nil {
 				return err
 			}
+		}
+
+		return nil
+	}
+}
+
+// IsListenAddress returns a validator for a listen address.
+func IsListenAddress(allowDNS bool, allowWildcard bool, requirePort bool) func(value string) error {
+	return func(value string) error {
+		// Validate address format and port.
+		host, _, err := net.SplitHostPort(value)
+		if err != nil {
+			if requirePort {
+				return fmt.Errorf("A port is required as part of the address")
+			}
+
+			host = value
+		}
+
+		// Validate wildcard.
+		if stringInSlice(host, []string{"", "[::]", "0.0.0.0"}) {
+			if !allowWildcard {
+				return fmt.Errorf("Wildcard addresses aren't allowed")
+			}
+
+			return nil
+		}
+
+		// Validate DNS.
+		ip := net.ParseIP(strings.Trim(host, "[]"))
+		if ip != nil {
+			return nil
+		}
+
+		if !allowDNS {
+			return fmt.Errorf("DNS names not allowed in address")
+		}
+
+		_, err = net.LookupHost(host)
+		if err != nil {
+			return fmt.Errorf("Couldn't resolve %q", host)
 		}
 
 		return nil
