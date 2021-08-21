@@ -19,6 +19,8 @@ builds:
         -X github.com/MottainaiCI/lxd-compose/cmd.BuildCommit={{.Commit}}
 
 archives:
+  - format: binary
+    name_template: lxd-compose-{{ .Tag }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}
   - replacements:
       darwin: Darwin
       linux: Linux
@@ -39,4 +41,3 @@ changelog:
       - '^contrib'
       - '^lxd-conf'
       - '^.lxd-compose.yml'
-
