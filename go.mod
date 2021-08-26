@@ -22,8 +22,8 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/lxc/lxd v0.0.0-20210805235317-774489441569
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onsi/ginkgo v1.14.2
-	github.com/onsi/gomega v1.10.3
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.16.0
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
@@ -34,7 +34,9 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.0
+	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
 	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.2.0 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
