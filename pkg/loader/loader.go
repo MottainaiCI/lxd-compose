@@ -624,7 +624,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 				i.Logger.Debug("Loaded variables file " + efile)
 
-				if path.Ext(efile) != ".yml" {
+				if path.Ext(efile) != ".yml" && path.Ext(efile) != ".yaml" {
 					i.Logger.Warning("For project", proj.Name, "included env file", efile,
 						"will be used only with template compiler")
 					continue
@@ -645,7 +645,6 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				}
 
 				env.Projects[idx].AddEnvironment(evars)
-
 			}
 
 		}
