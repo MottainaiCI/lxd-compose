@@ -388,6 +388,9 @@ func (i *LxdCInstance) LoadEnvironments() error {
 			}
 
 			err = i.loadExtraFiles(env)
+			if err != nil {
+				return err
+			}
 
 			i.AddEnvironment(*env)
 
@@ -405,6 +408,9 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 	if err != nil {
 		return err
 	}
+
+	i.Logger.Debug("For environment " + env.GetBaseFile() +
+		" using base dir " + envBaseDir + ".")
 
 	// Load external networks
 	if len(env.IncludeNetworkFiles) > 0 {
@@ -602,6 +608,8 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				env.Projects[idx].AddGroup(grp)
 			}
 
+		} else {
+			i.Logger.Debug("For project", proj.Name, "no includes for groups.")
 		}
 
 		if len(proj.IncludeEnvFiles) > 0 {
