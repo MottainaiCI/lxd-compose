@@ -8,7 +8,6 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/MottainaiCI/mottainai-server v0.0.0-20210508100055-c7e87a8199bf
-	github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/gosexy/gettext v0.0.0-20160830220431-74466a0a0c4a // indirect
@@ -20,7 +19,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/lxc/lxd v0.0.0-20210805235317-774489441569
+	github.com/lxc/lxd v0.0.0-20210903031644-ed907d5a9137
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
@@ -34,10 +33,8 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.0
-	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b
 	golang.org/x/text v0.3.7 // indirect
-	gopkg.in/macaroon-bakery.v2 v2.2.0 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
 	gopkg.in/yaml.v2 v2.4.0

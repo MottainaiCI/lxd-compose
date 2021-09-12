@@ -89,7 +89,7 @@ type field struct {
 	unmarshal unmarshaler
 
 	// marshal is used to marshal the value into the
-	// give filed. The value passed as its first argument is not
+	// given field. The value passed as its first argument is not
 	// a pointer type, but it is addressable.
 	marshal marshaler
 

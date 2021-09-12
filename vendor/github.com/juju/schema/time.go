@@ -32,7 +32,7 @@ func (c timeC) Coerce(v interface{}, path []string) (interface{}, error) {
 		}
 		v, err := time.Parse(time.RFC3339Nano, vstr)
 		if err != nil {
-			return nil, err
+			return nil, parseError(path, "time", err)
 		}
 		return v, nil
 	default:

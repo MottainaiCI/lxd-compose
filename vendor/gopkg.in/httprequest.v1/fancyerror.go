@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"strings"
 	"unicode"
 
 	"golang.org/x/net/html"
@@ -129,7 +130,23 @@ var maxErrorBodySize = 200 * 1024
 func isJSONMediaType(header http.Header) bool {
 	contentType := header.Get("Content-Type")
 	mediaType, _, _ := mime.ParseMediaType(contentType)
-	return mediaType == "application/json"
+	m := strings.TrimPrefix(mediaType, "application/")
+	if len(m) == len(mediaType) {
+		return false
+	}
+	// Look for +json suffix. See https://tools.ietf.org/html/rfc6838#section-4.2.8
+	// We recognize multiple suffixes too (e.g. application/something+json+other)
+	// as that seems to be a possibility.
+	for {
+		i := strings.Index(m, "+")
+		if i == -1 {
+			return m == "json"
+		}
+		if m[0:i] == "json" {
+			return true
+		}
+		m = m[i+1:]
+	}
 }
 
 // Error implements error.Error by trying to produce a decent

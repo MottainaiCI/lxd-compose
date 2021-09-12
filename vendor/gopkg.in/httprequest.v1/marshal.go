@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -99,6 +100,7 @@ func Marshal(baseURL, method string, x interface{}) (*http.Request, error) {
 	if err != nil {
 		return nil, errgo.Mask(err)
 	}
+	req.GetBody = func() (io.ReadCloser, error) { return BytesReaderCloser{bytes.NewReader(nil)}, nil }
 	req.Form = url.Values{}
 	if pt.formBody {
 		// Use req.PostForm as a place to put the values that
@@ -116,6 +118,7 @@ func Marshal(baseURL, method string, x interface{}) (*http.Request, error) {
 	if pt.formBody {
 		data := []byte(req.PostForm.Encode())
 		p.Request.Body = BytesReaderCloser{bytes.NewReader(data)}
+		p.Request.GetBody = func() (io.ReadCloser, error) { return BytesReaderCloser{bytes.NewReader(data)}, nil }
 		p.Request.ContentLength = int64(len(data))
 		p.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		p.Request.PostForm = nil
@@ -242,7 +245,7 @@ func marshalNop(v reflect.Value, p *Params) error {
 	return nil
 }
 
-// mashalBody marshals the specified value into the body of the http request.
+// marshalBody marshals the specified value into the body of the http request.
 func marshalBody(v reflect.Value, p *Params) error {
 	// TODO allow body types that aren't necessarily JSON.
 	data, err := json.Marshal(v.Addr().Interface())
@@ -250,6 +253,7 @@ func marshalBody(v reflect.Value, p *Params) error {
 		return errgo.Notef(err, "cannot marshal request body")
 	}
 	p.Request.Body = BytesReaderCloser{bytes.NewReader(data)}
+	p.Request.GetBody = func() (io.ReadCloser, error) { return BytesReaderCloser{bytes.NewReader(data)}, nil }
 	p.Request.ContentLength = int64(len(data))
 	p.Request.Header.Set("Content-Type", "application/json")
 	return nil

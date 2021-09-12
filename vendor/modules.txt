@@ -1,5 +1,6 @@
-# github.com/BurntSushi/toml v0.3.1
+# github.com/BurntSushi/toml v0.4.1
 github.com/BurntSushi/toml
+github.com/BurntSushi/toml/internal
 # github.com/Masterminds/goutils v1.1.1
 github.com/Masterminds/goutils
 # github.com/Masterminds/semver v1.5.0
@@ -19,16 +20,17 @@ github.com/MottainaiCI/mottainai-server/mottainai-cli/cmd/task/template
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/flosch/pongo2 v0.0.0-20200529170236-5abacdfa4915
-## explicit
+# github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3
 github.com/flosch/pongo2
-# github.com/fsnotify/fsnotify v1.4.9
+# github.com/fsnotify/fsnotify v1.5.1
 github.com/fsnotify/fsnotify
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
 # github.com/go-logr/logr v0.4.0
 github.com/go-logr/logr
+# github.com/go-macaroon-bakery/macaroonpb v1.0.0
+github.com/go-macaroon-bakery/macaroonpb
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
 github.com/gobwas/glob/compiler
@@ -47,7 +49,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/go-cmp v0.5.5
+# github.com/google/go-cmp v0.5.6
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
@@ -55,7 +57,7 @@ github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
-# github.com/google/uuid v1.1.2
+# github.com/google/uuid v1.3.0
 github.com/google/uuid
 # github.com/googleapis/gnostic v0.4.1
 github.com/googleapis/gnostic/compiler
@@ -100,11 +102,11 @@ github.com/juju/go4/lock
 # github.com/juju/persistent-cookiejar v0.0.0-20171026135701-d5e5a8405ef9
 ## explicit
 github.com/juju/persistent-cookiejar
-# github.com/juju/schema v1.0.0
+# github.com/juju/schema v1.0.1-0.20190814234152-1f8aaeef0989
 github.com/juju/schema
-# github.com/juju/webbrowser v0.0.0-20180907093207-efb9432b2bcb
+# github.com/juju/webbrowser v1.0.0
 github.com/juju/webbrowser
-# github.com/julienschmidt/httprouter v1.2.0
+# github.com/julienschmidt/httprouter v1.3.0
 github.com/julienschmidt/httprouter
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
@@ -115,7 +117,7 @@ github.com/kyokomi/emoji
 # github.com/logrusorgru/aurora v2.0.3+incompatible
 ## explicit
 github.com/logrusorgru/aurora
-# github.com/lxc/lxd v0.0.0-20210805235317-774489441569
+# github.com/lxc/lxd v0.0.0-20210903031644-ed907d5a9137
 ## explicit
 github.com/lxc/lxd/client
 github.com/lxc/lxd/lxc/config
@@ -138,11 +140,11 @@ github.com/lxc/lxd/shared/units
 github.com/lxc/lxd/shared/validate
 # github.com/magiconair/properties v1.8.5
 github.com/magiconair/properties
-# github.com/mattn/go-colorable v0.1.2
+# github.com/mattn/go-colorable v0.1.8
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.10
+# github.com/mattn/go-isatty v0.0.13
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.9
+# github.com/mattn/go-runewidth v0.0.13
 github.com/mattn/go-runewidth
 # github.com/mitchellh/copystructure v1.1.1
 github.com/mitchellh/copystructure
@@ -204,6 +206,8 @@ github.com/pelletier/go-toml
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/rivo/uniseg v0.2.0
+github.com/rivo/uniseg
 # github.com/rogpeppe/fastuuid v1.2.0
 ## explicit
 github.com/rogpeppe/fastuuid
@@ -214,7 +218,7 @@ github.com/shopspring/decimal
 # github.com/spf13/afero v1.6.0
 github.com/spf13/afero
 github.com/spf13/afero/mem
-# github.com/spf13/cast v1.3.1
+# github.com/spf13/cast v1.4.1
 github.com/spf13/cast
 # github.com/spf13/cobra v1.2.1
 ## explicit
@@ -249,11 +253,12 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+# golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/curve25519
+golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/nacl/box
 golang.org/x/crypto/nacl/secretbox
@@ -262,8 +267,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20210825183410-e898025ed96a
-## explicit
+# golang.org/x/net v0.0.0-20210902165921-8d991716f632
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -277,14 +281,14 @@ golang.org/x/net/publicsuffix
 # golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+# golang.org/x/sys v0.0.0-20210902050250-f475640dd07b
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
+# golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 golang.org/x/term
 # golang.org/x/text v0.3.7
 ## explicit
@@ -318,7 +322,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/protobuf v1.26.0
+# google.golang.org/protobuf v1.27.1
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -351,7 +355,7 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/errgo.v1 v1.0.1
 gopkg.in/errgo.v1
-# gopkg.in/httprequest.v1 v1.2.0
+# gopkg.in/httprequest.v1 v1.2.1
 gopkg.in/httprequest.v1
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
@@ -360,11 +364,9 @@ gopkg.in/ini.v1
 # gopkg.in/juju/environschema.v1 v1.0.0
 gopkg.in/juju/environschema.v1
 gopkg.in/juju/environschema.v1/form
-# gopkg.in/macaroon-bakery.v2 v2.2.0
-## explicit
+# gopkg.in/macaroon-bakery.v2 v2.3.0
 gopkg.in/macaroon-bakery.v2/bakery
 gopkg.in/macaroon-bakery.v2/bakery/checkers
-gopkg.in/macaroon-bakery.v2/bakery/internal/macaroonpb
 gopkg.in/macaroon-bakery.v2/httpbakery
 gopkg.in/macaroon-bakery.v2/httpbakery/form
 gopkg.in/macaroon-bakery.v2/internal/httputil

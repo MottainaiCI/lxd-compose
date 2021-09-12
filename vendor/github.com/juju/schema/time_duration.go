@@ -33,7 +33,7 @@ func (c timeDurationC) Coerce(v interface{}, path []string) (interface{}, error)
 		}
 		v, err := time.ParseDuration(vstr)
 		if err != nil {
-			return nil, err
+			return nil, parseError(path, "duration", err)
 		}
 		return v, nil
 	default:

@@ -23,3 +23,8 @@ func (e error_) Error() string {
 	}
 	return fmt.Sprintf("%sexpected %s, got %T(%#v)", path, e.want, e.got, e.got)
 }
+
+func parseError(path []string, expected string, err error) error {
+	prefix := pathAsPrefix(path)
+	return fmt.Errorf("%sconversion to %s: %s", prefix, expected, err.Error())
+}
