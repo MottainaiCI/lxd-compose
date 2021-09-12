@@ -1,6 +1,6 @@
 module github.com/MottainaiCI/lxd-compose
 
-go 1.14
+go 1.16
 
 replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.20200605210607-749178b8f80d+incompatible
 
