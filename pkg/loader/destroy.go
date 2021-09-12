@@ -23,6 +23,7 @@ package loader
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/MottainaiCI/lxd-compose/pkg/executor"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
@@ -44,6 +45,18 @@ func (i *LxdCInstance) DestroyProject(projectName string) error {
 		proj.SetNodesPrefix(i.NodesPrefix)
 	}
 
+	// Retrieve pre-project-shutdown/post-project-shutdown hooks
+	preProjHooks := proj.GetHooks4Nodes("pre-project-shutdown", []string{"*"})
+	postProjHooks := proj.GetHooks4Nodes("post-project-shutdown", []string{"*"})
+
+	// Execute pre-project hooks
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s] Running %d pre-project-shutdown hooks... ", projectName, len(preProjHooks)))
+	err := i.ProcessHooks(&preProjHooks, proj, nil, nil)
+	if err != nil {
+		return err
+	}
+
 	for _, grp := range proj.Groups {
 
 		if !grp.ToProcess(i.GroupsEnabled, i.GroupsDisabled) {
@@ -58,7 +71,12 @@ func (i *LxdCInstance) DestroyProject(projectName string) error {
 
 	}
 
-	return nil
+	// Execute pre-project hooks
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s] Running %d post-project-shutdown hooks... ", projectName, len(postProjHooks)))
+	err = i.ProcessHooks(&postProjHooks, proj, nil, nil)
+
+	return err
 }
 
 func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProject, env *specs.LxdCEnvironment) error {
@@ -74,6 +92,19 @@ func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProj
 		return err
 	}
 
+	// Retrieve pre-group hooks from project
+	preGroupHooks := proj.GetHooks4Nodes("pre-group-shutdown", []string{"*"})
+	// Retrieve pre-group hooks from group
+	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes("pre-group-shutdown", []string{"*"})...)
+
+	// Run pre-group hooks
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s - %s] Running %d pre-group-shtudown hooks... ", proj.Name, group.Name, len(preGroupHooks)))
+	err = i.ProcessHooks(&preGroupHooks, proj, group, nil)
+	if err != nil {
+		return err
+	}
+
 	for _, node := range group.Nodes {
 
 		isPresent, err := executor.IsPresentContainer(node.GetName())
@@ -84,15 +115,39 @@ func (i *LxdCInstance) DestroyGroup(group *specs.LxdCGroup, proj *specs.LxdCProj
 		}
 
 		if isPresent {
+
+			// Retrieve and run pre-node-shutdown hooks of the node from project
+			preNodeShutdownHooks := i.GetNodeHooks4Event("pre-node-shutdown", proj, group, &node)
+			err = i.ProcessHooks(&preNodeShutdownHooks, proj, group, &node)
+			if err != nil {
+				return err
+			}
+
 			err = executor.DeleteContainer(node.GetName())
 			if err != nil {
 				i.Logger.Error("Error on destroy container " + node.GetName() +
 					": " + err.Error())
 				return err
 			}
+
+			// Retrieve and run post-node-shutdown hooks of the node from project
+			postNodeShutdownHooks := i.GetNodeHooks4Event("post-node-shutdown", proj, group, &node)
+			err = i.ProcessHooks(&postNodeShutdownHooks, proj, group, &node)
+			if err != nil {
+				return err
+			}
+
 		}
 
 	}
 
-	return nil
+	// Retrieve post-group hooks from project
+	postGroupHooks := proj.GetHooks4Nodes("post-group-shutdown", []string{"*"})
+	postGroupHooks = append(postGroupHooks, group.GetHooks4Nodes("post-group-shutdown", []string{"*"})...)
+
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s - %s] Running %d post-group-shutdown hooks... ", proj.Name, group.Name, len(postGroupHooks)))
+	err = i.ProcessHooks(&postGroupHooks, proj, group, nil)
+
+	return err
 }

@@ -161,6 +161,12 @@ projects:
           - hostname
 {{ end }}
 
+      - event: post-group-shutdown
+        node: "host"
+        commands:
+          - echo "post-group shutdown event"
+
+
     # A fast way to define environments for template
     vars:
       - envs:
