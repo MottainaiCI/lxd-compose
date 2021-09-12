@@ -72,6 +72,9 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	i.Logger.Debug(fmt.Sprintf(
 		"[%s] Running %d pre-project hooks... ", projectName, len(preProjHooks)))
 	err := i.ProcessHooks(&preProjHooks, proj, nil, nil)
+	if err != nil {
+		return err
+	}
 
 	compiler, err := template.NewProjectTemplateCompiler(env, proj)
 	if err != nil {
@@ -542,9 +545,6 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	i.Logger.Debug(fmt.Sprintf(
 		"[%s - %s] Running %d post-group hooks... ", proj.Name, group.Name, len(postGroupHooks)))
 	err = i.ProcessHooks(&postGroupHooks, proj, group, nil)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
