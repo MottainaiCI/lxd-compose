@@ -18,7 +18,8 @@ jobs:
         uses: docker-practice/actions-setup-docker@0.0.1
       - name: Install deps
         run: |
-            sudo -E env "PATH=$PATH" make deps
+            sudo -E env "PATH=$PATH" make deps &&
+            sudo pip install j2cli
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
