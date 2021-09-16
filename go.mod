@@ -32,7 +32,7 @@ require (
 	github.com/spf13/viper v1.8.1
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	go.uber.org/zap v1.19.0
+	go.uber.org/zap v1.19.1
 	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
