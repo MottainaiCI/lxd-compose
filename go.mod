@@ -38,7 +38,7 @@ require (
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.6.1
+	helm.sh/helm/v3 v3.6.3
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 	sigs.k8s.io/kustomize v2.0.3+incompatible // indirect
 )
