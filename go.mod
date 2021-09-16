@@ -20,10 +20,12 @@ require (
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/lxc/lxd v0.0.0-20210903031644-ed907d5a9137
+	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
 	github.com/pborman/uuid v1.2.1 // indirect
+	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/smartystreets/assertions v1.0.1 // indirect
@@ -33,8 +35,9 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1
-	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b
+	golang.org/x/sys v0.0.0-20210915083310-ed5796bab164
 	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
 	gopkg.in/yaml.v2 v2.4.0

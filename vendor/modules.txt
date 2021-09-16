@@ -148,7 +148,8 @@ github.com/mattn/go-isatty
 github.com/mattn/go-runewidth
 # github.com/mitchellh/copystructure v1.1.1
 github.com/mitchellh/copystructure
-# github.com/mitchellh/mapstructure v1.4.1
+# github.com/mitchellh/mapstructure v1.4.2
+## explicit
 github.com/mitchellh/mapstructure
 # github.com/mitchellh/reflectwalk v1.0.1
 github.com/mitchellh/reflectwalk
@@ -201,7 +202,8 @@ github.com/onsi/gomega/types
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pelletier/go-toml v1.9.3
+# github.com/pelletier/go-toml v1.9.4
+## explicit
 github.com/pelletier/go-toml
 # github.com/pkg/errors v0.9.1
 ## explicit
@@ -281,7 +283,7 @@ golang.org/x/net/publicsuffix
 # golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20210902050250-f475640dd07b
+# golang.org/x/sys v0.0.0-20210915083310-ed5796bab164
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -359,7 +361,8 @@ gopkg.in/errgo.v1
 gopkg.in/httprequest.v1
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
-# gopkg.in/ini.v1 v1.62.0
+# gopkg.in/ini.v1 v1.63.2
+## explicit
 gopkg.in/ini.v1
 # gopkg.in/juju/environschema.v1 v1.0.0
 gopkg.in/juju/environschema.v1
