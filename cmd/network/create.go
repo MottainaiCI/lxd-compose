@@ -33,6 +33,8 @@ import (
 )
 
 func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var renderEnvs []string
+
 	var cmd = &cobra.Command{
 		Use:     "create [project] [net1] [net1]",
 		Short:   "create LXD Networks defined on environment to a specific endpoint or to all groups.",
@@ -55,11 +57,19 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
+
+			// We need set this before loading phase
+			err := config.SetRenderEnvs(renderEnvs)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
 			endpoint, _ := cmd.Flags().GetString("endpoint")
 			all, _ := cmd.Flags().GetBool("all")
 			upd, _ := cmd.Flags().GetBool("update")
 
-			err := composer.LoadEnvironments()
+			err = composer.LoadEnvironments()
 			if err != nil {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
@@ -194,6 +204,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 	pflags.BoolP("all", "a", false, "Create all available networks.")
 	pflags.BoolP("update", "u", false, "Update the network if it's already present.")
+	pflags.StringSliceVar(&renderEnvs, "render-env", []string{},
+		"Append render engine environments in the format key=value.")
 
 	return cmd
 }
