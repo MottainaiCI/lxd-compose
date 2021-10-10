@@ -111,6 +111,10 @@ func (c *LxdComposeConfig) Unmarshal() error {
 		err = c.Viper.ReadInConfig()
 	}
 
+	if err != nil {
+		return err
+	}
+
 	err = c.Viper.Unmarshal(&c)
 
 	return err
