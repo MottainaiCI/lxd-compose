@@ -37,7 +37,7 @@ const (
 
 Mottainai - LXD Compose Integrator`
 
-	LXD_COMPOSE_VERSION = `0.13.2`
+	LXD_COMPOSE_VERSION = `0.14.0`
 )
 
 // Build time and commit information. This code is get from: https://github.com/mudler/luet/
