@@ -32,7 +32,9 @@ import (
 )
 
 const SnapshotDelimiter = "/"
-const DefaultPort = 8443
+const HTTPSDefaultPort = 8443
+const HTTPDefaultPort = 8080
+const HTTPSMetricsDefaultPort = 9100
 
 // URLEncode encodes a path and query parameters to a URL.
 func URLEncode(path string, query map[string]string) (string, error) {
