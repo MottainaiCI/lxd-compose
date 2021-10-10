@@ -225,6 +225,21 @@ func (e *LxdCExecutor) GetContainerList() ([]string, error) {
 	return e.LxdClient.GetContainerNames()
 }
 
+func (e *LxdCExecutor) IsRunningContainer(name string) (bool, error) {
+	ans := false
+
+	cInfo, _, err := e.LxdClient.GetContainer(name)
+	if err != nil {
+		return ans, err
+	}
+
+	if cInfo.Status == "Running" {
+		ans = true
+	}
+
+	return ans, nil
+}
+
 func (e *LxdCExecutor) IsEphemeralContainer(containerName string) (bool, error) {
 	ans := false
 
