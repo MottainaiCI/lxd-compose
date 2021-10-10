@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -446,6 +446,29 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			err = i.ProcessHooks(&postCreationHooks, proj, group, &node)
 			if err != nil {
 				return err
+			}
+
+		} else {
+			isRunning, err := executor.IsRunningContainer(node.GetName())
+			if err != nil {
+				i.Logger.Error(
+					fmt.Sprintf("Error on check if container %s is running: %s",
+						node.GetName(), err.Error()))
+				return err
+			}
+			if !isRunning {
+				// Run post-node-creation hooks
+				i.Logger.Debug(fmt.Sprintf(
+					"[%s - %s] Node %s is already present but not running. I'm starting it.",
+					proj.Name, group.Name, node.GetName()))
+
+				err = executor.StartContainer(node.GetName())
+				if err != nil {
+					i.Logger.Error(
+						fmt.Sprintf("Error on start container %s: %s",
+							node.GetName(), err.Error()))
+					return err
+				}
 			}
 
 		}
