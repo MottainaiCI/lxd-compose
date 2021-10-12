@@ -23,6 +23,7 @@ package executor
 
 import (
 	"errors"
+	"fmt"
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
@@ -58,8 +59,9 @@ func (e *LxdCExecutor) CreateProfile(profile specs.LxdCProfile) error {
 
 	lxdProfile := lxd_api.ProfilesPost{
 		ProfilePut: lxd_api.ProfilePut{
-			Config:  profile.Config,
-			Devices: profile.Devices,
+			Config:      profile.Config,
+			Devices:     profile.Devices,
+			Description: profile.Description,
 		},
 		Name: profile.Name,
 	}
@@ -69,6 +71,11 @@ func (e *LxdCExecutor) CreateProfile(profile specs.LxdCProfile) error {
 	}
 	if lxdProfile.ProfilePut.Devices == nil {
 		lxdProfile.ProfilePut.Devices = make(map[string]map[string]string, 0)
+	}
+
+	if lxdProfile.ProfilePut.Description == "" {
+		lxdProfile.ProfilePut.Description =
+			fmt.Sprintf("Profile %s created by lxd-compose", profile.Name)
 	}
 
 	return e.LxdClient.CreateProfile(lxdProfile)
@@ -82,6 +89,10 @@ func (e *LxdCExecutor) UpdateProfile(profile specs.LxdCProfile) error {
 	lxdProfilePut := lxd_api.ProfilePut{
 		Config:  profile.Config,
 		Devices: profile.Devices,
+	}
+
+	if profile.Description != "" {
+		lxdProfilePut.Description = profile.Description
 	}
 
 	if lxdProfilePut.Config == nil {
