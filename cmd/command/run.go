@@ -40,7 +40,7 @@ func destroyProject(composer *loader.LxdCInstance, proj string) {
 }
 
 func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance,
-	proj *specs.LxdCProject, envs []string) error {
+	proj *specs.LxdCProject, envs []string, varsfiles []string) error {
 
 	err := c.PrepareProject(proj)
 	if err != nil {
@@ -53,6 +53,19 @@ func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance,
 	composer.SetGroupsEnabled(c.EnableGroups)
 	composer.SetSkipSync(c.SkipSync)
 	composer.SetNodesPrefix(c.NodesPrefix)
+
+	if len(varsfiles) > 0 {
+		for _, varFile := range varsfiles {
+			err := proj.LoadEnvVarsFile(varFile)
+			if err != nil {
+				return errors.New(
+					fmt.Sprintf(
+						"Error on load additional envs var file %s: %s",
+						varFile, err.Error(),
+					))
+			}
+		}
+	}
 
 	if len(envs) > 0 {
 		evars := specs.NewEnvVars()
@@ -89,6 +102,7 @@ func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance,
 func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var renderEnvs []string
 	var envs []string
+	var varsFiles []string
 
 	var cmd = &cobra.Command{
 		Use:     "run <project> <command>",
@@ -145,7 +159,10 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				command.NodesPrefix = prefix
 			}
 
-			err = ApplyCommand(command, composer, env.GetProjectByName(pname), envs)
+			err = ApplyCommand(command, composer,
+				env.GetProjectByName(pname),
+				envs, varsFiles,
+			)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
@@ -162,6 +179,8 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Append project environments in the format key=value.")
 	flags.Bool("destroy", false, "Destroy the selected groups at the end.")
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
+	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
+		"Add additional environments vars file.")
 
 	return cmd
 }
