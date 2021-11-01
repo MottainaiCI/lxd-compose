@@ -24,6 +24,7 @@ package specs
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
 )
@@ -74,4 +75,13 @@ func CommandFromYaml(data []byte) (*LxdCCommand, error) {
 	}
 
 	return ans, nil
+}
+
+func CommandFromFile(file string) (*LxdCCommand, error) {
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return CommandFromYaml(content)
 }

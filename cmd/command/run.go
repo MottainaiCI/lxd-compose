@@ -103,6 +103,7 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var renderEnvs []string
 	var envs []string
 	var varsFiles []string
+	var commandFiles []string
 
 	var cmd = &cobra.Command{
 		Use:     "run <project> <command>",
@@ -144,6 +145,20 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			// Load runtime commands
+			if len(commandFiles) > 0 {
+				for _, f := range commandFiles {
+					c, err := specs.CommandFromFile(f)
+					if err != nil {
+						fmt.Println(fmt.Sprintf("Error on load command file %s: %s",
+							f, err.Error()))
+						os.Exit(1)
+					}
+
+					env.AddCommand(c)
+				}
+			}
+
 			command, err := env.GetCommand(cname)
 			if err != nil {
 				fmt.Println("No command available with name " + cname +
@@ -181,6 +196,8 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
 		"Add additional environments vars file.")
+	flags.StringSliceVar(&commandFiles, "command-file", []string{},
+		"Add additional commands file.")
 
 	return cmd
 }
