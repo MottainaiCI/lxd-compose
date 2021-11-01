@@ -7,7 +7,7 @@ replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.2
 require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
-	github.com/MottainaiCI/mottainai-server v0.0.0-20210508100055-c7e87a8199bf
+	github.com/MottainaiCI/mottainai-server v0.1.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/gosexy/gettext v0.0.0-20160830220431-74466a0a0c4a // indirect

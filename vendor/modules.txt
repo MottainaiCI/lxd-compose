@@ -13,7 +13,7 @@ github.com/Masterminds/semver/v3
 github.com/Masterminds/sprig
 # github.com/Masterminds/sprig/v3 v3.2.2
 github.com/Masterminds/sprig/v3
-# github.com/MottainaiCI/mottainai-server v0.0.0-20210508100055-c7e87a8199bf
+# github.com/MottainaiCI/mottainai-server v0.1.0
 ## explicit
 github.com/MottainaiCI/mottainai-server/mottainai-cli/cmd/task/template
 # github.com/cyphar/filepath-securejoin v0.2.2
