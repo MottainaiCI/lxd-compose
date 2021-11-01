@@ -35,6 +35,8 @@ import (
 )
 
 func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var commandFiles []string
+
 	var cmd = &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"l", "li"},
@@ -52,6 +54,26 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			if err != nil {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
+			}
+
+			if len(commandFiles) > 0 {
+				for _, f := range commandFiles {
+					c, err := specs.CommandFromFile(f)
+					if err != nil {
+						fmt.Println(fmt.Sprintf("Error on load command file %s: %s",
+							f, err.Error()))
+						os.Exit(1)
+					}
+
+					env := composer.GetEnvByProjectName(c.GetProject())
+					if env == nil {
+						fmt.Println("No project found with name " + c.GetProject() +
+							" for add command from cli " + c.GetName())
+						os.Exit(1)
+					}
+
+					env.AddCommand(c)
+				}
 			}
 
 			for _, env := range *composer.GetEnvironments() {
@@ -110,6 +132,8 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var flags = cmd.Flags()
 	flags.Bool("json", false, "JSON output")
 	flags.StringP("search", "s", "", "Regex filter to use with command name.")
+	flags.StringSliceVar(&commandFiles, "command-file", []string{},
+		"Add additional commands file.")
 
 	return cmd
 }
