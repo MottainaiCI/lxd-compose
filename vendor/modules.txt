@@ -13,9 +13,21 @@ github.com/Masterminds/semver/v3
 github.com/Masterminds/sprig
 # github.com/Masterminds/sprig/v3 v3.2.2
 github.com/Masterminds/sprig/v3
+# github.com/Microsoft/go-winio v0.5.1
+## explicit
+# github.com/Microsoft/hcsshim v0.9.0
+## explicit
 # github.com/MottainaiCI/mottainai-server v0.1.0
 ## explicit
 github.com/MottainaiCI/mottainai-server/mottainai-cli/cmd/task/template
+# github.com/bits-and-blooms/bitset v1.2.1
+## explicit
+# github.com/containerd/cgroups v1.0.2
+## explicit
+# github.com/containerd/containerd v1.5.7
+## explicit
+# github.com/containerd/continuity v0.2.1
+## explicit
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
@@ -40,9 +52,13 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
+# github.com/gogo/googleapis v1.4.1
+## explicit
 # github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
+# github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+## explicit
 # github.com/golang/protobuf v1.5.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
@@ -87,7 +103,7 @@ github.com/huandu/xstrings
 # github.com/icza/dyno v0.0.0-20200205103839-49cb13720835
 ## explicit
 github.com/icza/dyno
-# github.com/imdario/mergo v0.3.11
+# github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
@@ -111,6 +127,8 @@ github.com/julienschmidt/httprouter
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
+# github.com/klauspost/compress v1.13.6
+## explicit
 # github.com/kyokomi/emoji v2.2.4+incompatible
 ## explicit
 github.com/kyokomi/emoji
@@ -201,7 +219,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/opencontainers/runc v1.0.0-rc95
+# github.com/opencontainers/selinux v1.9.1
 ## explicit
 # github.com/pborman/uuid v1.2.1
 ## explicit
@@ -278,7 +296,8 @@ golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20210929193557-e81a3d93ecf6
+# golang.org/x/net v0.0.0-20211029224645-99673261e6eb
+## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -292,7 +311,7 @@ golang.org/x/net/publicsuffix
 # golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20210930212924-f542c8878de8
+# golang.org/x/sys v0.0.0-20211031064116-611d5d643895
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -333,6 +352,8 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
+# google.golang.org/genproto v0.0.0-20211101144312-62acf1d99145
+## explicit
 # google.golang.org/protobuf v1.27.1
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
