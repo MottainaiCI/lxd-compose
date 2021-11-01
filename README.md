@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.com/MottainaiCI/lxd-compose.svg?branch=master)](https://travis-ci.com/MottainaiCI/lxd-compose)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4753/badge)](https://bestpractices.coreinfrastructure.org/projects/4753)
 [![Go Report Card](https://goreportcard.com/badge/github.com/MottainaiCI/lxd-compose)](https://goreportcard.com/report/github.com/MottainaiCI/lxd-compose)
+[![CodeQL](https://github.com/MottainaiCI/lxd-compose/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/MottainaiCI/lxd-compose/actions/workflows/codeql-analysis.yml)
 
 **lxd-compose** supply a way to deploy a complex environment to an LXD Cluster or LXD standalone installation.
 
