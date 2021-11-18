@@ -6,14 +6,7 @@ replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.2
 
 require (
 	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
-	github.com/Microsoft/go-winio v0.5.1 // indirect
-	github.com/Microsoft/hcsshim v0.9.0 // indirect
-	github.com/MottainaiCI/mottainai-server v0.1.0
-	github.com/bits-and-blooms/bitset v1.2.1 // indirect
-	github.com/containerd/cgroups v1.0.2 // indirect
-	github.com/containerd/containerd v1.5.7 // indirect
-	github.com/containerd/continuity v0.2.1 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -61,4 +54,4 @@ require (
 
 replace github.com/renstrom/dedent v1.1.0 => github.com/lithammer/dedent v1.1.0
 
-replace github.com/Sirupsen/logrusv1.7.0 => github.com/sirupsen/logrus v1.7.0
+replace github.com/Sirupsen/logrus v1.7.0 => github.com/sirupsen/logrus v1.7.0

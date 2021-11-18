@@ -27,8 +27,6 @@ import (
 	"path/filepath"
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
-
-	t "github.com/MottainaiCI/mottainai-server/mottainai-cli/cmd/task/template"
 )
 
 type MottainaiCompiler struct {
@@ -70,7 +68,7 @@ func (r *MottainaiCompiler) Compile(sourceFile, destFile string) error {
 }
 
 func (r *MottainaiCompiler) CompileRaw(sourceData string) (string, error) {
-	tmpl := t.New()
+	tmpl := NewTemplate()
 	tmpl.Values = r.Vars
 
 	destData, err := tmpl.Draw(sourceData)
