@@ -44,7 +44,7 @@ var _ = Describe("Template", func() {
 		Context("Using a simple template", func() {
 			It("renders a specfile", func() {
 				raw := `{{.EmailFrom}}`
-				t := New()
+				t := NewTemplate()
 				t.Values["EmailFrom"] = "test"
 				res, err := t.Draw(raw)
 				Expect(err).ToNot(HaveOccurred())
@@ -61,7 +61,7 @@ values:
   image: 1
 
 `
-				t := New()
+				t := NewTemplate()
 				err := t.LoadValues(raw)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(t.Values["image"]).To(Equal(1))
@@ -80,7 +80,7 @@ values:
 
 `
 
-				t := New()
+				t := NewTemplate()
 				err := t.LoadValues(raw)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(t.Values["images"]).To(Equal([]interface{}{"image1", "image2"}))
