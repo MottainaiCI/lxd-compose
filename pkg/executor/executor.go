@@ -154,12 +154,13 @@ func (e *LxdCExecutor) Setup() error {
 				// POST: I use default socket connection
 				client, err = lxd.ConnectLXDUnix("", nil)
 			}
-			if err != nil {
-				return errors.New("Error on create LXD Connector: " + err.Error())
-			}
-
 			e.LxdConfig.DefaultRemote = "local"
 		}
+
+		if err != nil {
+			return errors.New("Error on create LXD Connector: " + err.Error())
+		}
+
 	}
 
 	if e.LxdConfig.DefaultRemote == "local" && e.LocalDisable {
