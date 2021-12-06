@@ -37,6 +37,14 @@ template_engine:
 # include_networks_files:
 # - networks/file1.yml
 
+storages:
+  - name: btrfs-pool
+    description: ""
+    driver: "btrfs"
+    config:
+      size: "150GB"
+
+
 networks:
   - name: "mottainai1"
     type: "bridge"

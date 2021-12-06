@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -37,7 +37,7 @@ const (
 
 Mottainai - LXD Compose Integrator`
 
-	LXD_COMPOSE_VERSION = `0.14.4`
+	LXD_COMPOSE_VERSION = `0.15.0`
 )
 
 // Build time and commit information. This code is get from: https://github.com/mudler/luet/
@@ -103,6 +103,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newCompileCommand(config),
 		newNodeCommand(config),
 		newNetworkCommand(config),
+		newStorageCommand(config),
 		newProfileCommand(config),
 		newDiagnoseCommand(config),
 		newProjectCommand(config),

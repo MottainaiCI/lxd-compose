@@ -114,6 +114,19 @@ func (i *LxdCInstance) GetEnvsUsingNetwork(name string) []*specs.LxdCEnvironment
 	return ans
 }
 
+func (i *LxdCInstance) GetEnvsUsingStorage(name string) []*specs.LxdCEnvironment {
+	ans := []*specs.LxdCEnvironment{}
+
+	for idx, e := range i.Environments {
+		_, err := e.GetStorage(name)
+		if err == nil {
+			ans = append(ans, &i.Environments[idx])
+		}
+	}
+
+	return ans
+}
+
 func (i *LxdCInstance) GetEnvsUsingProfile(name string) []*specs.LxdCEnvironment {
 	ans := []*specs.LxdCEnvironment{}
 
@@ -507,6 +520,56 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				" add profile " + profile.GetName())
 
 			env.AddProfile(profile)
+
+		}
+
+	}
+
+	// Load external storage
+	if len(env.IncludeStorageFiles) > 0 {
+
+		for _, sfile := range env.IncludeStorageFiles {
+
+			if !helpers.Exists(path.Join(envBaseDir, sfile)) {
+				i.Logger.Warning("For environment", env.GetBaseFile(),
+					"included storage file", sfile,
+					"is not present.")
+				continue
+			}
+
+			content, err := ioutil.ReadFile(path.Join(envBaseDir, sfile))
+			if err != nil {
+				i.Logger.Debug("On read file", sfile, ":", err.Error())
+				i.Logger.Debug("File", sfile, "skipped.")
+				continue
+			}
+
+			if i.Config.IsEnableRenderEngine() {
+				// Render file
+				renderOut, err := helpers.RenderContent(string(content),
+					i.Config.RenderValuesFile,
+					i.Config.RenderDefaultFile,
+					sfile,
+					i.Config.RenderEnvsVars,
+				)
+				if err != nil {
+					return err
+				}
+
+				content = []byte(renderOut)
+			}
+
+			storage, err := specs.StorageFromYaml(content)
+			if err != nil {
+				i.Logger.Debug("On parse file", sfile, ":", err.Error())
+				i.Logger.Debug("File", sfile, "skipped.")
+				continue
+			}
+
+			i.Logger.Debug("For environment " + env.GetBaseFile() +
+				" add storage " + storage.GetName())
+
+			env.AddStorage(storage)
 
 		}
 

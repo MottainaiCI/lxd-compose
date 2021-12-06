@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -101,6 +101,10 @@ func (e *LxdCEnvironment) GetNetworks() *[]LxdCNetwork {
 	return &e.Networks
 }
 
+func (e *LxdCEnvironment) GetStorages() *[]LxdCStorage {
+	return &e.Storages
+}
+
 func (e *LxdCEnvironment) GetNetwork(name string) (LxdCNetwork, error) {
 	ans := LxdCNetwork{}
 
@@ -113,8 +117,28 @@ func (e *LxdCEnvironment) GetNetwork(name string) (LxdCNetwork, error) {
 	return ans, errors.New("Network " + name + " not available.")
 }
 
+func (e *LxdCEnvironment) GetStorage(name string) (LxdCStorage, error) {
+	ans := LxdCStorage{}
+
+	for _, st := range e.Storages {
+		if st.Name == name {
+			return st, nil
+		}
+	}
+
+	return ans, errors.New("Storage " + name + " not available.")
+}
+
 func (e *LxdCEnvironment) AddNetwork(network *LxdCNetwork) {
 	e.Networks = append(e.Networks, *network)
+}
+
+func (e *LxdCEnvironment) AddStorage(storage *LxdCStorage) {
+	e.Storages = append(e.Storages, *storage)
+}
+
+func (e *LxdCEnvironment) AddProfile(profile *LxdCProfile) {
+	e.Profiles = append(e.Profiles, *profile)
 }
 
 func (e *LxdCEnvironment) GetBaseFile() string {
@@ -124,8 +148,4 @@ func (e *LxdCEnvironment) GetBaseFile() string {
 	}
 
 	return ans
-}
-
-func (e *LxdCEnvironment) AddProfile(profile *LxdCProfile) {
-	e.Profiles = append(e.Profiles, *profile)
 }

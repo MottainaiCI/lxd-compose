@@ -36,6 +36,8 @@ type LxdCEnvironment struct {
 	IncludeProfilesFiles []string      `json:"include_profiles_files,omitempty" yaml:"include_profiles_files,omitempty"`
 	Networks             []LxdCNetwork `json:"networks,omitempty" yaml:"networks,omitempty"`
 	IncludeNetworkFiles  []string      `json:"include_networks_files,omitempty" yaml:"include_networks_files,omitempty"`
+	Storages             []LxdCStorage `json:"storages,omitempty" yaml:"storages,omitempty"`
+	IncludeStorageFiles  []string      `json:"include_storage_files,omitempty" yaml:"include_storage_files,omitempty"`
 }
 
 type LxdCProfile struct {
@@ -48,6 +50,13 @@ type LxdCProfile struct {
 type LxdCNetwork struct {
 	Name        string            `json:"name" yaml:"name"`
 	Type        string            `json:"type" yaml:"type"`
+	Description string            `json:"description" yaml:"description"`
+	Config      map[string]string `json:"config" yaml:"config"`
+}
+
+type LxdCStorage struct {
+	Name        string            `json:"name" yaml:"name"`
+	Driver      string            `json:"driver" yaml:"driver"`
 	Description string            `json:"description" yaml:"description"`
 	Config      map[string]string `json:"config" yaml:"config"`
 }
