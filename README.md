@@ -15,12 +15,11 @@ It's under heavy development phase and specification could be changed in the nea
 
 ## Installation
 
-**lxd-compose** is available as Mocaccino OS package and installable in every Linux
+**lxd-compose** is available as Macaroni OS package and installable in every Linux
 distro through [luet](https://luet-lab.github.io/docs/) tool with these steps:
 
 ```bash
-$> curl https://get.mocaccino.org/luet/get_luet_root.sh | sudo sh
-$> sudo luet install repository/mocaccino-extra-stable
+$> curl https://raw.githubusercontent.com/geaaru/luet/geaaru/contrib/config/get_luet_root.sh | sudo sh
 $> sudo luet install app-emulation/lxd-compose
 ```
 
@@ -28,6 +27,7 @@ $> sudo luet install app-emulation/lxd-compose
 
 ```bash
 
+$> sudo luet repo update
 $> sudo luet upgrade
 
 ```
