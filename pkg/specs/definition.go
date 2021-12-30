@@ -72,6 +72,10 @@ type LxdCHook struct {
 	Disable    bool     `json:"disable,omitempty" yaml:"disable,omitempty"`
 }
 
+type LxdCHooks struct {
+	Hooks []LxdCHook `json:"hooks,omitempty" yaml:"hooks,omitempty"`
+}
+
 type LxdCTemplateEngine struct {
 	Engine string   `json:"engine" yaml:"engine"`
 	Opts   []string `json:"opts,omitempty" yaml:"opts,omitempty"`
@@ -89,8 +93,9 @@ type LxdCProject struct {
 	Groups      []LxdCGroup `json:"groups" yaml:"groups"`
 	NodesPrefix string      `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
-	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
-	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
+	Hooks             []LxdCHook           `json:"hooks" yaml:"hooks"`
+	IncludeHooksFiles []string             `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
+	ConfigTemplates   []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
 type LxdCProjectSanitized struct {
@@ -103,8 +108,9 @@ type LxdCProjectSanitized struct {
 	Groups      []LxdCGroup `json:"groups" yaml:"groups"`
 	NodesPrefix string      `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
-	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
-	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
+	Hooks             []LxdCHook           `json:"hooks" yaml:"hooks"`
+	IncludeHooksFiles []string             `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
+	ConfigTemplates   []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
 type LxdCGroup struct {
@@ -118,8 +124,9 @@ type LxdCGroup struct {
 	Nodes       []LxdCNode `json:"nodes" yaml:"nodes"`
 	NodesPrefix string     `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
-	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
-	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
+	Hooks             []LxdCHook           `json:"hooks" yaml:"hooks"`
+	IncludeHooksFiles []string             `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
+	ConfigTemplates   []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
 type LxdCEnvVars struct {
@@ -142,7 +149,8 @@ type LxdCNode struct {
 	SyncResources   []LxdCSyncResource   `json:"sync_resources,omitempty" yaml:"sync_resources,omitempty"`
 	Profiles        []string             `json:"profiles,omitempty" yaml:"profiles,omitempty"`
 
-	Hooks []LxdCHook `json:"hooks" yaml:"hooks"`
+	Hooks             []LxdCHook `json:"hooks" yaml:"hooks"`
+	IncludeHooksFiles []string   `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
 }
 
 type LxdCConfigTemplate struct {

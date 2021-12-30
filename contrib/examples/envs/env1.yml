@@ -109,6 +109,10 @@ projects:
       - ../vars/file1.yml
     #  - envs/file2.yml
 
+    include_hooks_files:
+      - ../hooks/hooks1.yml
+
+
     # hooks:
       # event values are
       # - pre-group

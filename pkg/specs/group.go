@@ -95,3 +95,9 @@ func (g *LxdCGroup) ToProcess(groupsEnabled, groupsDisabled []string) bool {
 
 	return ans
 }
+
+func (g *LxdCGroup) AddHooks(h *LxdCHooks) {
+	if len(h.Hooks) > 0 {
+		g.Hooks = append(g.Hooks, h.Hooks...)
+	}
+}

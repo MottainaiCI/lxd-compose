@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -142,4 +142,10 @@ func (p *LxdCProject) LoadEnvVarsFile(file string) error {
 	p.AddEnvironment(evars)
 
 	return nil
+}
+
+func (p *LxdCProject) AddHooks(h *LxdCHooks) {
+	if len(h.Hooks) > 0 {
+		p.Hooks = append(p.Hooks, h.Hooks...)
+	}
 }

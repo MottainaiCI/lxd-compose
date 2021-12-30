@@ -23,6 +23,7 @@ package specs
 
 import (
 	"github.com/jinzhu/copier"
+	"gopkg.in/yaml.v2"
 )
 
 func getHooks(hooks *[]LxdCHook, event string) []LxdCHook {
@@ -137,4 +138,13 @@ func FilterHooks4Node(hooks *[]LxdCHook, nodes []string) []LxdCHook {
 	}
 
 	return ans
+}
+
+func HooksFromYaml(data []byte) (*LxdCHooks, error) {
+	ans := &LxdCHooks{}
+	if err := yaml.Unmarshal(data, ans); err != nil {
+		return nil, err
+	}
+
+	return ans, nil
 }

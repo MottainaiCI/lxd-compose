@@ -1,0 +1,4 @@
+hooks:
+  - event: pre-group
+    commands:
+      - echo "This is an included hooks at project level"

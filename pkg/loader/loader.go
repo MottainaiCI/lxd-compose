@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -714,5 +714,122 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 	}
 
+	err = i.loadIncludeHooks(env)
+
+	return err
+}
+
+func (i *LxdCInstance) loadIncludeHooks(env *specs.LxdCEnvironment) error {
+	envBaseDir, err := filepath.Abs(path.Dir(env.File))
+	if err != nil {
+		return err
+	}
+
+	for idx, proj := range env.Projects {
+
+		if len(proj.IncludeHooksFiles) > 0 {
+
+			for _, hfile := range proj.IncludeHooksFiles {
+
+				// Load project included hooks
+				hf := path.Join(envBaseDir, hfile)
+				hooks, err := i.getHooks(hfile, hf, &proj)
+				if err != nil {
+					return err
+				}
+
+				env.Projects[idx].AddHooks(hooks)
+
+			}
+
+		} else {
+			i.Logger.Debug("For project", proj.Name, "no includes for hooks.")
+		}
+
+		// Load groups included hooks
+		for gidx, g := range env.Projects[idx].Groups {
+
+			if len(g.IncludeHooksFiles) > 0 {
+
+				for _, hfile := range g.IncludeHooksFiles {
+					hf := path.Join(envBaseDir, hfile)
+					hooks, err := i.getHooks(hfile, hf, &proj)
+					if err != nil {
+						return err
+					}
+
+					env.Projects[idx].Groups[gidx].AddHooks(hooks)
+				}
+
+			}
+
+			// Load nodes includes hooks
+			for nidx, n := range g.Nodes {
+
+				if len(n.IncludeHooksFiles) > 0 {
+					for _, hfile := range n.IncludeHooksFiles {
+						hf := path.Join(envBaseDir, hfile)
+						hooks, err := i.getHooks(hfile, hf, &proj)
+						if err != nil {
+							return err
+						}
+
+						env.Projects[idx].Groups[gidx].Nodes[nidx].AddHooks(hooks)
+					}
+				}
+			}
+
+		}
+
+	}
+
 	return nil
+}
+
+func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject) (*specs.LxdCHooks, error) {
+
+	ans := &specs.LxdCHooks{}
+
+	if !helpers.Exists(hfileAbs) {
+		i.Logger.Warning(
+			"For project", proj.Name, "included hooks file", hfile,
+			"is not present.")
+		return ans, nil
+	}
+
+	content, err := ioutil.ReadFile(hfileAbs)
+	if err != nil {
+		i.Logger.Debug("On read file", hfile, ":", err.Error())
+		i.Logger.Debug("File", hfile, "skipped.")
+		return ans, nil
+	}
+
+	if i.Config.IsEnableRenderEngine() {
+		// Render file
+		renderOut, err := helpers.RenderContent(string(content),
+			i.Config.RenderValuesFile,
+			i.Config.RenderDefaultFile,
+			hfile,
+			i.Config.RenderEnvsVars,
+		)
+		if err != nil {
+			return ans, err
+		}
+
+		content = []byte(renderOut)
+	}
+
+	hooks, err := specs.HooksFromYaml(content)
+	if err != nil {
+		i.Logger.Debug("On parse file", hfile, ":", err.Error())
+		i.Logger.Debug("File", hfile, "skipped.")
+		return ans, nil
+	}
+
+	ans = hooks
+
+	i.Logger.Debug("For project", proj.Name, "add",
+		len(ans.Hooks), "hooks.")
+
+	return ans, nil
 }

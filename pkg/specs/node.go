@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -71,4 +71,10 @@ func (n *LxdCNode) GetName() string {
 		return fmt.Sprintf("%s-%s", n.NamePrefix, n.Name)
 	}
 	return n.Name
+}
+
+func (n *LxdCNode) AddHooks(h *LxdCHooks) {
+	if len(h.Hooks) > 0 {
+		n.Hooks = append(n.Hooks, h.Hooks...)
+	}
 }
