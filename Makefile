@@ -22,11 +22,11 @@ fmt:
 test:
 	GO111MODULE=off go get github.com/onsi/ginkgo/ginkgo
 	GO111MODULE=off go get github.com/onsi/gomega/...
-	ginkgo -race -r -flakeAttempts 3 ./...
+	ginkgo -r -flake-attempts 3 ./...
 
 .PHONY: coverage
 coverage:
-	go test ./... -race -coverprofile=coverage.txt -covermode=atomic
+	go test ./... -coverprofile=coverage.txt -covermode=atomic
 
 .PHONY: test-coverage
 test-coverage:
