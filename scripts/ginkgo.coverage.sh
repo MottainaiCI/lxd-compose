@@ -23,11 +23,9 @@ coveragetxt="coverage.txt"
 
 
 generate_cover_data() {
-  ginkgo -flake-attempts=3 -fail-fast -cover -r .
-  echo "" > ${coveragetxt}
-  find . -type f -name "*.coverprofile" | while read -r file;  do cat "$file" >> ${coveragetxt} && mv "$file" "${coverdir}"; done
-  echo "mode: $covermode" >"$profile"
-  grep -h -v "^mode:" "$coverdir"/*.coverprofile >>"$profile"
+  ginkgo -flake-attempts=3 -fail-fast -cover -r --covermode=atomic .
+  cp coverprofile.out "$profile"
+  mv coverprofile.out ${coveragetxt}
 }
 
 push_to_coveralls() {
