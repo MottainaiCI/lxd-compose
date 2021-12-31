@@ -1,0 +1,12 @@
+general:
+  debug: false
+#  lxd_confdir: ./lxd-conf
+  push_progressbar: false
+logging:
+  level: "info"
+render_default_file: render/default.yaml
+# Define the directories list where load
+# environments.
+env_dirs:
+- ./envs/tests
+

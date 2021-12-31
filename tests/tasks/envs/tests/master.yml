@@ -1,0 +1,102 @@
+# Author: Daniele Rondina, geaaru@sabayonlinux.org
+# Description: Setup Container to compile and test Mottainai Server code.
+
+version: "1"
+
+template_engine:
+  engine: "mottainai"
+
+projects:
+
+  - name: "lxd-compose-ubuntu"
+    description: |
+      Setup golang and run Mottainai Server Test Suite.
+
+    vars:
+      - envs:
+          ppa_golang_repo: ppa:longsleep/golang-backports
+          mottainai_branch: "master"
+          mottainai_giturl: "https://github.com/MottainaiCI/lxd-compose.git"
+
+    groups:
+      - name: "tests"
+        description: "Lxd Compose test in Ubuntu Container"
+
+        connection: "local"
+
+        # Define the list of LXD Profile to use
+        # for create the containers
+        common_profiles:
+          - default
+          #- sdpool
+          - net-mottainai0
+
+        # Create the environment container as ephemeral or not.
+        ephemeral: true
+
+        nodes:
+{{ $gversions := .Values.golang_versions }}
+{{ range $i, $gv := $gversions }}
+          - name: lxd-compose-test{{ $i }}
+            # ARM images or AMD64
+            image_source: "ubuntu/21.04"
+            # By deafult it use remote images"
+            image_remote_server: "images"
+
+            entrypoint:
+              - "/bin/bash"
+              - "-c"
+
+            labels:
+              golang_version: "{{ $gv }}"
+
+            # List of commands executed just after the creation of the
+            # container.
+            hooks:
+
+              - event: post-node-creation
+                commands:
+                  # DHCP seems slow
+                  - sleep 5
+                  - echo "Testing Golang ${golang_version}"
+                  - echo "deb http://archive.ubuntu.com/ubuntu hirsute-backports main universe multiverse restricted" >> /etc/apt/sources.list
+                  - apt-get update
+                  - apt-get upgrade -y
+                  - apt-get install -y software-properties-common
+                  - apt-get update
+                  - add-apt-repository ${ppa_golang_repo} -y
+                  - apt-get update
+                  - apt-get install -y git make pip curl
+                  - apt-get install -y gcc-arm-linux-gnueabi libc6-dev-armel-cross
+                  - apt-get install -y libc6-armel-cross libc6-dev golang-${golang_version}-go
+                  - apt-get install -y libc6-dev-i386 libc6-dev-armhf-armel-cross linux-headers-generic
+                  # Fix asm/errno.h: No such file or directory on 386 build
+                  - cp --archive /usr/include/asm-generic /usr/include/asm
+                  - mkdir /gopath/src/github.com/MottainaiCi/ -p
+                  - git clone ${mottainai_giturl} -b ${mottainai_branch} /gopath/src/github.com/MottainaiCi/lxd-compose
+
+
+              - event: post-node-sync
+                flags:
+                  - test
+                commands:
+                  - |
+                    cd /gopath/src/github.com/MottainaiCi/lxd-compose && \
+                    GOROOT="/usr/lib/go-${golang_version}" \
+                    GOTOOLDIR="/usr/lib/go-${golang_version}'/pkg/tool/linux_amd64" \
+                    GOPATH=/gopath \
+                    GOBIN=$GOPATH/bin \
+                    PATH=/usr/lib/go-${golang_version}/bin:$PATH:$GOBIN \
+                    make deps
+                  - pip install j2cli
+
+                  - |
+                    cd /gopath/src/github.com/MottainaiCi/lxd-compose && \
+                    GOROOT="/usr/lib/go-${golang_version}" \
+                    GOTOOLDIR="/usr/lib/${golang_version}'/pkg/tool/linux_amd64" \
+                    GOPATH=/gopath \
+                    GOBIN=$GOPATH/bin \
+                    PATH=/usr/lib/go-${golang_version}/bin:$PATH:$GOBIN \
+                    make build coverage
+
+{{ end }}
