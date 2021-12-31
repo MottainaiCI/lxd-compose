@@ -43,6 +43,8 @@ deps:
 	GO111MODULE=off go get golang.org/x/lint/golint
 	GO111MODULE=off go get github.com/mitchellh/gox
 	GO111MODULE=off go get golang.org/x/tools/cmd/cover
+	go install github.com/onsi/ginkgo/v2/ginkgo
+	ginkgo version
 
 .PHONY: build
 build:
