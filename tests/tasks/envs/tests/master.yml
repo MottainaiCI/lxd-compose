@@ -1,16 +1,48 @@
 # Author: Daniele Rondina, geaaru@sabayonlinux.org
-# Description: Setup Container to compile and test Mottainai Server code.
+# Description: Setup Container to compile and test Lxd Compose code.
 
 version: "1"
 
 template_engine:
   engine: "mottainai"
 
+networks:
+  - name: "mottainai0"
+    type: "bridge"
+    config:
+      bridge.driver: native
+      dns.domain: mottainai.local
+      dns.mode: managed
+      ipv4.address: 172.18.10.1/23
+      ipv4.dhcp: "true"
+      ipv4.firewall: "true"
+      ipv4.nat: "true"
+      ipv6.nat: "false"
+      ipv6.dhcp: "false"
+
+profiles:
+  - name: net-mottainai0
+    description: Net mottainai0
+    devices:
+      eth0:
+        name: eth0
+        nictype: bridged
+        parent: mottainai0
+        type: nic
+  - name: default
+    description: Default Storage
+    devices:
+      root:
+        path: /
+        pool: default
+        type: disk
+
+
 projects:
 
   - name: "lxd-compose-ubuntu"
     description: |
-      Setup golang and run Mottainai Server Test Suite.
+      Setup golang and run Lxd Compose Test Suite.
 
     vars:
       - envs:
@@ -28,7 +60,6 @@ projects:
         # for create the containers
         common_profiles:
           - default
-          #- sdpool
           - net-mottainai0
 
         # Create the environment container as ephemeral or not.
