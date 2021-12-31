@@ -25,18 +25,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package template_test
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	. "github.com/MottainaiCI/lxd-compose/pkg/template"
 )
-
-func TestTemplates(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Template tests")
-}
 
 var _ = Describe("Template", func() {
 
