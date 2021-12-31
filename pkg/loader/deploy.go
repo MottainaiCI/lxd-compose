@@ -178,7 +178,7 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 						if group == nil {
 							return errors.New(fmt.Sprintf(
-								"Error on retrieve node information for %s and hook %s",
+								"Error on retrieve node information for %s and hook %v",
 								node, h))
 						}
 
