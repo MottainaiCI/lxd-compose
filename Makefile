@@ -44,7 +44,7 @@ deps:
 	GO111MODULE=off go get github.com/mitchellh/gox
 	GO111MODULE=off go get golang.org/x/tools/cmd/cover
 	go get github.com/onsi/ginkgo/v2
-	go install github.com/onsi/ginkgo/v2/ginkgo
+	GO111MODULE=off go install github.com/onsi/ginkgo/v2/ginkgo
 	ginkgo version
 
 .PHONY: build
