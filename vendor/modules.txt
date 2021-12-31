@@ -165,8 +165,6 @@ github.com/modern-go/reflect2
 # github.com/olekukonko/tablewriter v0.0.5
 ## explicit
 github.com/olekukonko/tablewriter
-# github.com/onsi/ginkgo v1.16.4
-## explicit
 # github.com/onsi/ginkgo/v2 v2.0.0
 ## explicit
 github.com/onsi/ginkgo/v2
