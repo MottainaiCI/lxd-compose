@@ -24,7 +24,7 @@ package specs_test
 import (
 	. "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
