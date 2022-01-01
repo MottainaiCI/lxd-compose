@@ -67,3 +67,6 @@ vendor:
 .PHONY: multiarch-build
 multiarch-build:
 	CGO_ENABLED=0 gox $(BUILD_PLATFORMS) -ldflags '$(LDFLAGS)' -output="release/$(NAME)-$(VERSION)-{{.OS}}-{{.Arch}}"
+
+run-tasks: build
+	@cd tests/tasks && ../../lxd-compose a lxd-compose-ubuntu --destroy
