@@ -155,6 +155,19 @@ func NewRunCommand(config *specs.LxdComposeConfig) *cobra.Command {
 						os.Exit(1)
 					}
 
+					// Check if the command is already present.
+					// NOTE: If this is slow it's better move to a map.
+					ce, _ := env.GetCommand(c.Name)
+					if ce != nil {
+						cmds := []specs.LxdCCommand{}
+
+						for _, cmd := range env.Commands {
+							if cmd.Name != c.Name {
+								cmds = append(cmds, cmd)
+							}
+						}
+						env.Commands = cmds
+					}
 					env.AddCommand(c)
 				}
 			}
