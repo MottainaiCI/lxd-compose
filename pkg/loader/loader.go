@@ -678,36 +678,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 		if len(proj.IncludeEnvFiles) > 0 {
 			// Load external env vars files
 			for _, efile := range proj.IncludeEnvFiles {
-
-				if !helpers.Exists(path.Join(envBaseDir, efile)) {
-					i.Logger.Warning("For project", proj.Name, "included env file", efile,
-						"is not present.")
-					continue
-				}
-
-				i.Logger.Debug("Loaded variables file " + efile)
-
-				if path.Ext(efile) != ".yml" && path.Ext(efile) != ".yaml" {
-					i.Logger.Warning("For project", proj.Name, "included env file", efile,
-						"will be used only with template compiler")
-					continue
-				}
-
-				content, err := ioutil.ReadFile(path.Join(envBaseDir, efile))
+				evars, err := i.loadEnvFile(envBaseDir, efile, &env.Projects[idx])
 				if err != nil {
-					i.Logger.Debug("On read file", efile, ":", err.Error())
-					i.Logger.Debug("File", efile, "skipped.")
-					continue
+					return err
+				} else if evars != nil {
+					env.Projects[idx].AddEnvironment(evars)
 				}
-
-				evars, err := specs.EnvVarsFromYaml(content)
-				if err != nil {
-					i.Logger.Debug("On parse file", efile, ":", err.Error())
-					i.Logger.Debug("File", efile, "skipped.")
-					continue
-				}
-
-				env.Projects[idx].AddEnvironment(evars)
 			}
 
 		}
@@ -832,4 +808,51 @@ func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject)
 		len(ans.Hooks), "hooks.")
 
 	return ans, nil
+}
+
+func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCProject) (*specs.LxdCEnvVars, error) {
+	if !helpers.Exists(path.Join(envBaseDir, efile)) {
+		i.Logger.Warning("For project", proj.Name, "included env file", efile,
+			"is not present.")
+		return nil, nil
+	}
+
+	i.Logger.Debug("Loaded variables file " + efile)
+
+	if path.Ext(efile) != ".yml" && path.Ext(efile) != ".yaml" {
+		i.Logger.Warning("For project", proj.Name, "included env file", efile,
+			"will be used only with template compiler")
+		return nil, nil
+	}
+
+	content, err := ioutil.ReadFile(path.Join(envBaseDir, efile))
+	if err != nil {
+		i.Logger.Debug("On read file", efile, ":", err.Error())
+		i.Logger.Debug("File", efile, "skipped.")
+		return nil, nil
+	}
+
+	if i.Config.IsEnableRenderEngine() {
+		// Render file
+		renderOut, err := helpers.RenderContent(string(content),
+			i.Config.RenderValuesFile,
+			i.Config.RenderDefaultFile,
+			efile,
+			i.Config.RenderEnvsVars,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		content = []byte(renderOut)
+	}
+
+	evars, err := specs.EnvVarsFromYaml(content)
+	if err != nil {
+		i.Logger.Debug("On parse file", efile, ":", err.Error())
+		i.Logger.Debug("File", efile, "skipped.")
+		return nil, nil
+	}
+
+	return evars, nil
 }

@@ -42,45 +42,9 @@ func destroyProject(composer *loader.LxdCInstance, proj string) {
 func ApplyCommand(c *specs.LxdCCommand, composer *loader.LxdCInstance,
 	proj *specs.LxdCProject, envs []string, varsfiles []string) error {
 
-	err := c.PrepareProject(proj)
+	err := composer.ApplyCommand(c, proj, envs, varsfiles)
 	if err != nil {
 		return err
-	}
-
-	composer.SetFlagsDisabled(c.DisableFlags)
-	composer.SetFlagsEnabled(c.EnableFlags)
-	composer.SetGroupsDisabled(c.DisableGroups)
-	composer.SetGroupsEnabled(c.EnableGroups)
-	composer.SetSkipSync(c.SkipSync)
-	composer.SetNodesPrefix(c.NodesPrefix)
-
-	if len(varsfiles) > 0 {
-		for _, varFile := range varsfiles {
-			err := proj.LoadEnvVarsFile(varFile)
-			if err != nil {
-				return errors.New(
-					fmt.Sprintf(
-						"Error on load additional envs var file %s: %s",
-						varFile, err.Error(),
-					))
-			}
-		}
-	}
-
-	if len(envs) > 0 {
-		evars := specs.NewEnvVars()
-		for _, e := range envs {
-			err := evars.AddKVAggregated(e)
-			if err != nil {
-				return errors.New(
-					fmt.Sprintf(
-						"Error on elaborate var string %s: %s",
-						e, err.Error(),
-					))
-			}
-		}
-
-		proj.AddEnvironment(evars)
 	}
 
 	if c.GetDestroy() {

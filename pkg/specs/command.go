@@ -22,8 +22,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package specs
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
@@ -41,32 +39,6 @@ func (c *LxdCCommand) GetDisableGroups() []string { return c.DisableFlags }
 func (c *LxdCCommand) GetVarFiles() []string      { return c.VarFiles }
 func (c *LxdCCommand) GetSkipSync() bool          { return c.SkipSync }
 func (c *LxdCCommand) GetDestroy() bool           { return c.Destroy }
-
-func (c *LxdCCommand) PrepareProject(proj *LxdCProject) error {
-
-	if proj == nil {
-		return errors.New("Invalid project for apply command")
-	}
-
-	if len(c.VarFiles) > 0 {
-		for _, varFile := range c.VarFiles {
-			err := proj.LoadEnvVarsFile(varFile)
-			if err != nil {
-				return errors.New(
-					fmt.Sprintf(
-						"Error on load additional envs var file %s: %s",
-						varFile, err.Error()),
-				)
-			}
-		}
-	}
-
-	if len(c.Envs.EnvVars) > 0 {
-		proj.AddEnvironment(&c.Envs)
-	}
-
-	return nil
-}
 
 func CommandFromYaml(data []byte) (*LxdCCommand, error) {
 	ans := &LxdCCommand{}

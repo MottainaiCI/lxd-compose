@@ -571,3 +571,71 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 	return err
 }
+
+func (i *LxdCInstance) ApplyCommand(c *specs.LxdCCommand, proj *specs.LxdCProject, envs []string, varfiles []string) error {
+
+	if c == nil {
+		return errors.New("Invalid command")
+	}
+
+	if proj == nil {
+		return errors.New("Invalid project")
+	}
+
+	env := i.GetEnvByProjectName(proj.GetName())
+	if env == nil {
+		return errors.New(fmt.Sprintf("No environment found for project " + proj.GetName()))
+	}
+
+	envBaseDir, err := filepath.Abs(filepath.Dir(env.File))
+	if err != nil {
+		return err
+	}
+
+	// Load envs from commands.
+	if len(c.VarFiles) > 0 {
+		for _, varFile := range c.VarFiles {
+
+			envs, err := i.loadEnvFile(envBaseDir, varFile, proj)
+			if err != nil {
+				return errors.New(
+					fmt.Sprintf(
+						"Error on load additional envs var file %s: %s",
+						varFile, err.Error()),
+				)
+			}
+
+			proj.AddEnvironment(envs)
+
+		}
+	}
+
+	if len(c.Envs.EnvVars) > 0 {
+		proj.AddEnvironment(&c.Envs)
+	}
+
+	if len(envs) > 0 {
+		evars := specs.NewEnvVars()
+		for _, e := range envs {
+			err := evars.AddKVAggregated(e)
+			if err != nil {
+				return errors.New(
+					fmt.Sprintf(
+						"Error on elaborate var string %s: %s",
+						e, err.Error(),
+					))
+			}
+		}
+
+		proj.AddEnvironment(evars)
+	}
+
+	i.SetFlagsDisabled(c.DisableFlags)
+	i.SetFlagsEnabled(c.EnableFlags)
+	i.SetGroupsDisabled(c.DisableGroups)
+	i.SetGroupsEnabled(c.EnableGroups)
+	i.SetSkipSync(c.SkipSync)
+	i.SetNodesPrefix(c.NodesPrefix)
+
+	return nil
+}
