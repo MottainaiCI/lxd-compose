@@ -24,6 +24,7 @@ package loader
 import (
 	"errors"
 	"fmt"
+	"path"
 	"path/filepath"
 
 	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
@@ -612,6 +613,21 @@ func (i *LxdCInstance) ApplyCommand(c *specs.LxdCCommand, proj *specs.LxdCProjec
 
 	if len(c.Envs.EnvVars) > 0 {
 		proj.AddEnvironment(&c.Envs)
+	}
+
+	if len(c.IncludeHooksFiles) > 0 {
+
+		for _, hfile := range c.IncludeHooksFiles {
+
+			// Load project included hooks
+			hf := path.Join(envBaseDir, hfile)
+			hooks, err := i.getHooks(hfile, hf, proj)
+			if err != nil {
+				return err
+			}
+
+			proj.AddHooks(hooks)
+		}
 	}
 
 	if len(envs) > 0 {

@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -87,15 +87,15 @@ type LxdCProject struct {
 
 	IncludeGroupFiles []string `json:"include_groups_files,omitempty" yaml:"include_groups_files,omitempty"`
 	IncludeEnvFiles   []string `json:"include_env_files,omitempty" yaml:"include_env_files,omitempty"`
+	IncludeHooksFiles []string `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
 
 	Environments []LxdCEnvVars `json:"vars,omitempty" yaml:"vars,omitempty"`
 
 	Groups      []LxdCGroup `json:"groups" yaml:"groups"`
 	NodesPrefix string      `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
-	Hooks             []LxdCHook           `json:"hooks" yaml:"hooks"`
-	IncludeHooksFiles []string             `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
-	ConfigTemplates   []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
+	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
+	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
 type LxdCProjectSanitized struct {
@@ -104,13 +104,13 @@ type LxdCProjectSanitized struct {
 
 	IncludeGroupFiles []string `json:"include_groups_files,omitempty" yaml:"include_groups_files,omitempty"`
 	IncludeEnvFiles   []string `json:"include_env_files,omitempty" yaml:"include_env_files,omitempty"`
+	IncludeHooksFiles []string `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
 
 	Groups      []LxdCGroup `json:"groups" yaml:"groups"`
 	NodesPrefix string      `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
-	Hooks             []LxdCHook           `json:"hooks" yaml:"hooks"`
-	IncludeHooksFiles []string             `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
-	ConfigTemplates   []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
+	Hooks           []LxdCHook           `json:"hooks" yaml:"hooks"`
+	ConfigTemplates []LxdCConfigTemplate `json:"config_templates,omitempty" yaml:"config_templates,omitempty"`
 }
 
 type LxdCGroup struct {
@@ -182,4 +182,6 @@ type LxdCCommand struct {
 
 	Envs     LxdCEnvVars `json:"envs,omitempty" yaml:"envs,omitempty"`
 	VarFiles []string    `json:"vars_files,omitempty" yaml:"vars_files,omitempty"`
+
+	IncludeHooksFiles []string `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
 }
