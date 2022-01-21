@@ -35,6 +35,9 @@ import (
 func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var projects []string
 	var sources []string
+	var envs []string
+	var renderEnvs []string
+	var varsFiles []string
 	var cmd = &cobra.Command{
 		Use:     "compile",
 		Short:   "Compile project templates.",
@@ -47,7 +50,14 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
 
-			err := composer.LoadEnvironments()
+			// We need set this before loading phase
+			err := config.SetRenderEnvs(renderEnvs)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			err = composer.LoadEnvironments()
 			if err != nil {
 				fmt.Println("Error on load environments:" + err.Error() + "\n")
 				os.Exit(1)
@@ -66,6 +76,35 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					if env == nil {
 						fmt.Println("Project " + proj + " not found")
 						os.Exit(1)
+					}
+
+					if len(varsFiles) > 0 || len(envs) > 0 {
+
+						pObj := env.GetProjectByName(proj)
+
+						for _, varFile := range varsFiles {
+							err := pObj.LoadEnvVarsFile(varFile)
+							if err != nil {
+								fmt.Println(fmt.Sprintf(
+									"Error on load additional envs var file %s: %s",
+									varFile, err.Error()))
+								os.Exit(1)
+							}
+						}
+
+						if len(envs) > 0 {
+
+							evars := specs.NewEnvVars()
+							for _, e := range envs {
+								err := evars.AddKVAggregated(e)
+								if err != nil {
+									fmt.Println(err)
+									os.Exit(1)
+								}
+							}
+
+							pObj.AddEnvironment(evars)
+						}
 					}
 
 					err := template.CompileAllProjectFiles(env, proj, opts)
@@ -99,6 +138,12 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags.StringSliceVarP(&sources, "source-file", "f", []string{},
 		"Choice the list of the source file to compile. Default: all")
 	pflags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
+	pflags.StringSliceVar(&varsFiles, "vars-file", []string{},
+		"Add additional environments vars file.")
+	pflags.StringSliceVar(&envs, "env", []string{},
+		"Append project environments in the format key=value.")
+	pflags.StringSliceVar(&renderEnvs, "render-env", []string{},
+		"Append render engine environments in the format key=value.")
 
 	return cmd
 }
