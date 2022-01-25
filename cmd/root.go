@@ -143,7 +143,8 @@ func Execute() {
 			// Parse configuration file
 			err = config.Unmarshal()
 			if err != nil {
-				panic(err)
+				fmt.Println(err.Error())
+				os.Exit(1)
 			}
 		},
 	}
