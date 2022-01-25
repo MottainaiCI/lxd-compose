@@ -23,6 +23,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
@@ -38,7 +39,8 @@ func newPrintCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			data, err := config.Yaml()
 			if err != nil {
-				panic(err)
+				fmt.Println(err.Error())
+				os.Exit(1)
 			}
 			fmt.Println(string(data))
 		},
