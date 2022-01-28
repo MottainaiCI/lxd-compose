@@ -143,8 +143,11 @@ type InstanceServer interface {
 
 	// Instance functions.
 	GetInstanceNames(instanceType api.InstanceType) (names []string, err error)
+	GetInstanceNamesAllProjects(instanceType api.InstanceType) (names map[string][]string, err error)
 	GetInstances(instanceType api.InstanceType) (instances []api.Instance, err error)
 	GetInstancesFull(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
+	GetInstancesAllProjects(instanceType api.InstanceType) (instances []api.Instance, err error)
+	GetInstancesFullAllProjects(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
 	GetInstance(name string) (instance *api.Instance, ETag string, err error)
 	CreateInstance(instance api.InstancesPost) (op Operation, err error)
 	CreateInstanceFromImage(source ImageServer, image api.Image, req api.InstancesPost) (op RemoteOperation, err error)
@@ -202,6 +205,7 @@ type InstanceServer interface {
 
 	// Event handling functions
 	GetEvents() (listener *EventListener, err error)
+	GetEventsAllProjects() (listener *EventListener, err error)
 
 	// Image functions
 	CreateImage(image api.ImagesPost, args *ImageCreateArgs) (op Operation, err error)
@@ -234,6 +238,14 @@ type InstanceServer interface {
 	UpdateNetworkForward(networkName string, listenAddress string, forward api.NetworkForwardPut, ETag string) (err error)
 	DeleteNetworkForward(networkName string, listenAddress string) (err error)
 
+	// Network peer functions ("network_peer" API extension)
+	GetNetworkPeerNames(networkName string) ([]string, error)
+	GetNetworkPeers(networkName string) ([]api.NetworkPeer, error)
+	GetNetworkPeer(networkName string, peerName string) (peer *api.NetworkPeer, ETag string, err error)
+	CreateNetworkPeer(networkName string, peer api.NetworkPeersPost) error
+	UpdateNetworkPeer(networkName string, peerName string, peer api.NetworkPeerPut, ETag string) (err error)
+	DeleteNetworkPeer(networkName string, peerName string) (err error)
+
 	// Network ACL functions ("network_acl" API extension)
 	GetNetworkACLNames() (names []string, err error)
 	GetNetworkACLs() (acls []api.NetworkACL, err error)
@@ -242,6 +254,14 @@ type InstanceServer interface {
 	UpdateNetworkACL(name string, acl api.NetworkACLPut, ETag string) (err error)
 	RenameNetworkACL(name string, acl api.NetworkACLPost) (err error)
 	DeleteNetworkACL(name string) (err error)
+
+	// Network zone functions ("network_dns" API extension)
+	GetNetworkZoneNames() (names []string, err error)
+	GetNetworkZones() (acls []api.NetworkZone, err error)
+	GetNetworkZone(name string) (acl *api.NetworkZone, ETag string, err error)
+	CreateNetworkZone(acl api.NetworkZonesPost) (err error)
+	UpdateNetworkZone(name string, acl api.NetworkZonePut, ETag string) (err error)
+	DeleteNetworkZone(name string) (err error)
 
 	// Operation functions
 	GetOperationUUIDs() (uuids []string, err error)
@@ -324,6 +344,13 @@ type InstanceServer interface {
 	CreateClusterMember(member api.ClusterMembersPost) (op Operation, err error)
 	UpdateClusterCertificate(certs api.ClusterCertificatePut, ETag string) (err error)
 	UpdateClusterMemberState(name string, state api.ClusterMemberStatePost) (op Operation, err error)
+	GetClusterGroups() ([]api.ClusterGroup, error)
+	GetClusterGroupNames() ([]string, error)
+	RenameClusterGroup(name string, group api.ClusterGroupPost) error
+	CreateClusterGroup(group api.ClusterGroupsPost) error
+	DeleteClusterGroup(name string) error
+	UpdateClusterGroup(name string, group api.ClusterGroupPut, ETag string) error
+	GetClusterGroup(name string) (*api.ClusterGroup, string, error)
 
 	// Warning functions
 	GetWarningUUIDs() (uuids []string, err error)
@@ -462,6 +489,9 @@ type StoragePoolVolumeCopyArgs struct {
 // during storage volume move.
 type StoragePoolVolumeMoveArgs struct {
 	StoragePoolVolumeCopyArgs
+
+	// API extension: storage_volume_project_move
+	Project string
 }
 
 // The StoragePoolVolumeBackupArgs struct is used when creating a storage volume from a backup.

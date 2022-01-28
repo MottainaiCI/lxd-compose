@@ -81,6 +81,12 @@ type ImagesPostSource struct {
 	// Source image server secret token (when downloading private images)
 	// Example: RANDOM-STRING
 	Secret string `json:"secret" yaml:"secret"`
+
+	// Source project name
+	// Example: project1
+	//
+	// API extension: image_source_project
+	Project string `json:"project" yaml:"project"`
 }
 
 // ImagePut represents the modifiable fields of a LXD image
@@ -186,7 +192,7 @@ type ImageAlias struct {
 // swagger:model
 type ImageSource struct {
 	// Source alias to download from
-	// Example: bionic
+	// Example: focal
 	Alias string `json:"alias" yaml:"alias"`
 
 	// Source server certificate (if not trusted by system CA)

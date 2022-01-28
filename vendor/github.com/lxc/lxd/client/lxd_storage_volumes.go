@@ -411,7 +411,7 @@ func (r *ProtocolLXD) CopyStoragePoolVolume(pool string, source InstanceServer, 
 		return nil, fmt.Errorf("Failed to get destination connection info: %v", err)
 	}
 
-	if destInfo.URL == sourceInfo.URL && destInfo.SocketPath == sourceInfo.SocketPath {
+	if destInfo.URL == sourceInfo.URL && destInfo.SocketPath == sourceInfo.SocketPath && volume.Location == r.clusterTarget {
 		// Project handling
 		if destInfo.Project != sourceInfo.Project {
 			if !r.HasExtension("storage_api_project") {
@@ -575,6 +575,13 @@ func (r *ProtocolLXD) MoveStoragePoolVolume(pool string, source InstanceServer, 
 	req := api.StorageVolumePost{
 		Name: args.Name,
 		Pool: pool,
+	}
+
+	if args.Project != "" {
+		if !r.HasExtension("storage_volume_project_move") {
+			return nil, fmt.Errorf("The server is missing the required \"storage_volume_project_move\" API extension")
+		}
+		req.Project = args.Project
 	}
 
 	// Send the request

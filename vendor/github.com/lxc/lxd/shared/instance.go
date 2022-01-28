@@ -83,6 +83,10 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	"boot.stop.priority":         validate.Optional(validate.IsInt64),
 	"boot.host_shutdown_timeout": validate.Optional(validate.IsInt64),
 
+	"cloud-init.network-config": validate.Optional(validate.IsAny),
+	"cloud-init.user-data":      validate.Optional(validate.IsAny),
+	"cloud-init.vendor-data":    validate.Optional(validate.IsAny),
+
 	"cluster.evacuate": validate.Optional(validate.IsOneOf("auto", "migrate", "stop")),
 
 	"limits.cpu": func(value string) error {
@@ -167,6 +171,9 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	"volatile.apply_quota":      validate.IsAny,
 	"volatile.uuid":             validate.Optional(validate.IsUUID),
 	"volatile.vsock_id":         validate.Optional(validate.IsInt64),
+
+	// Caller is responsible for full validation of any raw.* value.
+	"raw.idmap": validate.IsAny,
 }
 
 // InstanceConfigKeysContainer is a map of config key to validator. (keys applying to containers only)
@@ -227,7 +234,6 @@ var InstanceConfigKeysContainer = map[string]func(value string) error{
 	"nvidia.require.driver":      validate.IsAny,
 
 	// Caller is responsible for full validation of any raw.* value.
-	"raw.idmap":   validate.IsAny,
 	"raw.lxc":     validate.IsAny,
 	"raw.seccomp": validate.IsAny,
 
@@ -327,6 +333,10 @@ func ConfigKeyChecker(key string, instanceType instancetype.Type) (func(value st
 			return validate.IsAny, nil
 		}
 
+		if strings.HasSuffix(key, ".last_state.vf.parent") {
+			return validate.IsAny, nil
+		}
+
 		if strings.HasSuffix(key, ".apply_quota") {
 			return validate.IsAny, nil
 		}
@@ -358,6 +368,11 @@ func ConfigKeyChecker(key string, instanceType instancetype.Type) (func(value st
 
 	if strings.HasPrefix(key, "limits.kernel.") &&
 		(len(key) > len("limits.kernel.")) {
+		return validate.IsAny, nil
+	}
+
+	if (instanceType == instancetype.Any || instanceType == instancetype.Container) &&
+		strings.HasPrefix(key, "linux.sysctl.") {
 		return validate.IsAny, nil
 	}
 

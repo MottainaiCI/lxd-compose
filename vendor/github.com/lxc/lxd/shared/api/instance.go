@@ -84,6 +84,12 @@ type InstancePost struct {
 	//
 	// API extension: instance_pool_move
 	Pool string `json:"pool" yaml:"pool"`
+
+	// Target project for local cross-project move
+	// Example: foo
+	//
+	// API extension: instance_project_move
+	Project string `json:"project" yaml:"project"`
 }
 
 // InstancePostTarget represents the migration target host and operation.
@@ -187,6 +193,12 @@ type Instance struct {
 	// The type of instance (container or virtual-machine)
 	// Example: container
 	Type string `json:"type" yaml:"type"`
+
+	// Instance project name
+	// Example: foo
+	//
+	// API extension: instance_all_projects
+	Project string `json:"project" yaml:"project"`
 }
 
 // InstanceFull is a combination of Instance, InstanceBackup, InstanceState and InstanceSnapshot.

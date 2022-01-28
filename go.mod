@@ -7,6 +7,7 @@ replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.2
 require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/farjump/go-libudev v0.0.0-20171109190736-8b0739cd6d0b // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -16,13 +17,15 @@ require (
 	github.com/icza/dyno v0.0.0-20200205103839-49cb13720835
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/juju/go4 v0.0.0-20160222163258-40d72ab9641a // indirect
+	github.com/juju/httprequest v1.0.1 // indirect
 	github.com/juju/persistent-cookiejar v0.0.0-20171026135701-d5e5a8405ef9 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/lxc/lxd v0.0.0-20211001020858-71fe94be1e89
+	github.com/lxc/lxd v0.0.0-20211210041606-30500c962f8e
 	github.com/microcosm-cc/bluemonday v1.0.16 // indirect
+	github.com/mpvl/subtest v0.0.0-20160608141506-f6e4cfd4b9ea // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.1.1
 	github.com/onsi/gomega v1.17.0
@@ -39,7 +42,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.20.0
-	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.8 // indirect
