@@ -14,9 +14,10 @@ builds:
       - 7
 
     ldflags:
-      - >-
-        -s -w -X github.com/MottainaiCI/lxd-compose/cmd.BuildTime={{.Date}}
-        -X github.com/MottainaiCI/lxd-compose/cmd.BuildCommit={{.Commit}}
+      - -s -w
+      - -X github.com/MottainaiCI/lxd-compose/cmd.BuildTime={{.Date}}
+      - -X github.com/MottainaiCI/lxd-compose/cmd.BuildCommit={{.Commit}}
+      - -X github.com/MottainaiCI/lxd-compose/cmd.BuildGoVersion={{ .Env.GOVERSION }}
 
 archives:
   - format: binary

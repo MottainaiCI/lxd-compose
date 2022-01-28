@@ -44,8 +44,9 @@ Mottainai - LXD Compose Integrator`
 //
 // ⚠️ WARNING: should only be set by "-ldflags".
 var (
-	BuildTime   string
-	BuildCommit string
+	BuildTime      string
+	BuildCommit    string
+	BuildGoVersion string
 )
 
 func initConfig(config *specs.LxdComposeConfig) {
@@ -112,6 +113,14 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	)
 }
 
+func version() string {
+	ans := fmt.Sprintf("%s-g%s %s", LXD_COMPOSE_VERSION, BuildCommit, BuildTime)
+	if BuildGoVersion != "" {
+		ans += " " + BuildGoVersion
+	}
+	return ans
+}
+
 func Execute() {
 	// Create Main Instance Config object
 	var config *specs.LxdComposeConfig = specs.NewLxdComposeConfig(nil)
@@ -120,7 +129,7 @@ func Execute() {
 
 	var rootCmd = &cobra.Command{
 		Short:        cliName,
-		Version:      fmt.Sprintf("%s-g%s %s", LXD_COMPOSE_VERSION, BuildCommit, BuildTime),
+		Version:      version(),
 		Args:         cobra.OnlyValidArgs,
 		SilenceUsage: true,
 		PreRun: func(cmd *cobra.Command, args []string) {
