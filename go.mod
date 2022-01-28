@@ -25,7 +25,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onsi/ginkgo/v2 v2.1.0
+	github.com/onsi/ginkgo/v2 v2.1.1
 	github.com/onsi/gomega v1.17.0
 	github.com/opencontainers/selinux v1.9.1 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
