@@ -122,3 +122,6 @@ $> lxd-compose project list
 
 ```
 
+## Community
+
+The lxd-compose devs team is available through the [Mottainai](https://join.slack.com/t/mottainaici/shared_invite/zt-zdmrc651-IvxE9j~TT5ssv_CVo51uZg) Slack channel.
