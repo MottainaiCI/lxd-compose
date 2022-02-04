@@ -95,6 +95,13 @@ func (r *Jinja2Compiler) Compile(sourceFile, destFile string) error {
 
 	}
 
+	// j2cli doesn't create automatically the target directory.
+	// I create it before it.
+	err = os.MkdirAll(filepath.Dir(destFile), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	// Command to execute:
 	// j2 template.j2 data.yml -o destfile
 	args := []string{
