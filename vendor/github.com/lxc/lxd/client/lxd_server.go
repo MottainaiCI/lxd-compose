@@ -3,6 +3,8 @@ package lxd
 import (
 	"fmt"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
 )
@@ -92,6 +94,7 @@ func (r *ProtocolLXD) GetServerResources() (*api.Resources, error) {
 // UseProject returns a client that will use a specific project.
 func (r *ProtocolLXD) UseProject(name string) InstanceServer {
 	return &ProtocolLXD{
+		ctx:                  r.ctx,
 		server:               r.server,
 		http:                 r.http,
 		httpCertificate:      r.httpCertificate,
@@ -103,6 +106,8 @@ func (r *ProtocolLXD) UseProject(name string) InstanceServer {
 		requireAuthenticated: r.requireAuthenticated,
 		clusterTarget:        r.clusterTarget,
 		project:              name,
+		eventConns:           make(map[string]*websocket.Conn),  // New project specific listener conns.
+		eventListeners:       make(map[string][]*EventListener), // New project specific listeners.
 	}
 }
 
@@ -111,6 +116,7 @@ func (r *ProtocolLXD) UseProject(name string) InstanceServer {
 // placement, preparing a new storage pool or network, ...
 func (r *ProtocolLXD) UseTarget(name string) InstanceServer {
 	return &ProtocolLXD{
+		ctx:                  r.ctx,
 		server:               r.server,
 		http:                 r.http,
 		httpCertificate:      r.httpCertificate,
@@ -121,6 +127,8 @@ func (r *ProtocolLXD) UseTarget(name string) InstanceServer {
 		bakeryInteractor:     r.bakeryInteractor,
 		requireAuthenticated: r.requireAuthenticated,
 		project:              r.project,
+		eventConns:           make(map[string]*websocket.Conn),  // New target specific listener conns.
+		eventListeners:       make(map[string][]*EventListener), // New target specific listeners.
 		clusterTarget:        name,
 	}
 }

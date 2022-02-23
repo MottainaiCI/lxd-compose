@@ -2,8 +2,10 @@ package log15
 
 import (
 	"fmt"
-	"runtime"
+	"strings"
 	"time"
+
+	"github.com/go-stack/stack"
 )
 
 const timeKey = "t"
@@ -11,8 +13,10 @@ const lvlKey = "lvl"
 const msgKey = "msg"
 const errorKey = "LOG15_ERROR"
 
+// Lvl is a type for predefined log levels.
 type Lvl int
 
+// List of predefined log Levels
 const (
 	LvlCrit Lvl = iota
 	LvlError
@@ -39,7 +43,7 @@ func (l Lvl) String() string {
 	}
 }
 
-// Returns the appropriate Lvl from a string name.
+// LvlFromString returns the appropriate Lvl from a string name.
 // Useful for parsing command line args and configuration files.
 func LvlFromString(lvlString string) (Lvl, error) {
 	switch lvlString {
@@ -54,7 +58,12 @@ func LvlFromString(lvlString string) (Lvl, error) {
 	case "crit":
 		return LvlCrit, nil
 	default:
-		return LvlDebug, fmt.Errorf("Unknown level: %v", lvlString)
+		// try to catch e.g. "INFO", "WARN" without slowing down the fast path
+		lower := strings.ToLower(lvlString)
+		if lower != lvlString {
+			return LvlFromString(lower)
+		}
+		return LvlDebug, fmt.Errorf("log15: unknown level: %v", lvlString)
 	}
 }
 
@@ -64,10 +73,11 @@ type Record struct {
 	Lvl      Lvl
 	Msg      string
 	Ctx      []interface{}
-	CallPC   [1]uintptr
+	Call     stack.Call
 	KeyNames RecordKeyNames
 }
 
+// RecordKeyNames are the predefined names of the log props used by the Logger interface.
 type RecordKeyNames struct {
 	Time string
 	Msg  string
@@ -78,6 +88,9 @@ type RecordKeyNames struct {
 type Logger interface {
 	// New returns a new Logger that has this logger's context plus the given context
 	New(ctx ...interface{}) Logger
+
+	// GetHandler gets the handler associated with the logger.
+	GetHandler() Handler
 
 	// SetHandler updates the logger to write records to the specified handler.
 	SetHandler(h Handler)
@@ -96,19 +109,18 @@ type logger struct {
 }
 
 func (l *logger) write(msg string, lvl Lvl, ctx []interface{}) {
-	r := Record{
+	l.h.Log(&Record{
 		Time: time.Now(),
 		Lvl:  lvl,
 		Msg:  msg,
 		Ctx:  newContext(l.ctx, ctx),
+		Call: stack.Caller(2),
 		KeyNames: RecordKeyNames{
 			Time: timeKey,
 			Msg:  msgKey,
 			Lvl:  lvlKey,
 		},
-	}
-	runtime.Callers(3, r.CallPC[:])
-	l.h.Log(&r)
+	})
 }
 
 func (l *logger) New(ctx ...interface{}) Logger {
@@ -143,6 +155,10 @@ func (l *logger) Error(msg string, ctx ...interface{}) {
 
 func (l *logger) Crit(msg string, ctx ...interface{}) {
 	l.write(msg, LvlCrit, ctx)
+}
+
+func (l *logger) GetHandler() Handler {
+	return l.h.Get()
 }
 
 func (l *logger) SetHandler(h Handler) {

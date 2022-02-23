@@ -13,7 +13,7 @@ type NetworkZonesPost struct {
 	Name string `json:"name" yaml:"name"`
 }
 
-// NetworkZonePut represents the modifiable fields of a LXD network zoned
+// NetworkZonePut represents the modifiable fields of a LXD network zone
 //
 // swagger:model
 //
@@ -49,4 +49,72 @@ type NetworkZone struct {
 // Writable converts a full NetworkZone struct into a NetworkZonePut struct (filters read-only fields).
 func (f *NetworkZone) Writable() NetworkZonePut {
 	return f.NetworkZonePut
+}
+
+// NetworkZoneRecordsPost represents the fields of a new LXD network zone record
+//
+// swagger:model
+//
+// API extension: network_dns_records
+type NetworkZoneRecordsPost struct {
+	NetworkZoneRecordPut `yaml:",inline"`
+
+	// The record name in the zone
+	// Example: @
+	Name string `json:"name" yaml:"name"`
+}
+
+// NetworkZoneRecordPut represents the modifiable fields of a LXD network zone record
+//
+// swagger:model
+//
+// API extension: network_dns_records
+type NetworkZoneRecordPut struct {
+	// Description of the record
+	// Example: SPF record
+	Description string `json:"description" yaml:"description"`
+
+	// Entries in the record
+	Entries []NetworkZoneRecordEntry `json:"entries" yaml:"entries"`
+
+	// Advanced configuration for the record
+	// Example: {"user.mykey": "foo"}
+	Config map[string]string `json:"config" yaml:"config"`
+}
+
+// NetworkZoneRecordEntry represents the fields in a record entry
+//
+// swagger:model
+//
+// API extension: network_dns_records
+type NetworkZoneRecordEntry struct {
+	// Type of DNS entry
+	// Example: TXT
+	Type string `json:"type" yaml:"type"`
+
+	// TTL for the entry
+	// Example: 3600
+	TTL uint64 `json:"ttl,omitempty" yaml:"ttl,omitempty"`
+
+	// Value for the record
+	// Example: v=spf1 mx ~all
+	Value string `json:"value" yaml:"value"`
+}
+
+// NetworkZoneRecord represents a network zone (DNS) record.
+//
+// swagger:model
+//
+// API extension: network_dns_records
+type NetworkZoneRecord struct {
+	NetworkZoneRecordPut `yaml:",inline"`
+
+	// The name of the record
+	// Example: @
+	Name string `json:"name" yaml:"name"`
+}
+
+// Writable converts a full NetworkZoneRecord struct into a NetworkZoneRecordPut struct (filters read-only fields).
+func (f *NetworkZoneRecord) Writable() NetworkZoneRecordPut {
+	return f.NetworkZoneRecordPut
 }

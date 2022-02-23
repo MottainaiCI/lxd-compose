@@ -2,6 +2,7 @@ package lxd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,10 +23,18 @@ import (
 
 // ProtocolLXD represents a LXD API server
 type ProtocolLXD struct {
+	ctx         context.Context
 	server      *api.Server
 	chConnected chan struct{}
 
-	eventListeners     []*EventListener
+	// eventConns contains event listener connections associated to a project name (or empty for all projects).
+	eventConns map[string]*websocket.Conn
+
+	// eventConnsLock controls write access to the eventConns.
+	eventConnsLock sync.Mutex
+
+	// eventListeners is a slice of event listeners associated to a project name (or empty for all projects).
+	eventListeners     map[string][]*EventListener
 	eventListenersLock sync.Mutex
 
 	http            *http.Client
@@ -188,7 +197,7 @@ func (r *ProtocolLXD) rawQuery(method string, url string, data interface{}, ETag
 		switch data := data.(type) {
 		case io.Reader:
 			// Some data to be sent along with the request
-			req, err = http.NewRequest(method, url, data)
+			req, err = http.NewRequestWithContext(r.ctx, method, url, data)
 			if err != nil {
 				return nil, "", err
 			}
@@ -205,7 +214,7 @@ func (r *ProtocolLXD) rawQuery(method string, url string, data interface{}, ETag
 
 			// Some data to be sent along with the request
 			// Use a reader since the request body needs to be seekable
-			req, err = http.NewRequest(method, url, bytes.NewReader(buf.Bytes()))
+			req, err = http.NewRequestWithContext(r.ctx, method, url, bytes.NewReader(buf.Bytes()))
 			if err != nil {
 				return nil, "", err
 			}
@@ -218,7 +227,7 @@ func (r *ProtocolLXD) rawQuery(method string, url string, data interface{}, ETag
 		}
 	} else {
 		// No data to be sent along with the request
-		req, err = http.NewRequest(method, url, nil)
+		req, err = http.NewRequestWithContext(r.ctx, method, url, nil)
 		if err != nil {
 			return nil, "", err
 		}
@@ -407,4 +416,11 @@ func (r *ProtocolLXD) setupBakeryClient() {
 			r.bakeryClient.AddInteractor(interactor)
 		}
 	}
+}
+
+// WithContext returns a client that will add context.Context.
+func (r *ProtocolLXD) WithContext(ctx context.Context) InstanceServer {
+	rr := r
+	rr.ctx = ctx
+	return rr
 }

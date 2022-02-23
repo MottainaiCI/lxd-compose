@@ -83,8 +83,12 @@ type InstanceServer interface {
 	CreateCertificate(certificate api.CertificatesPost) (err error)
 	UpdateCertificate(fingerprint string, certificate api.CertificatePut, ETag string) (err error)
 	DeleteCertificate(fingerprint string) (err error)
+	CreateCertificateToken(certificate api.CertificatesPost) (op Operation, err error)
 
 	// Container functions
+	//
+	// Deprecated: Those functions are deprecated and won't be updated anymore.
+	// Please use the equivalent Instance function instead.
 	GetContainerNames() (names []string, err error)
 	GetContainers() (containers []api.Container, err error)
 	GetContainersFull() (containers []api.ContainerFull, err error)
@@ -149,6 +153,7 @@ type InstanceServer interface {
 	GetInstancesAllProjects(instanceType api.InstanceType) (instances []api.Instance, err error)
 	GetInstancesFullAllProjects(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
 	GetInstance(name string) (instance *api.Instance, ETag string, err error)
+	GetInstanceFull(name string) (instance *api.InstanceFull, ETag string, err error)
 	CreateInstance(instance api.InstancesPost) (op Operation, err error)
 	CreateInstanceFromImage(source ImageServer, image api.Image, req api.InstancesPost) (op RemoteOperation, err error)
 	CopyInstance(source InstanceServer, instance api.Instance, args *InstanceCopyArgs) (op RemoteOperation, err error)
@@ -206,6 +211,7 @@ type InstanceServer interface {
 	// Event handling functions
 	GetEvents() (listener *EventListener, err error)
 	GetEventsAllProjects() (listener *EventListener, err error)
+	SendEvent(event api.Event) error
 
 	// Image functions
 	CreateImage(image api.ImagesPost, args *ImageCreateArgs) (op Operation, err error)
@@ -250,6 +256,7 @@ type InstanceServer interface {
 	GetNetworkACLNames() (names []string, err error)
 	GetNetworkACLs() (acls []api.NetworkACL, err error)
 	GetNetworkACL(name string) (acl *api.NetworkACL, ETag string, err error)
+	GetNetworkACLLogfile(name string) (log io.ReadCloser, err error)
 	CreateNetworkACL(acl api.NetworkACLsPost) (err error)
 	UpdateNetworkACL(name string, acl api.NetworkACLPut, ETag string) (err error)
 	RenameNetworkACL(name string, acl api.NetworkACLPost) (err error)
@@ -257,11 +264,18 @@ type InstanceServer interface {
 
 	// Network zone functions ("network_dns" API extension)
 	GetNetworkZoneNames() (names []string, err error)
-	GetNetworkZones() (acls []api.NetworkZone, err error)
-	GetNetworkZone(name string) (acl *api.NetworkZone, ETag string, err error)
-	CreateNetworkZone(acl api.NetworkZonesPost) (err error)
-	UpdateNetworkZone(name string, acl api.NetworkZonePut, ETag string) (err error)
+	GetNetworkZones() (zones []api.NetworkZone, err error)
+	GetNetworkZone(name string) (zone *api.NetworkZone, ETag string, err error)
+	CreateNetworkZone(zone api.NetworkZonesPost) (err error)
+	UpdateNetworkZone(name string, zone api.NetworkZonePut, ETag string) (err error)
 	DeleteNetworkZone(name string) (err error)
+
+	GetNetworkZoneRecordNames(zone string) (names []string, err error)
+	GetNetworkZoneRecords(zone string) (records []api.NetworkZoneRecord, err error)
+	GetNetworkZoneRecord(zone string, name string) (record *api.NetworkZoneRecord, ETag string, err error)
+	CreateNetworkZoneRecord(zone string, record api.NetworkZoneRecordsPost) (err error)
+	UpdateNetworkZoneRecord(zone string, name string, record api.NetworkZoneRecordPut, ETag string) (err error)
+	DeleteNetworkZoneRecord(zone string, name string) (err error)
 
 	// Operation functions
 	GetOperationUUIDs() (uuids []string, err error)
@@ -533,6 +547,9 @@ type InstanceCopyArgs struct {
 	// API extension: container_incremental_copy
 	// Perform an incremental copy
 	Refresh bool
+
+	// API extension: instance_allow_inconsistent_copy
+	AllowInconsistent bool
 }
 
 // The InstanceSnapshotCopyArgs struct is used to pass additional options during instance copy.

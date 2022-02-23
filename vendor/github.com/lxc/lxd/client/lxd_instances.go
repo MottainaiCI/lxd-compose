@@ -224,6 +224,54 @@ func (r *ProtocolLXD) GetInstance(name string) (*api.Instance, string, error) {
 	return &instance, etag, nil
 }
 
+// GetInstanceFull returns the instance entry for the provided name along with snapshot information.
+func (r *ProtocolLXD) GetInstanceFull(name string) (*api.InstanceFull, string, error) {
+	instance := api.InstanceFull{}
+
+	if !r.HasExtension("instance_get_full") {
+		// Backware compatibility.
+		ct, _, err := r.GetInstance(name)
+		if err != nil {
+			return nil, "", err
+		}
+
+		cs, _, err := r.GetInstanceState(name)
+		if err != nil {
+			return nil, "", err
+		}
+
+		snaps, err := r.GetInstanceSnapshots(name)
+		if err != nil {
+			return nil, "", err
+		}
+
+		backups, err := r.GetInstanceBackups(name)
+		if err != nil {
+			return nil, "", err
+		}
+
+		instance.Instance = *ct
+		instance.State = cs
+		instance.Snapshots = snaps
+		instance.Backups = backups
+
+		return &instance, "", nil
+	}
+
+	path, _, err := r.instanceTypeToPath(api.InstanceTypeAny)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Fetch the raw value
+	etag, err := r.queryStruct("GET", fmt.Sprintf("%s/%s?recursion=1", path, url.PathEscape(name)), nil, "", &instance)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return &instance, etag, nil
+}
+
 // CreateInstanceFromBackup is a convenience function to make it easier to
 // create a instance from a backup
 func (r *ProtocolLXD) CreateInstanceFromBackup(args InstanceBackupArgs) (Operation, error) {
@@ -500,6 +548,12 @@ func (r *ProtocolLXD) CopyInstance(source InstanceServer, instance api.Instance,
 			}
 		}
 
+		if args.AllowInconsistent {
+			if !r.HasExtension("instance_allow_inconsistent_copy") {
+				return nil, fmt.Errorf("The source server is missing the required \"instance_allow_inconsistent_copy\" API extension")
+			}
+		}
+
 		// Allow overriding the target name
 		if args.Name != "" {
 			req.Name = args.Name
@@ -509,6 +563,7 @@ func (r *ProtocolLXD) CopyInstance(source InstanceServer, instance api.Instance,
 		req.Source.InstanceOnly = args.InstanceOnly
 		req.Source.ContainerOnly = args.InstanceOnly // For legacy servers.
 		req.Source.Refresh = args.Refresh
+		req.Source.AllowInconsistent = args.AllowInconsistent
 	}
 
 	if req.Source.Live {

@@ -87,7 +87,7 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	"cloud-init.user-data":      validate.Optional(validate.IsAny),
 	"cloud-init.vendor-data":    validate.Optional(validate.IsAny),
 
-	"cluster.evacuate": validate.Optional(validate.IsOneOf("auto", "migrate", "stop")),
+	"cluster.evacuate": validate.Optional(validate.IsOneOf("auto", "migrate", "live-migrate", "stop")),
 
 	"limits.cpu": func(value string) error {
 		if value == "" {
@@ -150,7 +150,7 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	"security.devlxd":            validate.Optional(validate.IsBool),
 	"security.protection.delete": validate.Optional(validate.IsBool),
 
-	"snapshots.schedule":         validate.Optional(validate.IsCron([]string{"@hourly", "@daily", "@midnight", "@weekly", "@monthly", "@annually", "@yearly", "@startup"})),
+	"snapshots.schedule":         validate.Optional(validate.IsCron([]string{"@hourly", "@daily", "@midnight", "@weekly", "@monthly", "@annually", "@yearly", "@startup", "@never"})),
 	"snapshots.schedule.stopped": validate.Optional(validate.IsBool),
 	"snapshots.pattern":          validate.IsAny,
 	"snapshots.expiry": func(value string) error {
@@ -274,7 +274,8 @@ var InstanceConfigKeysVM = map[string]func(value string) error{
 	// Caller is responsible for full validation of any raw.* value.
 	"raw.qemu": validate.IsAny,
 
-	"security.secureboot": validate.Optional(validate.IsBool),
+	"security.agent.metrics": validate.Optional(validate.IsBool),
+	"security.secureboot":    validate.Optional(validate.IsBool),
 }
 
 // ConfigKeyChecker returns a function that will check whether or not

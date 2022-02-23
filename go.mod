@@ -2,7 +2,7 @@ module github.com/MottainaiCI/lxd-compose
 
 go 1.16
 
-replace github.com/docker/docker => github.com/Luet-lab/moby v17.12.0-ce-rc1.0.20200605210607-749178b8f80d+incompatible
+replace google.golang.org/grpc/naming => google.golang.org/grpc v1.29.1
 
 require (
 	github.com/Masterminds/semver v1.5.0 // indirect
@@ -23,29 +23,27 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/lxc/lxd v0.0.0-20211210041606-30500c962f8e
+	github.com/lxc/lxd v0.0.0-20220210225321-b29334016f17
 	github.com/microcosm-cc/bluemonday v1.0.16 // indirect
 	github.com/mpvl/subtest v0.0.0-20160608141506-f6e4cfd4b9ea // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.1.1
 	github.com/onsi/gomega v1.17.0
 	github.com/opencontainers/selinux v1.9.1 // indirect
+	github.com/osrg/gobgp v0.0.0-20211018075811-c8e54e7f8a2a // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/smartystreets/assertions v1.0.1 // indirect
-	github.com/spf13/afero v1.8.0 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.10.1
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.20.0
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.1.8 // indirect
-	gopkg.in/ini.v1 v1.66.3 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5 // indirect
 	gopkg.in/yaml.v2 v2.4.0
