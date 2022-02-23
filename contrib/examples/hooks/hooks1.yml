@@ -1,4 +1,5 @@
 hooks:
   - event: pre-group
+    node: host
     commands:
       - echo "This is an included hooks at project level"
