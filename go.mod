@@ -41,7 +41,7 @@ require (
 	github.com/spf13/viper v1.10.1
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	go.uber.org/zap v1.20.0
+	go.uber.org/zap v1.21.0
 	golang.org/x/sys v0.0.0-20220223155357-96fed51e1446
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
