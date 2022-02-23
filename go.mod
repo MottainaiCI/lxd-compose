@@ -1,6 +1,6 @@
 module github.com/MottainaiCI/lxd-compose
 
-go 1.16
+go 1.17
 
 replace google.golang.org/grpc/naming => google.golang.org/grpc v1.29.1
 
