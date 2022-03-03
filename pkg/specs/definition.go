@@ -118,8 +118,10 @@ type LxdCGroup struct {
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	Connection  string `json:"connection,omitempty" yaml:"connection,omitempty"`
 
-	CommonProfiles []string `json:"common_profiles,omitempty" yaml:"common_profiles,omitempty"`
-	Ephemeral      bool     `json:"ephemeral,omitempty" yaml:"ephemeral,omitempty"`
+	CommonProfiles []string          `json:"common_profiles,omitempty" yaml:"common_profiles,omitempty"`
+	Config         map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+
+	Ephemeral bool `json:"ephemeral,omitempty" yaml:"ephemeral,omitempty"`
 
 	Nodes       []LxdCNode `json:"nodes" yaml:"nodes"`
 	NodesPrefix string     `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
@@ -140,6 +142,7 @@ type LxdCNode struct {
 	ImageRemoteServer string `json:"image_remote_server,omitempty" yaml:"image_remote_server,omitempty"`
 
 	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Config map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
 
 	SourceDir string `json:"source_dir,omitempty" yaml:"source_dir,omitempty"`
 

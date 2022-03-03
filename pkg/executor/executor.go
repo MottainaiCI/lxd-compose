@@ -178,6 +178,10 @@ func (e *LxdCExecutor) Setup() error {
 }
 
 func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, profiles []string) error {
+	return e.CreateContainerWithConfig(name, fingerprint, imageServer, profiles, map[string]string{})
+}
+
+func (e *LxdCExecutor) CreateContainerWithConfig(name, fingerprint, imageServer string, profiles []string, configMap map[string]string) error {
 	if name == "" {
 		return errors.New("Invalid container name")
 	}
@@ -205,7 +209,7 @@ func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, pr
 
 	e.Emitter.InfoLog(true, logger.Aurora.Bold(logger.Aurora.BrightCyan(
 		">>> Creating container "+name+"... - :factory:")))
-	err = e.LaunchContainer(name, imageFingerprint, profiles)
+	err = e.LaunchContainerWithConfig(name, imageFingerprint, profiles, configMap)
 	if err != nil {
 		logger.Error("Creating container error: " + err.Error())
 		return err

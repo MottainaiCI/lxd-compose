@@ -31,6 +31,10 @@ func (g *LxdCGroup) Init() {
 		g.Hooks = []LxdCHook{}
 	}
 
+	if g.Config == nil {
+		g.Config = make(map[string]string, 0)
+	}
+
 	for idx, _ := range g.Nodes {
 		g.Nodes[idx].Init()
 	}
@@ -100,4 +104,8 @@ func (g *LxdCGroup) AddHooks(h *LxdCHooks) {
 	if len(h.Hooks) > 0 {
 		g.Hooks = append(g.Hooks, h.Hooks...)
 	}
+}
+
+func (g *LxdCGroup) GetLxdConfig() map[string]string {
+	return g.Config
 }

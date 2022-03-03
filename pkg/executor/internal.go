@@ -32,10 +32,14 @@ import (
 )
 
 func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []string) error {
-	return e.LaunchContainerType(name, fingerprint, profiles, e.Ephemeral)
+	return e.LaunchContainerType(name, fingerprint, profiles, map[string]string{}, e.Ephemeral)
 }
 
-func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []string, ephemeral bool) error {
+func (e *LxdCExecutor) LaunchContainerWithConfig(name, fingerprint string, profiles []string, configMap map[string]string) error {
+	return e.LaunchContainerType(name, fingerprint, profiles, configMap, e.Ephemeral)
+}
+
+func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []string, configMap map[string]string, ephemeral bool) error {
 
 	var err error
 	var image *lxd_api.Image
@@ -49,7 +53,6 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 	// Note: Avoid to create devece map for root /. We consider to handle this
 	//       as profile. Same for different storage.
 	devicesMap := map[string]map[string]string{}
-	configMap := map[string]string{}
 
 	// Setup container creation request
 	req := lxd_api.ContainersPost{

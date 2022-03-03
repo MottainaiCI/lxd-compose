@@ -207,6 +207,9 @@ projects:
         # Create the environment container as ephemeral or not.
         ephemeral: true
 
+        config:
+          "user.groupkey": "value1"
+
         hooks:
           - event: pre-node-sync
             node: "host"
@@ -267,8 +270,7 @@ projects:
               - event: post-node-creation
                 commands:
                   - apk add curl
-                  - curl --no-progress-meter https://get.mocaccino.org/luet/get_luet_root.sh | sh
-                  - luet install repository/mocaccino-extra
+                  - curl https://raw.githubusercontent.com/geaaru/luet/geaaru/contrib/config/get_luet_root.sh | sh
                   - luet install utils/jq
                   - echo "${node}" | jq
 

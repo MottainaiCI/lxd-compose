@@ -78,3 +78,20 @@ func (n *LxdCNode) AddHooks(h *LxdCHooks) {
 		n.Hooks = append(n.Hooks, h.Hooks...)
 	}
 }
+
+func (n *LxdCNode) GetLxdConfig(groupMap map[string]string) map[string]string {
+	if groupMap == nil {
+		groupMap = make(map[string]string, 0)
+	}
+
+	for k, v := range n.Config {
+		groupMap[k] = v
+	}
+
+	// Add labels as user properties
+	for k, v := range n.Labels {
+		groupMap["user."+k] = v
+	}
+
+	return groupMap
+}

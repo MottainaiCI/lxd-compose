@@ -113,8 +113,10 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				profiles = append(profiles, grp.CommonProfiles...)
 				profiles = append(profiles, nodeConf.Profiles...)
 
-				err := executor.CreateContainer(n, nodeConf.ImageSource,
-					nodeConf.ImageRemoteServer, profiles)
+				configMap := nodeConf.GetLxdConfig(grp.GetLxdConfig())
+
+				err := executor.CreateContainerWithConfig(n, nodeConf.ImageSource,
+					nodeConf.ImageRemoteServer, profiles, configMap)
 				if err != nil {
 					fmt.Println("Error on create container "+n+":", err.Error())
 					os.Exit(1)

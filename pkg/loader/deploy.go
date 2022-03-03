@@ -427,11 +427,17 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			profiles := []string{}
 			profiles = append(profiles, group.CommonProfiles...)
 			profiles = append(profiles, node.Profiles...)
+
+			configMap := node.GetLxdConfig(group.GetLxdConfig())
+
 			i.Logger.Debug(fmt.Sprintf("[%s] Using profiles %s",
 				node.GetName(), profiles))
 
-			err := executor.CreateContainer(node.GetName(), node.ImageSource,
-				node.ImageRemoteServer, profiles)
+			i.Logger.Debug(fmt.Sprintf("[%s] Using config map %s",
+				node.GetName(), configMap))
+
+			err := executor.CreateContainerWithConfig(node.GetName(), node.ImageSource,
+				node.ImageRemoteServer, profiles, configMap)
 			if err != nil {
 				i.Logger.Error("Error on create container " +
 					node.GetName() + ":" + err.Error())
