@@ -32,7 +32,42 @@ import (
 )
 
 type CompilerOpts struct {
-	Sources []string
+	Sources        []string
+	GroupsEnabled  []string
+	GroupsDisabled []string
+}
+
+func (o *CompilerOpts) IsGroupEnabled(g string) bool {
+	ans := true
+
+	if len(o.GroupsDisabled) == 0 && len(o.GroupsEnabled) == 0 {
+		return ans
+	}
+
+	if len(o.GroupsEnabled) > 0 {
+		ans := false
+
+		for _, name := range o.GroupsEnabled {
+			if name == g {
+				ans = true
+				break
+			}
+		}
+		if !ans {
+			return ans
+		}
+	}
+
+	if len(o.GroupsDisabled) > 0 {
+		for _, name := range o.GroupsDisabled {
+			if name == g {
+				ans = false
+				break
+			}
+		}
+	}
+
+	return ans
 }
 
 func NewProjectTemplateCompiler(env *specs.LxdCEnvironment, proj *specs.LxdCProject) (LxdCTemplateCompiler, error) {
@@ -70,6 +105,10 @@ func CompileAllProjectFiles(env *specs.LxdCEnvironment, pName string, opts Compi
 
 	// TODO: parallel elaboration
 	for _, group := range proj.Groups {
+
+		if !opts.IsGroupEnabled(group.Name) {
+			continue
+		}
 
 		// Compile group files
 		err = CompileGroupFiles(&group, compiler, opts)
