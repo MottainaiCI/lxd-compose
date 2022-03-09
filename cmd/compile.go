@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2022  Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -38,6 +38,8 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var envs []string
 	var renderEnvs []string
 	var varsFiles []string
+	var enabledGroups []string
+	var disabledGroups []string
 	var cmd = &cobra.Command{
 		Use:     "compile",
 		Short:   "Compile project templates.",
@@ -66,7 +68,9 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			composer.SetNodesPrefix(prefix)
 
 			opts := template.CompilerOpts{
-				Sources: sources,
+				Sources:        sources,
+				GroupsEnabled:  enabledGroups,
+				GroupsDisabled: disabledGroups,
 			}
 
 			if len(projects) > 0 {
@@ -144,6 +148,10 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Append project environments in the format key=value.")
 	pflags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
+	pflags.StringSliceVar(&disabledGroups, "disable-group", []string{},
+		"Skip selected group from deploy.")
+	pflags.StringSliceVar(&enabledGroups, "enable-group", []string{},
+		"Apply only selected groups.")
 
 	return cmd
 }
