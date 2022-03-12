@@ -188,6 +188,7 @@ projects:
           obj:
             key: "xxx"
             foo: "baa"
+          dash-var: "xxxx"
 
           LUET_YES: "true"
 
@@ -265,6 +266,10 @@ projects:
               - event: post-node-creation
                 commands:
                   - echo "1"
+                  - >-
+                    if [ "${dash_var}" != "xxxx" ] ; then
+                    env && exit 1 ;
+                    fi
 
               # Print node json
               - event: post-node-creation

@@ -24,6 +24,7 @@ package specs
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/icza/dyno"
@@ -68,6 +69,12 @@ func (p *LxdCProject) GetEnvsMap() (map[string]string, error) {
 
 	for _, e := range p.Environments {
 		for k, v := range e.EnvVars {
+			// Bash doesn't support variable with dash.
+			// I will convert dash with underscore.
+			if strings.Contains(k, "-") {
+				k = strings.ReplaceAll(k, "-", "_")
+			}
+
 			switch v.(type) {
 			case int:
 				ans[k] = fmt.Sprintf("%d", v.(int))
