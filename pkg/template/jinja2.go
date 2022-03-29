@@ -29,7 +29,7 @@ import (
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Jinja2Compiler struct {

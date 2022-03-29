@@ -23,7 +23,7 @@ package specs
 
 import (
 	"github.com/jinzhu/copier"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func getHooks(hooks *[]LxdCHook, event string) []LxdCHook {

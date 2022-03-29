@@ -24,7 +24,7 @@ package specs
 import (
 	"io/ioutil"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func (c *LxdCCommand) GetName() string            { return c.Name }

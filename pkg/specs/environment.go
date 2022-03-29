@@ -25,7 +25,7 @@ import (
 	"errors"
 	"path"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func EnvironmentFromYaml(data []byte, file string) (*LxdCEnvironment, error) {
