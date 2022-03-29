@@ -70,7 +70,7 @@ projects:
 {{ range $i, $gv := $gversions }}
           - name: lxd-compose-test{{ $i }}
             # ARM images or AMD64
-            image_source: "ubuntu/21.04"
+            image_source: "ubuntu/21.10"
             # By deafult it use remote images"
             image_remote_server: "images"
 
@@ -100,7 +100,7 @@ projects:
                   - apt-get install -y git make pip curl
                   - apt-get install -y gcc-arm-linux-gnueabi libc6-dev-armel-cross
                   - apt-get install -y libc6-armel-cross libc6-dev golang-${golang_version}-go
-                  - apt-get install -y libc6-dev-i386 libc6-dev-armhf-armel-cross linux-headers-generic
+                  - apt-get install -y libc6-dev-i386 libc6-dev-armel-cross linux-headers-generic
                   # Fix asm/errno.h: No such file or directory on 386 build
                   - cp --archive /usr/include/asm-generic /usr/include/asm
                   - mkdir /gopath/src/github.com/MottainaiCi/ -p
