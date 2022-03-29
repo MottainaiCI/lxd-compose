@@ -32,7 +32,7 @@ import (
 	yamlgo "github.com/ghodss/yaml"
 	"github.com/icza/dyno"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
