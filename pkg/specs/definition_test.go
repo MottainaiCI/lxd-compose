@@ -175,12 +175,13 @@ envs:
 			Expect(err).Should(BeNil())
 			Expect(e2.EnvVars["key1"]).To(Equal("value1"))
 
-			for k, v := range obj1.(map[interface{}]interface{}) {
+			for k, v := range obj1.(map[string]interface{}) {
 				Expect(k).To(Equal("complex"))
-				for k2, v2 := range v.(map[interface{}]interface{}) {
+				for k2, v2 := range v.(map[string]interface{}) {
 					Expect(k2).To(Equal("arg2"))
 					Expect(v2).To(Equal(10))
 				}
+
 			}
 		})
 	})
