@@ -385,6 +385,14 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 	executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
 
+	// Retrieve the list of configured profiles
+	instanceProfiles, err := executor.GetProfilesList()
+	if err != nil {
+		return errors.New(
+			fmt.Sprintf("Error on retrieve the list of instance profile of the group %s: %s",
+				group.Name, err.Error()))
+	}
+
 	// TODO: implement parallel creation
 	for _, node := range group.Nodes {
 
@@ -433,7 +441,12 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 			i.Logger.Debug(fmt.Sprintf("[%s] Using config map %s",
 				node.GetName(), configMap))
 
-			err := executor.CreateContainerWithConfig(node.GetName(), node.ImageSource,
+			err := i.validateProfiles(instanceProfiles, profiles)
+			if err != nil {
+				return err
+			}
+
+			err = executor.CreateContainerWithConfig(node.GetName(), node.ImageSource,
 				node.ImageRemoteServer, profiles, configMap)
 			if err != nil {
 				i.Logger.Error("Error on create container " +
@@ -655,6 +668,22 @@ func (i *LxdCInstance) ApplyCommand(c *specs.LxdCCommand, proj *specs.LxdCProjec
 	i.SetGroupsEnabled(c.EnableGroups)
 	i.SetSkipSync(c.SkipSync)
 	i.SetNodesPrefix(c.NodesPrefix)
+
+	return nil
+}
+
+func (i *LxdCInstance) validateProfiles(instanceProfiles, requiredProfiles []string) error {
+	mProf := make(map[string]bool, 0)
+
+	for _, p := range instanceProfiles {
+		mProf[p] = true
+	}
+
+	for _, p := range requiredProfiles {
+		if _, ok := mProf[p]; !ok {
+			return errors.New(fmt.Sprintf("Profile %s not available on target instance.", p))
+		}
+	}
 
 	return nil
 }
