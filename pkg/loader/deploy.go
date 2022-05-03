@@ -218,12 +218,9 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 					i.Config.GetGeneral().LxdConfDir, []string{}, ephemeral,
 					i.Config.GetLogging().CmdsOutput,
 					i.Config.GetLogging().RuntimeCmdsOutput)
-				err := executor.Setup()
-				if err != nil {
-					return err
-				}
-
 				executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
+
+				// NOTE: I don't need to run executor.Setup() for host node.
 			}
 
 			if h.Out2Var != "" || h.Err2Var != "" {
@@ -349,17 +346,6 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProject, env *specs.LxdCEnvironment, compiler template.LxdCTemplateCompiler) error {
 
-	// Initialize executor
-	executor := lxd_executor.NewLxdCExecutor(group.Connection,
-		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
-		i.Config.GetLogging().CmdsOutput,
-		i.Config.GetLogging().RuntimeCmdsOutput)
-	err := executor.Setup()
-	if err != nil {
-		return err
-	}
-	executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
-
 	var syncSourceDir string
 	envBaseAbs, err := filepath.Abs(filepath.Dir(env.File))
 	if err != nil {
@@ -387,6 +373,17 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	if err != nil {
 		return err
 	}
+
+	// Initialize executor
+	executor := lxd_executor.NewLxdCExecutor(group.Connection,
+		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
+		i.Config.GetLogging().CmdsOutput,
+		i.Config.GetLogging().RuntimeCmdsOutput)
+	err = executor.Setup()
+	if err != nil {
+		return err
+	}
+	executor.SetP2PMode(i.Config.GetGeneral().P2PMode)
 
 	// TODO: implement parallel creation
 	for _, node := range group.Nodes {
