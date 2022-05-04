@@ -33,11 +33,11 @@ import (
 )
 
 const (
-	cliName = `Copyright (c) 2020-2021 Mottainai - Daniele Rondina
+	cliName = `Copyright (c) 2020-2022 Mottainai - Daniele Rondina
 
 Mottainai - LXD Compose Integrator`
 
-	LXD_COMPOSE_VERSION = `0.18.3`
+	LXD_COMPOSE_VERSION = `0.19.0`
 )
 
 var (
