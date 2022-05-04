@@ -55,10 +55,11 @@ type LxdCNetwork struct {
 }
 
 type LxdCStorage struct {
-	Name        string            `json:"name" yaml:"name"`
-	Driver      string            `json:"driver" yaml:"driver"`
-	Description string            `json:"description" yaml:"description"`
-	Config      map[string]string `json:"config" yaml:"config"`
+	Name          string            `json:"name" yaml:"name"`
+	Driver        string            `json:"driver" yaml:"driver"`
+	Description   string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Documentation string            `json:"documentation,omitempty" yaml:"documentation,omitempty"`
+	Config        map[string]string `json:"config" yaml:"config"`
 }
 
 type LxdCHook struct {
