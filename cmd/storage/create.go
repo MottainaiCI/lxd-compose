@@ -89,6 +89,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			project := env.GetProjectByName(proj)
+
 			if all {
 				storages = *env.GetStorages()
 			} else {
@@ -148,49 +150,54 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			} else {
 				// Create storage to all groups
 
-				for _, proj := range *env.GetProjects() {
+				grpMap := make(map[string]bool, 0)
 
-					for _, grp := range proj.Groups {
+				for _, grp := range project.Groups {
 
-						executor := executor.NewLxdCExecutor(grp.Connection, confdir, nil, true,
-							config.GetLogging().CmdsOutput,
-							config.GetLogging().RuntimeCmdsOutput)
-						err = executor.Setup()
+					if _, ok := grpMap[grp.Connection]; ok {
+						// The storage is been created. Nothing to do.
+						continue
+					} else {
+						grpMap[grp.Connection] = true
+					}
+
+					executor := executor.NewLxdCExecutor(grp.Connection, confdir, nil, true,
+						config.GetLogging().CmdsOutput,
+						config.GetLogging().RuntimeCmdsOutput)
+					err = executor.Setup()
+					if err != nil {
+						fmt.Println("Error on setup executor for group " + grp.Name + ":" + err.Error() + "\n")
+						os.Exit(1)
+					}
+
+					for _, sto := range storages {
+
+						isPresent, err := executor.IsPresentStorage(sto.Name)
 						if err != nil {
-							fmt.Println("Error on setup executor for group " + grp.Name + ":" + err.Error() + "\n")
+							fmt.Println("Error on check if storage " + sto.Name + " is already present: " +
+								err.Error())
 							os.Exit(1)
 						}
 
-						for _, sto := range storages {
-
-							isPresent, err := executor.IsPresentStorage(sto.Name)
+						if !isPresent {
+							err := executor.CreateStorage(sto)
 							if err != nil {
-								fmt.Println("Error on check if storage " + sto.Name + " is already present: " +
-									err.Error())
+								fmt.Println("Error on create storage " + sto.Name + ": " + err.Error())
 								os.Exit(1)
 							}
-
-							if !isPresent {
-								err := executor.CreateStorage(sto)
+							fmt.Println("Storage " + sto.Name + " created.")
+						} else {
+							if upd {
+								err := executor.UpdateStorage(sto)
 								if err != nil {
-									fmt.Println("Error on create storage " + sto.Name + ": " + err.Error())
+									fmt.Println("Error on update storage " + sto.Name + ": " + err.Error())
 									os.Exit(1)
 								}
-								fmt.Println("Storage " + sto.Name + " created.")
+								fmt.Println("Storage " + sto.Name + " updated.")
 							} else {
-								if upd {
-									err := executor.UpdateStorage(sto)
-									if err != nil {
-										fmt.Println("Error on update storage " + sto.Name + ": " + err.Error())
-										os.Exit(1)
-									}
-									fmt.Println("Storage " + sto.Name + " updated.")
-								} else {
-									fmt.Println("Storage " + sto.Name + " already present. Nothing to do.")
-								}
+								fmt.Println("Storage " + sto.Name + " already present. Nothing to do.")
 							}
 						}
-
 					}
 
 				}
