@@ -39,7 +39,7 @@ import (
 func NewAvailableCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:     "available",
-		Aliases: []string{"l"},
+		Aliases: []string{"a"},
 		Short:   "list of LXD storage pools available to endpoint.",
 		Run: func(cmd *cobra.Command, args []string) {
 
