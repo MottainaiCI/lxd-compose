@@ -25,9 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/MottainaiCI/lxd-compose/pkg/executor"
 	"github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
@@ -38,14 +36,19 @@ import (
 
 func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:     "list",
+		Use:     "list <project>",
 		Aliases: []string{"l"},
-		Short:   "list of LXD storage pools available to endpoint.",
+		Short:   "List the definitions of the available storages defined in the project.",
+
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				fmt.Println("No project selected.")
+				os.Exit(1)
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 
-			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
 			jsonOutput, _ := cmd.Flags().GetBool("json")
-			endpoint, _ := cmd.Flags().GetString("endpoint")
 			search, _ := cmd.Flags().GetString("search")
 
 			// Create Instance
@@ -57,74 +60,55 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			if confdir == "" {
-				confdir = config.GetGeneral().LxdConfDir
-			}
-
-			executor := executor.NewLxdCExecutor(endpoint, confdir, nil, true,
-				config.GetLogging().CmdsOutput,
-				config.GetLogging().RuntimeCmdsOutput)
-			err = executor.Setup()
-			if err != nil {
-				fmt.Println("Error on setup executor:" + err.Error() + "\n")
+			project := args[0]
+			env := composer.GetEnvByProjectName(project)
+			if env == nil {
+				fmt.Println("Project not found")
 				os.Exit(1)
 			}
 
-			list, err := executor.GetStorageList()
-			if err != nil {
-				fmt.Println("Error on retrieve network list: " + err.Error() + "\n")
-				os.Exit(1)
-			}
+			storages := *env.GetStorages()
 
 			if search != "" {
-				list = helpers.RegexEntry(search, list)
+				nstorages := []specs.LxdCStorage{}
+
+				for _, s := range storages {
+					res := helpers.RegexEntry(search, []string{s.GetName()})
+					if len(res) > 0 {
+						nstorages = append(nstorages, s)
+					}
+				}
+
+				storages = nstorages
 			}
 
 			if jsonOutput {
-				data, _ := json.Marshal(list)
-				fmt.Println(string(data))
 
+				data, _ := json.Marshal(storages)
+				fmt.Println(string(data))
 			} else {
 
 				table := tablewriter.NewWriter(os.Stdout)
 				table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 				table.SetCenterSeparator("|")
 				table.SetHeader([]string{
-					"Storage Pool Name", "Description", "Environments Mapped",
+					"Storages", "Driver", "Documentation",
 				})
+				table.SetAutoWrapText(false)
 
-				for _, c := range list {
-
-					mappedEnvs := ""
-					storageDescr := ""
-					envs := composer.GetEnvsUsingStorage(c)
-					if len(envs) > 0 {
-						for idx, e := range envs {
-							sto, _ := e.GetStorage(c)
-							storageDescr = sto.Description
-							if idx > 0 {
-								mappedEnvs += "\n" + filepath.Base(e.File)
-							} else {
-								mappedEnvs += filepath.Base(e.File)
-							}
-						}
-					}
-
+				for _, s := range storages {
 					table.Append([]string{
-						c,
-						storageDescr,
-						mappedEnvs,
+						s.GetName(),
+						s.GetDriver(),
+						s.GetDocumentation(),
 					})
-
 				}
-
 				table.Render()
 			}
 		},
 	}
 
 	pflags := cmd.Flags()
-	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 	pflags.Bool("json", false, "JSON output")
 	pflags.StringP("search", "s", "", "Regex filter to use with storage name.")
 

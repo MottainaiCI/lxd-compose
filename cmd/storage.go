@@ -38,6 +38,7 @@ func newStorageCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	cmd.AddCommand(
 		NewCreateCommand(config),
+		NewAvailableCommand(config),
 		NewListCommand(config),
 	)
 
