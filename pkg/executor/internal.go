@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2022  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -160,8 +160,24 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 			fmt.Sprintf("Container %s is already started!", name))
 		return nil
 	} else if action == "stop" && container.Status == "Stopped" {
-		e.Emitter.WarnLog(false,
-			fmt.Sprintf("Container %s is already stopped!", name))
+
+		if container.Ephemeral {
+			// POST: the container is stopped and/or in a weird status. I delete it.
+			e.Emitter.WarnLog(false,
+				fmt.Sprintf("Container %s is already stopped but ephemeral. Forcing delete.", name))
+
+			// Delete container
+			currOper, err := e.LxdClient.DeleteContainer(name)
+			if err != nil {
+				e.Emitter.ErrorLog(false, "Error on delete container: "+err.Error())
+				return err
+			}
+			_ = e.WaitOperation(currOper, nil)
+
+		} else {
+			e.Emitter.WarnLog(false,
+				fmt.Sprintf("Container %s is already stopped!", name))
+		}
 		return nil
 	}
 
