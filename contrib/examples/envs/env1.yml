@@ -14,8 +14,9 @@ template_engine:
   opts:
     # Enable to_yaml, to_json, etc.
     - "--filters"
-    - "/usr/lib/python3.7/site-packages/ansible/plugins/filter/core.py"
+    - "contrib/filters/ansible_wrapper.py"
     - "contrib/filters/from_json.py"
+      #- "/usr/lib/python3.7/site-packages/ansible/plugins/filter/core.py"
 
 # Define the list of LXD Profiles used by all projects.
 # This profiles are not mandatory. An user could create and
