@@ -140,9 +140,9 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.Bool("json", false, "Dump variables in JSON format.")
-	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
+	flags.StringArrayVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
-	flags.StringSliceVar(&envs, "env", []string{},
+	flags.StringArrayVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
 
 	return cmd

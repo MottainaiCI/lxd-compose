@@ -148,9 +148,9 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Skip selected group from deploy.")
 	flags.StringSliceVar(&enabledGroups, "enable-group", []string{},
 		"Apply only selected groups.")
-	flags.StringSliceVar(&envs, "env", []string{},
+	flags.StringArrayVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
-	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
+	flags.StringArrayVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
 	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
 		"Add additional environments vars file.")
