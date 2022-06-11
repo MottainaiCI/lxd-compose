@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	log "gopkg.in/inconshreveable/log15.v2"
 	"gopkg.in/macaroon-bakery.v2/httpbakery"
 
 	"github.com/lxc/lxd/shared"
@@ -104,15 +103,23 @@ func ConnectLXDHTTPWithContext(ctx context.Context, args *ConnectionArgs, client
 		args = &ConnectionArgs{}
 	}
 
+	httpBaseURL, err := url.Parse("https://custom.socket")
+	if err != nil {
+		return nil, err
+	}
+
+	ctxConnected, ctxConnectedCancel := context.WithCancel(context.Background())
+
 	// Initialize the client struct
 	server := ProtocolLXD{
-		ctx:            ctx,
-		httpHost:       "https://custom.socket",
-		httpProtocol:   "custom",
-		httpUserAgent:  args.UserAgent,
-		chConnected:    make(chan struct{}, 1),
-		eventConns:     make(map[string]*websocket.Conn),
-		eventListeners: make(map[string][]*EventListener),
+		ctx:                ctx,
+		httpBaseURL:        *httpBaseURL,
+		httpProtocol:       "custom",
+		httpUserAgent:      args.UserAgent,
+		ctxConnected:       ctxConnected,
+		ctxConnectedCancel: ctxConnectedCancel,
+		eventConns:         make(map[string]*websocket.Conn),
+		eventListeners:     make(map[string][]*EventListener),
 	}
 
 	// Setup the HTTP client
@@ -154,16 +161,24 @@ func ConnectLXDUnixWithContext(ctx context.Context, path string, args *Connectio
 		args = &ConnectionArgs{}
 	}
 
+	httpBaseURL, err := url.Parse("http://unix.socket")
+	if err != nil {
+		return nil, err
+	}
+
+	ctxConnected, ctxConnectedCancel := context.WithCancel(context.Background())
+
 	// Initialize the client struct
 	server := ProtocolLXD{
-		ctx:            ctx,
-		httpHost:       "http://unix.socket",
-		httpUnixPath:   path,
-		httpProtocol:   "unix",
-		httpUserAgent:  args.UserAgent,
-		chConnected:    make(chan struct{}, 1),
-		eventConns:     make(map[string]*websocket.Conn),
-		eventListeners: make(map[string][]*EventListener),
+		ctx:                ctx,
+		httpBaseURL:        *httpBaseURL,
+		httpUnixPath:       path,
+		httpProtocol:       "unix",
+		httpUserAgent:      args.UserAgent,
+		ctxConnected:       ctxConnected,
+		ctxConnectedCancel: ctxConnectedCancel,
+		eventConns:         make(map[string]*websocket.Conn),
+		eventListeners:     make(map[string][]*EventListener),
 	}
 
 	// Determine the socket path
@@ -225,7 +240,7 @@ func ConnectPublicLXDWithContext(ctx context.Context, url string, args *Connecti
 //
 // Unless the remote server is trusted by the system CA, the remote certificate must be provided (TLSServerCert).
 func ConnectSimpleStreams(url string, args *ConnectionArgs) (ImageServer, error) {
-	logger.Debug("Connecting to a remote simplestreams server", log.Ctx{"URL": url})
+	logger.Debug("Connecting to a remote simplestreams server", logger.Ctx{"URL": url})
 
 	// Cleanup URL
 	url = strings.TrimSuffix(url, "/")
@@ -281,23 +296,31 @@ func ConnectSimpleStreams(url string, args *ConnectionArgs) (ImageServer, error)
 }
 
 // Internal function called by ConnectLXD and ConnectPublicLXD
-func httpsLXD(ctx context.Context, url string, args *ConnectionArgs) (InstanceServer, error) {
+func httpsLXD(ctx context.Context, requestURL string, args *ConnectionArgs) (InstanceServer, error) {
 	// Use empty args if not specified
 	if args == nil {
 		args = &ConnectionArgs{}
 	}
 
+	httpBaseURL, err := url.Parse(requestURL)
+	if err != nil {
+		return nil, err
+	}
+
+	ctxConnected, ctxConnectedCancel := context.WithCancel(context.Background())
+
 	// Initialize the client struct
 	server := ProtocolLXD{
-		ctx:              ctx,
-		httpCertificate:  args.TLSServerCert,
-		httpHost:         url,
-		httpProtocol:     "https",
-		httpUserAgent:    args.UserAgent,
-		bakeryInteractor: args.AuthInteractor,
-		chConnected:      make(chan struct{}, 1),
-		eventConns:       make(map[string]*websocket.Conn),
-		eventListeners:   make(map[string][]*EventListener),
+		ctx:                ctx,
+		httpCertificate:    args.TLSServerCert,
+		httpBaseURL:        *httpBaseURL,
+		httpProtocol:       "https",
+		httpUserAgent:      args.UserAgent,
+		bakeryInteractor:   args.AuthInteractor,
+		ctxConnected:       ctxConnected,
+		ctxConnectedCancel: ctxConnectedCancel,
+		eventConns:         make(map[string]*websocket.Conn),
+		eventListeners:     make(map[string][]*EventListener),
 	}
 
 	if args.AuthType == "candid" {

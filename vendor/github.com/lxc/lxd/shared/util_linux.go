@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package shared
 
@@ -14,11 +13,11 @@ import (
 	"reflect"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
 
+	"github.com/lxc/lxd/lxd/revert"
 	"github.com/lxc/lxd/shared/logger"
 	"github.com/lxc/lxd/shared/units"
 )
@@ -92,15 +91,16 @@ func llistxattr(path string, list []byte) (sz int, err error) {
 // GetAllXattr retrieves all extended attributes associated with a file,
 // directory or symbolic link.
 func GetAllXattr(path string) (xattrs map[string]string, err error) {
-	e1 := fmt.Errorf("Extended attributes changed during retrieval")
-
 	// Call llistxattr() twice: First, to determine the size of the buffer
 	// we need to allocate to store the extended attributes, second, to
 	// actually store the extended attributes in the buffer. Also, check if
-	// the size/number of extended attributes hasn't changed between the two
-	// calls.
+	// the size/number of extended attributes hasn't increased between the
+	// two calls.
 	pre, err := llistxattr(path, nil)
 	if err != nil || pre < 0 {
+		if err == unix.EOPNOTSUPP {
+			return nil, nil
+		}
 		return nil, err
 	}
 	if pre == 0 {
@@ -113,8 +113,8 @@ func GetAllXattr(path string) (xattrs map[string]string, err error) {
 	if err != nil || post < 0 {
 		return nil, err
 	}
-	if post != pre {
-		return nil, e1
+	if post > pre {
+		return nil, fmt.Errorf("Extended attribute list size increased from %d to %d during retrieval", pre, post)
 	}
 
 	split := strings.Split(string(dest), "\x00")
@@ -138,7 +138,7 @@ func GetAllXattr(path string) (xattrs map[string]string, err error) {
 		// buffer we need to allocate to store the extended attributes,
 		// second, to actually store the extended attributes in the
 		// buffer. Also, check if the size of the extended attribute
-		// hasn't changed between the two calls.
+		// hasn't increased between the two calls.
 		pre, err = unix.Getxattr(path, xattr, nil)
 		if err != nil || pre < 0 {
 			return nil, err
@@ -153,8 +153,8 @@ func GetAllXattr(path string) (xattrs map[string]string, err error) {
 			}
 		}
 
-		if post != pre {
-			return nil, e1
+		if post > pre {
+			return nil, fmt.Errorf("Extended attribute '%s' size increased from %d to %d during retrieval", xattr, pre, post)
 		}
 
 		xattrs[xattr] = string(dest)
@@ -261,7 +261,7 @@ func Uname() (*Utsname, error) {
 	}, nil
 }
 
-func intArrayToString(arr interface{}) string {
+func intArrayToString(arr any) string {
 	slice := reflect.ValueOf(arr)
 	s := ""
 	for i := 0; i < slice.Len(); i++ {
@@ -295,7 +295,7 @@ func DeviceTotalMemory() (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Read it line by line
 	scan := bufio.NewScanner(f)
@@ -325,7 +325,8 @@ func DeviceTotalMemory() (int64, error) {
 
 // OpenPtyInDevpts creates a new PTS pair, configures them and returns them.
 func OpenPtyInDevpts(devpts_fd int, uid, gid int64) (*os.File, *os.File, error) {
-	revert := true
+	reverter := revert.New()
+	defer reverter.Fail()
 	var fd int
 	var ptx *os.File
 	var err error
@@ -340,11 +341,7 @@ func OpenPtyInDevpts(devpts_fd int, uid, gid int64) (*os.File, *os.File, error) 
 		return nil, nil, err
 	}
 	ptx = os.NewFile(uintptr(fd), "/dev/pts/ptmx")
-	defer func() {
-		if revert {
-			ptx.Close()
-		}
-	}()
+	reverter.Add(func() { _ = ptx.Close() })
 
 	// Unlock the ptx and pty.
 	val := 0
@@ -383,11 +380,7 @@ func OpenPtyInDevpts(devpts_fd int, uid, gid int64) (*os.File, *os.File, error) 
 			return nil, nil, err
 		}
 	}
-	defer func() {
-		if revert {
-			pty.Close()
-		}
-	}()
+	reverter.Add(func() { _ = pty.Close() })
 
 	// Configure both sides
 	for _, entry := range []*os.File{ptx, pty} {
@@ -434,7 +427,7 @@ func OpenPtyInDevpts(devpts_fd int, uid, gid int64) (*os.File, *os.File, error) 
 		return nil, nil, err
 	}
 
-	revert = false
+	reverter.Success()
 	return ptx, pty, nil
 }
 
@@ -458,11 +451,11 @@ func ExecReaderToChannel(r io.Reader, bufferSize int, exited <-chan struct{}, fd
 	// [1]: This function has just one job: Dealing with the case where we
 	// are running an interactive shell session where we put a process in
 	// the background that does hold stdin/stdout open, but does not
-	// generate any output at all. This case cannot be dealt with in the
+	// generate any output at all. This case cannot be dealt within the
 	// following function call. Here's why: Assume the above case, now the
 	// attached child (the shell in this example) exits. This will not
 	// generate any poll() event: We won't get POLLHUP because the
-	// background process is holding stdin/stdout open and noone is writing
+	// background process is holding stdin/stdout open and no one is writing
 	// to it. So we effectively block on GetPollRevents() in the function
 	// below. Hence, we use another go routine here who's only job is to
 	// handle that case: When we detect that the child has exited we check
@@ -478,21 +471,21 @@ func ExecReaderToChannel(r io.Reader, bufferSize int, exited <-chan struct{}, fd
 
 		ret, revents, err := GetPollRevents(fd, 0, (unix.POLLIN | unix.POLLPRI | unix.POLLERR | unix.POLLHUP | unix.POLLRDHUP | unix.POLLNVAL))
 		if ret < 0 {
-			logger.Errorf("Failed to poll(POLLIN | POLLPRI | POLLHUP | POLLRDHUP) on file descriptor: %s.", err)
+			logger.Errorf("Failed to poll(POLLIN | POLLPRI | POLLHUP | POLLRDHUP) on file descriptor: %s", err)
 			// Something went wrong so let's exited otherwise we
 			// end up in an endless loop.
 		} else if ret > 0 {
 			if (revents & unix.POLLERR) > 0 {
-				logger.Warnf("Detected poll(POLLERR) event.")
+				logger.Warnf("Detected poll(POLLERR) event")
 				// Read end has likely been closed so again,
 				// avoid an endless loop.
 			} else if (revents & unix.POLLNVAL) > 0 {
-				logger.Warnf("Detected poll(POLLNVAL) event.")
-				// Well, someone closed the fd havent they? So
+				logger.Debugf("Detected poll(POLLNVAL) event")
+				// Well, someone closed the fd haven't they? So
 				// let's go home.
 			}
 		} else if ret == 0 {
-			logger.Debugf("No data in stdout: exiting.")
+			logger.Debugf("No data in stdout: exiting")
 		}
 	}()
 
@@ -512,7 +505,7 @@ func ExecReaderToChannel(r io.Reader, bufferSize int, exited <-chan struct{}, fd
 			if ret < 0 {
 				// This condition is only reached in cases where we are massively f*cked since we even handle
 				// EINTR in the underlying C wrapper around poll(). So let's exit here.
-				logger.Errorf("Failed to poll(POLLIN | POLLPRI | POLLERR | POLLHUP | POLLRDHUP) on file descriptor: %s. Exiting.", err)
+				logger.Errorf("Failed to poll(POLLIN | POLLPRI | POLLERR | POLLHUP | POLLRDHUP) on file descriptor: %s. Exiting", err)
 				return
 			}
 
@@ -521,16 +514,16 @@ func ExecReaderToChannel(r io.Reader, bufferSize int, exited <-chan struct{}, fd
 			// keep on reading from the pty file descriptor until we get a simple POLLHUP back.
 			both := ((revents & (unix.POLLIN | unix.POLLPRI)) > 0) && ((revents & (unix.POLLHUP | unix.POLLRDHUP)) > 0)
 			if both {
-				logger.Debugf("Detected poll(POLLIN | POLLPRI | POLLHUP | POLLRDHUP) event.")
+				logger.Debugf("Detected poll(POLLIN | POLLPRI | POLLHUP | POLLRDHUP) event")
 				read := buf[offset : offset+readSize]
 				nr, err = r.Read(read)
 			}
 
 			if (revents & unix.POLLERR) > 0 {
-				logger.Warnf("Detected poll(POLLERR) event: exiting.")
+				logger.Warnf("Detected poll(POLLERR) event: exiting")
 				return
 			} else if (revents & unix.POLLNVAL) > 0 {
-				logger.Warnf("Detected poll(POLLNVAL) event: exiting.")
+				logger.Warnf("Detected poll(POLLNVAL) event: exiting")
 				return
 			}
 
@@ -589,10 +582,10 @@ func ExecReaderToChannel(r io.Reader, bufferSize int, exited <-chan struct{}, fd
 					//   stdout is written out.
 					ret, revents, err := GetPollRevents(fd, 0, (unix.POLLIN | unix.POLLPRI | unix.POLLERR | unix.POLLHUP | unix.POLLRDHUP | unix.POLLNVAL))
 					if ret < 0 {
-						logger.Errorf("Failed to poll(POLLIN | POLLPRI | POLLERR | POLLHUP | POLLRDHUP) on file descriptor: %s. Exiting.", err)
+						logger.Errorf("Failed to poll(POLLIN | POLLPRI | POLLERR | POLLHUP | POLLRDHUP) on file descriptor: %s. Exiting", err)
 						return
 					} else if (revents & (unix.POLLHUP | unix.POLLRDHUP | unix.POLLERR | unix.POLLNVAL)) == 0 {
-						logger.Debugf("Exiting but background processes are still running.")
+						logger.Debugf("Exiting but background processes are still running")
 						return
 					}
 				}
@@ -603,7 +596,7 @@ func ExecReaderToChannel(r io.Reader, bufferSize int, exited <-chan struct{}, fd
 			// The attached process has exited and we have read all data that may have
 			// been buffered.
 			if ((revents & (unix.POLLHUP | unix.POLLRDHUP)) > 0) && !both {
-				logger.Debugf("Detected poll(POLLHUP) event: exiting.")
+				logger.Debugf("Detected poll(POLLHUP) event: exiting")
 				return
 			}
 
@@ -637,7 +630,7 @@ func GetPollRevents(fd int, timeout int, flags int) (int, int, error) {
 again:
 	n, err := unix.Poll(pollFds, timeout)
 	if err != nil {
-		if err == syscall.EAGAIN || err == syscall.EINTR {
+		if err == unix.EAGAIN || err == unix.EINTR {
 			goto again
 		}
 
@@ -659,7 +652,7 @@ func ExitStatus(err error) (int, error) {
 	exitErr, isExitError := err.(*exec.ExitError)
 	if isExitError {
 		// If the process was signaled, extract the signal.
-		status, isWaitStatus := exitErr.Sys().(syscall.WaitStatus)
+		status, isWaitStatus := exitErr.Sys().(unix.WaitStatus)
 		if isWaitStatus && status.Signaled() {
 			return 128 + int(status.Signal()), nil // 128 + n == Fatal error signal "n"
 		}

@@ -12,7 +12,6 @@ import (
 
 	"github.com/kballard/go-shellquote"
 	"github.com/pborman/uuid"
-	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 
 	"github.com/lxc/lxd/shared/osarch"
@@ -78,7 +77,7 @@ func IsUint8(value string) error {
 func IsUint32(value string) error {
 	_, err := strconv.ParseUint(value, 10, 32)
 	if err != nil {
-		return fmt.Errorf("Invalid value for uint32 %q: %v", value, err)
+		return fmt.Errorf("Invalid value for uint32 %q: %w", value, err)
 	}
 
 	return nil
@@ -694,7 +693,7 @@ func IsCron(aliases []string) func(value string) error {
 
 			_, err := cron.ParseStandard(value)
 			if err != nil {
-				return errors.Wrap(err, "Error parsing schedule")
+				return fmt.Errorf("Error parsing schedule: %w", err)
 			}
 
 			return nil
@@ -801,4 +800,61 @@ func ParseNetworkVLANRange(vlan string) (int, int, error) {
 	}
 
 	return vlanRangeStart, vlanRangeEnd - vlanRangeStart + 1, nil
+}
+
+// IsHostname checks the string is valid DNS hostname.
+func IsHostname(name string) error {
+	// Validate length
+	if len(name) < 1 || len(name) > 63 {
+		return fmt.Errorf("Name must be 1-63 characters long")
+	}
+
+	// Validate first character
+	if strings.HasPrefix(name, "-") {
+		return fmt.Errorf(`Name must not start with "-" character`)
+	}
+
+	// Validate last character
+	if strings.HasSuffix(name, "-") {
+		return fmt.Errorf(`Name must not end with "-" character`)
+	}
+
+	_, err := strconv.Atoi(string(name[0]))
+	if err == nil {
+		return fmt.Errorf("Name must not start with a number")
+	}
+
+	match, err := regexp.MatchString(`^[\-a-zA-Z0-9]+$`, name)
+	if err != nil {
+		return err
+	}
+
+	if !match {
+		return fmt.Errorf("Name can only contain alphanumeric and hyphen characters")
+	}
+
+	return nil
+}
+
+// IsDeviceName checks name is 1-63 characters long, doesn't start with a full stop and contains only alphanumeric,
+// forward slash, hyphen, colon, underscore and full stop characters.
+func IsDeviceName(name string) error {
+	if len(name) < 1 || len(name) > 63 {
+		return fmt.Errorf("Name must be 1-63 characters long")
+	}
+
+	if string(name[0]) == "." {
+		return fmt.Errorf(`Name must not start with "." character`)
+	}
+
+	match, err := regexp.MatchString(`^[\/\.\-:_a-zA-Z0-9]+$`, name)
+	if err != nil {
+		return err
+	}
+
+	if !match {
+		return fmt.Errorf("Name can only contain alphanumeric, forward slash, hyphen, colon, underscore and full stop characters")
+	}
+
+	return nil
 }

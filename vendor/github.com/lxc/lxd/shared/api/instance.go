@@ -90,6 +90,12 @@ type InstancePost struct {
 	//
 	// API extension: instance_project_move
 	Project string `json:"project" yaml:"project"`
+
+	// AllowInconsistent allow inconsistent copies when migrating.
+	// Example: false
+	//
+	// API extension: instance_allow_inconsistent_copy
+	AllowInconsistent bool `json:"allow_inconsistent" yaml:"allow_inconsistent"`
 }
 
 // InstancePostTarget represents the migration target host and operation.
@@ -164,11 +170,11 @@ type Instance struct {
 
 	// Expanded configuration (all profiles and local config merged)
 	// Example: {"security.nesting": "true"}
-	ExpandedConfig map[string]string `json:"expanded_config" yaml:"expanded_config"`
+	ExpandedConfig map[string]string `json:"expanded_config,omitempty" yaml:"expanded_config,omitempty"`
 
 	// Expanded devices (all profiles and local devices merged)
 	// Example: {"root": {"type": "disk", "pool": "default", "path": "/"}}
-	ExpandedDevices map[string]map[string]string `json:"expanded_devices" yaml:"expanded_devices"`
+	ExpandedDevices map[string]map[string]string `json:"expanded_devices,omitempty" yaml:"expanded_devices,omitempty"`
 
 	// Instance name
 	// Example: foo
@@ -255,7 +261,7 @@ type InstanceSource struct {
 	Certificate string `json:"certificate" yaml:"certificate"`
 
 	// Image alias name (for image source)
-	// Example: ubuntu/20.04
+	// Example: ubuntu/22.04
 	Alias string `json:"alias,omitempty" yaml:"alias,omitempty"`
 
 	// Image fingerprint (for image source)
@@ -263,7 +269,7 @@ type InstanceSource struct {
 	Fingerprint string `json:"fingerprint,omitempty" yaml:"fingerprint,omitempty"`
 
 	// Image filters (for image source)
-	// Example: {"os": "Ubuntu", "release": "focal", "variant": "cloud"}
+	// Example: {"os": "Ubuntu", "release": "jammy", "variant": "cloud"}
 	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
 
 	// Remote server URL (for remote images)

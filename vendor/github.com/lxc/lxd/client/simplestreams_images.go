@@ -10,8 +10,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
 )
@@ -40,11 +38,16 @@ func (r *ProtocolSimpleStreams) GetImageFingerprints() ([]string, error) {
 	return fingerprints, nil
 }
 
+// GetImagesWithFilter returns a filtered list of available images as Image structs
+func (r *ProtocolSimpleStreams) GetImagesWithFilter(filters []string) ([]api.Image, error) {
+	return nil, fmt.Errorf("GetImagesWithFilter is not supported by the simplestreams protocol")
+}
+
 // GetImage returns an Image struct for the provided fingerprint
 func (r *ProtocolSimpleStreams) GetImage(fingerprint string) (*api.Image, string, error) {
 	image, err := r.ssClient.GetImage(fingerprint)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "Failed getting image")
+		return nil, "", fmt.Errorf("Failed getting image: %w", err)
 	}
 
 	return image, "", err
@@ -147,8 +150,9 @@ func (r *ProtocolSimpleStreams) GetImageFile(fingerprint string, req ImageFileRe
 				if err != nil {
 					return nil, err
 				}
-				defer deltaFile.Close()
-				defer os.Remove(deltaFile.Name())
+				defer func() { _ = deltaFile.Close() }()
+
+				defer func() { _ = os.Remove(deltaFile.Name()) }()
 
 				// Download the delta
 				_, err = download(file.Path, "rootfs delta", file.Sha256, deltaFile)
@@ -161,8 +165,9 @@ func (r *ProtocolSimpleStreams) GetImageFile(fingerprint string, req ImageFileRe
 				if err != nil {
 					return nil, err
 				}
-				defer patchedFile.Close()
-				defer os.Remove(patchedFile.Name())
+				defer func() { _ = patchedFile.Close() }()
+
+				defer func() { _ = os.Remove(patchedFile.Name()) }()
 
 				// Apply it
 				_, err = shared.RunCommand("xdelta3", "-f", "-d", "-s", srcPath, deltaFile.Name(), patchedFile.Name())

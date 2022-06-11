@@ -2,9 +2,11 @@ package lxd
 
 import (
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/pkg/sftp"
 
 	"github.com/lxc/lxd/shared/api"
 	"github.com/lxc/lxd/shared/cancel"
@@ -34,6 +36,7 @@ type RemoteOperation interface {
 type Server interface {
 	GetConnectionInfo() (info *ConnectionInfo, err error)
 	GetHTTPClient() (client *http.Client, err error)
+	DoHTTP(req *http.Request) (resp *http.Response, err error)
 	Disconnect()
 }
 
@@ -44,6 +47,7 @@ type ImageServer interface {
 	// Image handling functions
 	GetImages() (images []api.Image, err error)
 	GetImageFingerprints() (fingerprints []string, err error)
+	GetImagesWithFilter(filters []string) (images []api.Image, err error)
 
 	GetImage(fingerprint string) (image *api.Image, ETag string, err error)
 	GetImageFile(fingerprint string, req ImageFileRequest) (resp *ImageFileResponse, err error)
@@ -67,6 +71,7 @@ type InstanceServer interface {
 	ImageServer
 
 	// Server functions
+	GetMetrics() (metrics string, err error)
 	GetServer() (server *api.Server, ETag string, err error)
 	GetServerResources() (resources *api.Resources, err error)
 	UpdateServer(server api.ServerPut, ETag string) (err error)
@@ -152,6 +157,10 @@ type InstanceServer interface {
 	GetInstancesFull(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
 	GetInstancesAllProjects(instanceType api.InstanceType) (instances []api.Instance, err error)
 	GetInstancesFullAllProjects(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
+	GetInstancesWithFilter(instanceType api.InstanceType, filters []string) (instances []api.Instance, err error)
+	GetInstancesFullWithFilter(instanceType api.InstanceType, filters []string) (instances []api.InstanceFull, err error)
+	GetInstancesAllProjectsWithFilter(instanceType api.InstanceType, filters []string) (instances []api.Instance, err error)
+	GetInstancesFullAllProjectsWithFilter(instanceType api.InstanceType, filters []string) (instances []api.InstanceFull, err error)
 	GetInstance(name string) (instance *api.Instance, ETag string, err error)
 	GetInstanceFull(name string) (instance *api.InstanceFull, ETag string, err error)
 	CreateInstance(instance api.InstancesPost) (op Operation, err error)
@@ -173,6 +182,9 @@ type InstanceServer interface {
 	GetInstanceFile(instanceName string, path string) (content io.ReadCloser, resp *InstanceFileResponse, err error)
 	CreateInstanceFile(instanceName string, path string, args InstanceFileArgs) (err error)
 	DeleteInstanceFile(instanceName string, path string) (err error)
+
+	GetInstanceFileSFTPConn(instanceName string) (net.Conn, error)
+	GetInstanceFileSFTP(instanceName string) (*sftp.Client, error)
 
 	GetInstanceSnapshotNames(instanceName string) (names []string, err error)
 	GetInstanceSnapshots(instanceName string) (snapshots []api.InstanceSnapshot, err error)
@@ -317,6 +329,7 @@ type InstanceServer interface {
 	// Storage volume functions ("storage" API extension)
 	GetStoragePoolVolumeNames(pool string) (names []string, err error)
 	GetStoragePoolVolumes(pool string) (volumes []api.StorageVolume, err error)
+	GetStoragePoolVolumesWithFilter(pool string, filters []string) (volumes []api.StorageVolume, err error)
 	GetStoragePoolVolume(pool string, volType string, name string) (volume *api.StorageVolume, ETag string, err error)
 	GetStoragePoolVolumeState(pool string, volType string, name string) (state *api.StorageVolumeState, err error)
 	CreateStoragePoolVolume(pool string, volume api.StorageVolumesPost) (err error)
@@ -374,9 +387,9 @@ type InstanceServer interface {
 	DeleteWarning(UUID string) (err error)
 
 	// Internal functions (for internal use)
-	RawQuery(method string, path string, data interface{}, queryETag string) (resp *api.Response, ETag string, err error)
+	RawQuery(method string, path string, data any, queryETag string) (resp *api.Response, ETag string, err error)
 	RawWebsocket(path string) (conn *websocket.Conn, err error)
-	RawOperation(method string, path string, data interface{}, queryETag string) (op Operation, ETag string, err error)
+	RawOperation(method string, path string, data any, queryETag string) (op Operation, ETag string, err error)
 }
 
 // The ConnectionInfo struct represents general information for a connection.
@@ -387,6 +400,7 @@ type ConnectionInfo struct {
 	URL         string
 	SocketPath  string
 	Project     string
+	Target      string
 }
 
 // The BackupFileRequest struct is used for a backup download request.
@@ -398,7 +412,7 @@ type BackupFileRequest struct {
 	ProgressHandler func(progress ioprogress.ProgressData)
 
 	// A canceler that can be used to interrupt some part of the image download request
-	Canceler *cancel.Canceler
+	Canceler *cancel.HTTPRequestCanceller
 }
 
 // The BackupFileResponse struct is used as the response for backup downloads.
@@ -440,7 +454,7 @@ type ImageFileRequest struct {
 	ProgressHandler func(progress ioprogress.ProgressData)
 
 	// A canceler that can be used to interrupt some part of the image download request
-	Canceler *cancel.Canceler
+	Canceler *cancel.HTTPRequestCanceller
 
 	// Path retriever for image delta downloads
 	// If set, it must return the path to the image file or an empty string if not available

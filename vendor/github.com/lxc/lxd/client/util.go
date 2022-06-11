@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
+	"time"
 
 	"github.com/lxc/lxd/shared"
 )
@@ -19,17 +19,15 @@ func tlsHTTPClient(client *http.Client, tlsClientCert string, tlsClientKey strin
 		return nil, err
 	}
 
-	// Support disabling of strict ciphers
-	if shared.IsTrue(os.Getenv("LXD_INSECURE_TLS")) {
-		tlsConfig.CipherSuites = nil
-	}
-
 	// Define the http transport
 	transport := &http.Transport{
-		TLSClientConfig:   tlsConfig,
-		Dial:              shared.RFC3493Dialer,
-		Proxy:             shared.ProxyFromEnvironment,
-		DisableKeepAlives: true,
+		TLSClientConfig:       tlsConfig,
+		Dial:                  shared.RFC3493Dialer,
+		Proxy:                 shared.ProxyFromEnvironment,
+		DisableKeepAlives:     true,
+		ExpectContinueTimeout: time.Second * 30,
+		ResponseHeaderTimeout: time.Second * 3600,
+		TLSHandshakeTimeout:   time.Second * 5,
 	}
 
 	// Allow overriding the proxy
@@ -63,14 +61,14 @@ func tlsHTTPClient(client *http.Client, tlsClientCert string, tlsClientKey strin
 			// Validate the connection
 			err = tlsConn.Handshake()
 			if err != nil {
-				conn.Close()
+				_ = conn.Close()
 				return nil, err
 			}
 
 			if !config.InsecureSkipVerify {
 				err := tlsConn.VerifyHostname(config.ServerName)
 				if err != nil {
-					conn.Close()
+					_ = conn.Close()
 					return nil, err
 				}
 			}
@@ -117,8 +115,11 @@ func unixHTTPClient(client *http.Client, path string) (*http.Client, error) {
 
 	// Define the http transport
 	transport := &http.Transport{
-		Dial:              unixDial,
-		DisableKeepAlives: true,
+		Dial:                  unixDial,
+		DisableKeepAlives:     true,
+		ExpectContinueTimeout: time.Second * 30,
+		ResponseHeaderTimeout: time.Second * 3600,
+		TLSHandshakeTimeout:   time.Second * 5,
 	}
 
 	// Define the http client
@@ -167,7 +168,7 @@ func remoteOperationError(msg string, errors []remoteOperationResult) error {
 
 	// Check if successful
 	if err != nil {
-		return fmt.Errorf("%s: %s", msg, err)
+		return fmt.Errorf("%s: %w", msg, err)
 	}
 
 	return nil
@@ -208,4 +209,16 @@ func urlsToResourceNames(matchPathPrefix string, urls ...string) ([]string, erro
 	}
 
 	return resourceNames, nil
+}
+
+// parseFilters translates filters passed at client side to form acceptable by server-side API
+func parseFilters(filters []string) string {
+	var result []string
+	for _, filter := range filters {
+		if strings.Contains(filter, "=") {
+			membs := strings.SplitN(filter, "=", 2)
+			result = append(result, fmt.Sprintf("%s eq %s", membs[0], membs[1]))
+		}
+	}
+	return strings.Join(result, " and ")
 }

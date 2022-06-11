@@ -160,17 +160,18 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	},
 
 	// Volatile keys.
-	"volatile.apply_template":   validate.IsAny,
-	"volatile.base_image":       validate.IsAny,
-	"volatile.evacuate.origin":  validate.IsAny,
-	"volatile.last_state.idmap": validate.IsAny,
-	"volatile.last_state.power": validate.IsAny,
-	"volatile.idmap.base":       validate.IsAny,
-	"volatile.idmap.current":    validate.IsAny,
-	"volatile.idmap.next":       validate.IsAny,
-	"volatile.apply_quota":      validate.IsAny,
-	"volatile.uuid":             validate.Optional(validate.IsUUID),
-	"volatile.vsock_id":         validate.Optional(validate.IsInt64),
+	"volatile.apply_template":         validate.IsAny,
+	"volatile.base_image":             validate.IsAny,
+	"volatile.cloud-init.instance-id": validate.Optional(validate.IsUUID),
+	"volatile.evacuate.origin":        validate.IsAny,
+	"volatile.last_state.idmap":       validate.IsAny,
+	"volatile.last_state.power":       validate.IsAny,
+	"volatile.idmap.base":             validate.IsAny,
+	"volatile.idmap.current":          validate.IsAny,
+	"volatile.idmap.next":             validate.IsAny,
+	"volatile.apply_quota":            validate.IsAny,
+	"volatile.uuid":                   validate.Optional(validate.IsUUID),
+	"volatile.vsock_id":               validate.Optional(validate.IsInt64),
 
 	// Caller is responsible for full validation of any raw.* value.
 	"raw.idmap": validate.IsAny,
@@ -247,22 +248,24 @@ var InstanceConfigKeysContainer = map[string]func(value string) error{
 	"security.privileged":       validate.Optional(validate.IsBool),
 	"security.protection.shift": validate.Optional(validate.IsBool),
 
-	"security.syscalls.allow":                   validate.IsAny,
-	"security.syscalls.blacklist_default":       validate.Optional(validate.IsBool),
-	"security.syscalls.blacklist_compat":        validate.Optional(validate.IsBool),
-	"security.syscalls.blacklist":               validate.IsAny,
-	"security.syscalls.deny_default":            validate.Optional(validate.IsBool),
-	"security.syscalls.deny_compat":             validate.Optional(validate.IsBool),
-	"security.syscalls.deny":                    validate.IsAny,
-	"security.syscalls.intercept.bpf":           validate.Optional(validate.IsBool),
-	"security.syscalls.intercept.bpf.devices":   validate.Optional(validate.IsBool),
-	"security.syscalls.intercept.mknod":         validate.Optional(validate.IsBool),
-	"security.syscalls.intercept.mount":         validate.Optional(validate.IsBool),
-	"security.syscalls.intercept.mount.allowed": validate.IsAny,
-	"security.syscalls.intercept.mount.fuse":    validate.IsAny,
-	"security.syscalls.intercept.mount.shift":   validate.Optional(validate.IsBool),
-	"security.syscalls.intercept.setxattr":      validate.Optional(validate.IsBool),
-	"security.syscalls.whitelist":               validate.IsAny,
+	"security.syscalls.allow":                        validate.IsAny,
+	"security.syscalls.blacklist_default":            validate.Optional(validate.IsBool),
+	"security.syscalls.blacklist_compat":             validate.Optional(validate.IsBool),
+	"security.syscalls.blacklist":                    validate.IsAny,
+	"security.syscalls.deny_default":                 validate.Optional(validate.IsBool),
+	"security.syscalls.deny_compat":                  validate.Optional(validate.IsBool),
+	"security.syscalls.deny":                         validate.IsAny,
+	"security.syscalls.intercept.bpf":                validate.Optional(validate.IsBool),
+	"security.syscalls.intercept.bpf.devices":        validate.Optional(validate.IsBool),
+	"security.syscalls.intercept.mknod":              validate.Optional(validate.IsBool),
+	"security.syscalls.intercept.mount":              validate.Optional(validate.IsBool),
+	"security.syscalls.intercept.mount.allowed":      validate.IsAny,
+	"security.syscalls.intercept.mount.fuse":         validate.IsAny,
+	"security.syscalls.intercept.mount.shift":        validate.Optional(validate.IsBool),
+	"security.syscalls.intercept.sched_setscheduler": validate.Optional(validate.IsBool),
+	"security.syscalls.intercept.setxattr":           validate.Optional(validate.IsBool),
+	"security.syscalls.intercept.sysinfo":            validate.Optional(validate.IsBool),
+	"security.syscalls.whitelist":                    validate.IsAny,
 }
 
 // InstanceConfigKeysVM is a map of config key to validator. (keys applying to VM only)
@@ -276,6 +279,10 @@ var InstanceConfigKeysVM = map[string]func(value string) error{
 
 	"security.agent.metrics": validate.Optional(validate.IsBool),
 	"security.secureboot":    validate.Optional(validate.IsBool),
+
+	"agent.nic_config": validate.Optional(validate.IsBool),
+
+	"volatile.apply_nvram": validate.Optional(validate.IsBool),
 }
 
 // ConfigKeyChecker returns a function that will check whether or not

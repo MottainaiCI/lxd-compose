@@ -1,19 +1,23 @@
 package lxd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/pkg/sftp"
 
 	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
 	"github.com/lxc/lxd/shared/cancel"
 	"github.com/lxc/lxd/shared/ioprogress"
+	"github.com/lxc/lxd/shared/tcp"
 	"github.com/lxc/lxd/shared/units"
 )
 
@@ -112,6 +116,31 @@ func (r *ProtocolLXD) GetInstances(instanceType api.InstanceType) ([]api.Instanc
 	return instances, nil
 }
 
+// GetInstancesWithFilter returns a filtered list of instances.
+func (r *ProtocolLXD) GetInstancesWithFilter(instanceType api.InstanceType, filters []string) ([]api.Instance, error) {
+	if !r.HasExtension("api_filtering") {
+		return nil, fmt.Errorf("The server is missing the required \"api_filtering\" API extension")
+	}
+
+	instances := []api.Instance{}
+
+	path, v, err := r.instanceTypeToPath(instanceType)
+	if err != nil {
+		return nil, err
+	}
+
+	v.Set("recursion", "1")
+	v.Set("filter", parseFilters(filters))
+
+	// Fetch the raw value
+	_, err = r.queryStruct("GET", fmt.Sprintf("%s?%s", path, v.Encode()), nil, "", &instances)
+	if err != nil {
+		return nil, err
+	}
+
+	return instances, nil
+}
+
 // GetInstancesAllProjects returns a list of instances from all projects.
 func (r *ProtocolLXD) GetInstancesAllProjects(instanceType api.InstanceType) ([]api.Instance, error) {
 	instances := []api.Instance{}
@@ -123,6 +152,36 @@ func (r *ProtocolLXD) GetInstancesAllProjects(instanceType api.InstanceType) ([]
 
 	v.Set("recursion", "1")
 	v.Set("all-projects", "true")
+
+	if !r.HasExtension("instance_all_projects") {
+		return nil, fmt.Errorf("The server is missing the required \"instance_all_projects\" API extension")
+	}
+
+	// Fetch the raw value
+	_, err = r.queryStruct("GET", fmt.Sprintf("%s?%s", path, v.Encode()), nil, "", &instances)
+	if err != nil {
+		return nil, err
+	}
+
+	return instances, nil
+}
+
+// GetInstancesAllProjectsWithFilter returns a filtered list of instances from all projects.
+func (r *ProtocolLXD) GetInstancesAllProjectsWithFilter(instanceType api.InstanceType, filters []string) ([]api.Instance, error) {
+	if !r.HasExtension("api_filtering") {
+		return nil, fmt.Errorf("The server is missing the required \"api_filtering\" API extension")
+	}
+
+	instances := []api.Instance{}
+
+	path, v, err := r.instanceTypeToPath(instanceType)
+	if err != nil {
+		return nil, err
+	}
+
+	v.Set("recursion", "1")
+	v.Set("all-projects", "true")
+	v.Set("filter", parseFilters(filters))
 
 	if !r.HasExtension("instance_all_projects") {
 		return nil, fmt.Errorf("The server is missing the required \"instance_all_projects\" API extension")
@@ -177,6 +236,35 @@ func (r *ProtocolLXD) GetInstancesFull(instanceType api.InstanceType) ([]api.Ins
 	return instances, nil
 }
 
+// GetInstancesFullWithFilter returns a filtered list of instances including snapshots, backups and state.
+func (r *ProtocolLXD) GetInstancesFullWithFilter(instanceType api.InstanceType, filters []string) ([]api.InstanceFull, error) {
+	if !r.HasExtension("api_filtering") {
+		return nil, fmt.Errorf("The server is missing the required \"api_filtering\" API extension")
+	}
+
+	instances := []api.InstanceFull{}
+
+	path, v, err := r.instanceTypeToPath(instanceType)
+	if err != nil {
+		return nil, err
+	}
+
+	v.Set("recursion", "2")
+	v.Set("filter", parseFilters(filters))
+
+	if !r.HasExtension("container_full") {
+		return nil, fmt.Errorf("The server is missing the required \"container_full\" API extension")
+	}
+
+	// Fetch the raw value
+	_, err = r.queryStruct("GET", fmt.Sprintf("%s?%s", path, v.Encode()), nil, "", &instances)
+	if err != nil {
+		return nil, err
+	}
+
+	return instances, nil
+}
+
 // GetInstancesFullAllProjects returns a list of instances including snapshots, backups and state from all projects.
 func (r *ProtocolLXD) GetInstancesFullAllProjects(instanceType api.InstanceType) ([]api.InstanceFull, error) {
 	instances := []api.InstanceFull{}
@@ -188,6 +276,40 @@ func (r *ProtocolLXD) GetInstancesFullAllProjects(instanceType api.InstanceType)
 
 	v.Set("recursion", "2")
 	v.Set("all-projects", "true")
+
+	if !r.HasExtension("container_full") {
+		return nil, fmt.Errorf("The server is missing the required \"container_full\" API extension")
+	}
+
+	if !r.HasExtension("instance_all_projects") {
+		return nil, fmt.Errorf("The server is missing the required \"instance_all_projects\" API extension")
+	}
+
+	// Fetch the raw value
+	_, err = r.queryStruct("GET", fmt.Sprintf("%s?%s", path, v.Encode()), nil, "", &instances)
+	if err != nil {
+		return nil, err
+	}
+
+	return instances, nil
+}
+
+// GetInstancesFullAllProjectsWithFilter returns a filtered list of instances including snapshots, backups and state from all projects.
+func (r *ProtocolLXD) GetInstancesFullAllProjectsWithFilter(instanceType api.InstanceType, filters []string) ([]api.InstanceFull, error) {
+	if !r.HasExtension("api_filtering") {
+		return nil, fmt.Errorf("The server is missing the required \"api_filtering\" API extension")
+	}
+
+	instances := []api.InstanceFull{}
+
+	path, v, err := r.instanceTypeToPath(instanceType)
+	if err != nil {
+		return nil, err
+	}
+
+	v.Set("recursion", "2")
+	v.Set("all-projects", "true")
+	v.Set("filter", parseFilters(filters))
 
 	if !r.HasExtension("container_full") {
 		return nil, fmt.Errorf("The server is missing the required \"container_full\" API extension")
@@ -303,7 +425,7 @@ func (r *ProtocolLXD) CreateInstanceFromBackup(args InstanceBackupArgs) (Operati
 	}
 
 	// Prepare the HTTP request
-	reqURL, err := r.setQueryAttributes(fmt.Sprintf("%s/1.0%s", r.httpHost, path))
+	reqURL, err := r.setQueryAttributes(fmt.Sprintf("%s/1.0%s", r.httpBaseURL.String(), path))
 	if err != nil {
 		return nil, err
 	}
@@ -324,11 +446,11 @@ func (r *ProtocolLXD) CreateInstanceFromBackup(args InstanceBackupArgs) (Operati
 	}
 
 	// Send the request
-	resp, err := r.do(req)
+	resp, err := r.DoHTTP(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Handle errors
 	response, _, err := lxdParseResponse(resp)
@@ -407,7 +529,7 @@ func (r *ProtocolLXD) tryCreateInstance(req api.InstancesPost, urls []string, op
 			rop.handlerLock.Unlock()
 
 			for _, handler := range rop.handlers {
-				rop.targetOp.AddHandler(handler)
+				_, _ = rop.targetOp.AddHandler(handler)
 			}
 
 			err = rop.targetOp.Wait()
@@ -428,7 +550,7 @@ func (r *ProtocolLXD) tryCreateInstance(req api.InstancesPost, urls []string, op
 		if !success {
 			rop.err = remoteOperationError("Failed instance creation", errors)
 			if op != nil {
-				op.Cancel()
+				_ = op.Cancel()
 			}
 		}
 
@@ -444,7 +566,7 @@ func (r *ProtocolLXD) CreateInstanceFromImage(source ImageServer, image api.Imag
 	req.Source.Type = "image"
 
 	// Optimization for the local image case
-	if r == source {
+	if r.isSameServer(source) {
 		// Always use fingerprints for local case
 		req.Source.Fingerprint = image.Fingerprint
 		req.Source.Alias = ""
@@ -572,12 +694,12 @@ func (r *ProtocolLXD) CopyInstance(source InstanceServer, instance api.Instance,
 
 	sourceInfo, err := source.GetConnectionInfo()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get source connection info: %v", err)
+		return nil, fmt.Errorf("Failed to get source connection info: %w", err)
 	}
 
 	destInfo, err := r.GetConnectionInfo()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get destination connection info: %v", err)
+		return nil, fmt.Errorf("Failed to get destination connection info: %w", err)
 	}
 
 	// Optimization for the local copy case
@@ -617,10 +739,11 @@ func (r *ProtocolLXD) CopyInstance(source InstanceServer, instance api.Instance,
 
 	// Source request
 	sourceReq := api.InstancePost{
-		Migration:     true,
-		Live:          req.Source.Live,
-		ContainerOnly: req.Source.ContainerOnly, // Deprecated, use InstanceOnly.
-		InstanceOnly:  req.Source.InstanceOnly,
+		Migration:         true,
+		Live:              req.Source.Live,
+		ContainerOnly:     req.Source.ContainerOnly, // Deprecated, use InstanceOnly.
+		InstanceOnly:      req.Source.InstanceOnly,
+		AllowInconsistent: req.Source.AllowInconsistent,
 	}
 
 	// Push mode migration
@@ -789,7 +912,7 @@ func (r *ProtocolLXD) tryMigrateInstance(source InstanceServer, name string, req
 			rop.targetOp = op
 
 			for _, handler := range rop.handlers {
-				rop.targetOp.AddHandler(handler)
+				_, _ = rop.targetOp.AddHandler(handler)
 			}
 
 			err = rop.targetOp.Wait()
@@ -836,6 +959,10 @@ func (r *ProtocolLXD) MigrateInstance(name string, instance api.InstancePost) (O
 
 	if instance.Project != "" && !r.HasExtension("instance_project_move") {
 		return nil, fmt.Errorf("The server is missing the required \"instance_project_move\" API extension")
+	}
+
+	if instance.AllowInconsistent && !r.HasExtension("cluster_migration_inconsistent_copy") {
+		return nil, fmt.Errorf("The server is missing the required \"cluster_migration_inconsistent_copy\" API extension")
 	}
 
 	// Quick check.
@@ -909,7 +1036,7 @@ func (r *ProtocolLXD) ExecInstance(instanceName string, exec api.InstanceExecPos
 
 		value, ok := opAPI.Metadata["fds"]
 		if ok {
-			values := value.(map[string]interface{})
+			values := value.(map[string]any)
 			for k, v := range values {
 				fds[k] = v.(string)
 			}
@@ -938,7 +1065,7 @@ func (r *ProtocolLXD) ExecInstance(instanceName string, exec api.InstanceExecPos
 				go func() {
 					shared.WebsocketSendStream(conn, args.Stdin, -1)
 					<-shared.WebsocketRecvStream(args.Stdout, conn)
-					conn.Close()
+					_ = conn.Close()
 
 					if args.DataDone != nil {
 						close(args.DataDone)
@@ -1000,7 +1127,7 @@ func (r *ProtocolLXD) ExecInstance(instanceName string, exec api.InstanceExecPos
 
 				if fds["0"] != "" {
 					if args.Stdin != nil {
-						args.Stdin.Close()
+						_ = args.Stdin.Close()
 					}
 
 					// Empty the stdin channel but don't block on it as
@@ -1011,7 +1138,7 @@ func (r *ProtocolLXD) ExecInstance(instanceName string, exec api.InstanceExecPos
 				}
 
 				for _, conn := range conns {
-					conn.Close()
+					_ = conn.Close()
 				}
 
 				if args.DataDone != nil {
@@ -1031,7 +1158,7 @@ func (r *ProtocolLXD) GetInstanceFile(instanceName string, filePath string) (io.
 
 	if r.IsAgent() {
 		requestURL, err = shared.URLEncode(
-			fmt.Sprintf("%s/1.0/files", r.httpHost),
+			fmt.Sprintf("%s/1.0/files", r.httpBaseURL.String()),
 			map[string]string{"path": filePath})
 	} else {
 		var path string
@@ -1043,7 +1170,7 @@ func (r *ProtocolLXD) GetInstanceFile(instanceName string, filePath string) (io.
 
 		// Prepare the HTTP request
 		requestURL, err = shared.URLEncode(
-			fmt.Sprintf("%s/1.0%s/%s/files", r.httpHost, path, url.PathEscape(instanceName)),
+			fmt.Sprintf("%s/1.0%s/%s/files", r.httpBaseURL.String(), path, url.PathEscape(instanceName)),
 			map[string]string{"path": filePath})
 	}
 	if err != nil {
@@ -1061,7 +1188,7 @@ func (r *ProtocolLXD) GetInstanceFile(instanceName string, filePath string) (io.
 	}
 
 	// Send the request
-	resp, err := r.do(req)
+	resp, err := r.DoHTTP(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1131,7 +1258,7 @@ func (r *ProtocolLXD) CreateInstanceFile(instanceName string, filePath string, a
 	var requestURL string
 
 	if r.IsAgent() {
-		requestURL = fmt.Sprintf("%s/1.0/files?path=%s", r.httpHost, url.QueryEscape(filePath))
+		requestURL = fmt.Sprintf("%s/1.0/files?path=%s", r.httpBaseURL.String(), url.QueryEscape(filePath))
 	} else {
 		path, _, err := r.instanceTypeToPath(api.InstanceTypeAny)
 		if err != nil {
@@ -1139,7 +1266,7 @@ func (r *ProtocolLXD) CreateInstanceFile(instanceName string, filePath string, a
 		}
 
 		// Prepare the HTTP request
-		requestURL = fmt.Sprintf("%s/1.0%s/%s/files?path=%s", r.httpHost, path, url.PathEscape(instanceName), url.QueryEscape(filePath))
+		requestURL = fmt.Sprintf("%s/1.0%s/%s/files?path=%s", r.httpBaseURL.String(), path, url.PathEscape(instanceName), url.QueryEscape(filePath))
 	}
 
 	requestURL, err := r.setQueryAttributes(requestURL)
@@ -1174,7 +1301,7 @@ func (r *ProtocolLXD) CreateInstanceFile(instanceName string, filePath string, a
 	}
 
 	// Send the request
-	resp, err := r.do(req)
+	resp, err := r.DoHTTP(req)
 	if err != nil {
 		return err
 	}
@@ -1220,6 +1347,104 @@ func (r *ProtocolLXD) DeleteInstanceFile(instanceName string, filePath string) e
 	}
 
 	return nil
+}
+
+// rawSFTPConn connects to the apiURL, upgrades to an SFTP raw connection and returns it.
+func (r *ProtocolLXD) rawSFTPConn(apiURL *url.URL) (net.Conn, error) {
+	// Get the HTTP transport.
+	httpTransport := r.http.Transport.(*http.Transport)
+
+	req := &http.Request{
+		Method:     http.MethodGet,
+		URL:        apiURL,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(http.Header),
+		Host:       apiURL.Host,
+	}
+
+	req.Header["Upgrade"] = []string{"sftp"}
+	req.Header["Connection"] = []string{"Upgrade"}
+
+	r.addClientHeaders(req)
+
+	// Establish the connection.
+	var conn net.Conn
+	var err error
+
+	if httpTransport.TLSClientConfig != nil {
+		conn, err = httpTransport.DialTLS("tcp", apiURL.Host)
+	} else {
+		conn, err = httpTransport.Dial("tcp", apiURL.Host)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	tcpConn, err := tcp.ExtractConn(conn)
+	if err == nil {
+		err = tcp.SetTimeouts(tcpConn)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = req.Write(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusSwitchingProtocols {
+		_, _, err := lxdParseResponse(resp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if resp.Header.Get("Upgrade") != "sftp" {
+		return nil, fmt.Errorf("Missing or unexpected Upgrade header in response")
+	}
+
+	return conn, err
+}
+
+// GetInstanceFileSFTPConn returns a connection to the instance's SFTP endpoint.
+func (r *ProtocolLXD) GetInstanceFileSFTPConn(instanceName string) (net.Conn, error) {
+	apiURL := api.NewURL()
+	apiURL.URL = *&r.httpBaseURL // Preload the URL with the client base URL.
+	apiURL.Path("1.0", "instances", instanceName, "sftp")
+	r.setURLQueryAttributes(&apiURL.URL)
+
+	return r.rawSFTPConn(&apiURL.URL)
+}
+
+// GetInstanceFileSFTP returns an SFTP connection to the instance.
+func (r *ProtocolLXD) GetInstanceFileSFTP(instanceName string) (*sftp.Client, error) {
+	conn, err := r.GetInstanceFileSFTPConn(instanceName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get a SFTP client.
+	client, err := sftp.NewClientPipe(conn, conn)
+	if err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+
+	go func() {
+		// Wait for the client to be done before closing the connection.
+		_ = client.Wait()
+		_ = conn.Close()
+	}()
+
+	return client, nil
 }
 
 // GetInstanceSnapshotNames returns a list of snapshot names for the instance.
@@ -1351,17 +1576,17 @@ func (r *ProtocolLXD) CopyInstanceSnapshot(source InstanceServer, instanceName s
 
 	sourceInfo, err := source.GetConnectionInfo()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get source connection info: %v", err)
+		return nil, fmt.Errorf("Failed to get source connection info: %w", err)
 	}
 
 	destInfo, err := r.GetConnectionInfo()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get destination connection info: %v", err)
+		return nil, fmt.Errorf("Failed to get destination connection info: %w", err)
 	}
 
 	instance, _, err := source.GetInstance(cName)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get instance info: %v", err)
+		return nil, fmt.Errorf("Failed to get instance info: %w", err)
 	}
 
 	// Optimization for the local copy case
@@ -1566,7 +1791,7 @@ func (r *ProtocolLXD) tryMigrateInstanceSnapshot(source InstanceServer, instance
 			rop.targetOp = op
 
 			for _, handler := range rop.handlers {
-				rop.targetOp.AddHandler(handler)
+				_, _ = rop.targetOp.AddHandler(handler)
 			}
 
 			err = rop.targetOp.Wait()
@@ -1722,7 +1947,7 @@ func (r *ProtocolLXD) GetInstanceLogfile(name string, filename string) (io.ReadC
 	}
 
 	// Prepare the HTTP request
-	url := fmt.Sprintf("%s/1.0%s/%s/logs/%s", r.httpHost, path, url.PathEscape(name), url.PathEscape(filename))
+	url := fmt.Sprintf("%s/1.0%s/%s/logs/%s", r.httpBaseURL.String(), path, url.PathEscape(name), url.PathEscape(filename))
 
 	url, err = r.setQueryAttributes(url)
 	if err != nil {
@@ -1735,7 +1960,7 @@ func (r *ProtocolLXD) GetInstanceLogfile(name string, filename string) (io.ReadC
 	}
 
 	// Send the request
-	resp, err := r.do(req)
+	resp, err := r.DoHTTP(req)
 	if err != nil {
 		return nil, err
 	}
@@ -1842,7 +2067,7 @@ func (r *ProtocolLXD) GetInstanceTemplateFile(instanceName string, templateName 
 		return nil, fmt.Errorf("The server is missing the required \"container_edit_metadata\" API extension")
 	}
 
-	url := fmt.Sprintf("%s/1.0%s/%s/metadata/templates?path=%s", r.httpHost, path, url.PathEscape(instanceName), url.QueryEscape(templateName))
+	url := fmt.Sprintf("%s/1.0%s/%s/metadata/templates?path=%s", r.httpBaseURL.String(), path, url.PathEscape(instanceName), url.QueryEscape(templateName))
 
 	url, err = r.setQueryAttributes(url)
 	if err != nil {
@@ -1855,7 +2080,7 @@ func (r *ProtocolLXD) GetInstanceTemplateFile(instanceName string, templateName 
 	}
 
 	// Send the request
-	resp, err := r.do(req)
+	resp, err := r.DoHTTP(req)
 	if err != nil {
 		return nil, err
 	}
@@ -1882,7 +2107,7 @@ func (r *ProtocolLXD) CreateInstanceTemplateFile(instanceName string, templateNa
 		return fmt.Errorf("The server is missing the required \"container_edit_metadata\" API extension")
 	}
 
-	url := fmt.Sprintf("%s/1.0%s/%s/metadata/templates?path=%s", r.httpHost, path, url.PathEscape(instanceName), url.QueryEscape(templateName))
+	url := fmt.Sprintf("%s/1.0%s/%s/metadata/templates?path=%s", r.httpBaseURL.String(), path, url.PathEscape(instanceName), url.QueryEscape(templateName))
 
 	url, err = r.setQueryAttributes(url)
 	if err != nil {
@@ -1896,7 +2121,7 @@ func (r *ProtocolLXD) CreateInstanceTemplateFile(instanceName string, templateNa
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	// Send the request
-	resp, err := r.do(req)
+	resp, err := r.DoHTTP(req)
 	// Check the return value for a cleaner error
 	if resp.StatusCode != http.StatusOK {
 		_, _, err := lxdParseResponse(resp)
@@ -1960,7 +2185,7 @@ func (r *ProtocolLXD) ConsoleInstance(instanceName string, console api.InstanceC
 
 	value, ok := opAPI.Metadata["fds"]
 	if ok {
-		values := value.(map[string]interface{})
+		values := value.(map[string]any)
 		for k, v := range values {
 			fds[k] = v.(string)
 		}
@@ -1990,15 +2215,15 @@ func (r *ProtocolLXD) ConsoleInstance(instanceName string, console api.InstanceC
 		<-consoleDisconnect
 		msg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Detaching from console")
 		// We don't care if this fails. This is just for convenience.
-		controlConn.WriteMessage(websocket.CloseMessage, msg)
-		controlConn.Close()
+		_ = controlConn.WriteMessage(websocket.CloseMessage, msg)
+		_ = controlConn.Close()
 	}(args.ConsoleDisconnect)
 
 	// And attach stdin and stdout to it
 	go func() {
 		shared.WebsocketSendStream(conn, args.Terminal, -1)
 		<-shared.WebsocketRecvStream(args.Terminal, conn)
-		conn.Close()
+		_ = conn.Close()
 	}()
 
 	return op, nil
@@ -2047,7 +2272,7 @@ func (r *ProtocolLXD) ConsoleInstanceDynamic(instanceName string, console api.In
 
 	value, ok := opAPI.Metadata["fds"]
 	if ok {
-		values := value.(map[string]interface{})
+		values := value.(map[string]any)
 		for k, v := range values {
 			fds[k] = v.(string)
 		}
@@ -2070,8 +2295,8 @@ func (r *ProtocolLXD) ConsoleInstanceDynamic(instanceName string, console api.In
 		<-consoleDisconnect
 		msg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Detaching from console")
 		// We don't care if this fails. This is just for convenience.
-		controlConn.WriteMessage(websocket.CloseMessage, msg)
-		controlConn.Close()
+		_ = controlConn.WriteMessage(websocket.CloseMessage, msg)
+		_ = controlConn.Close()
 	}(args.ConsoleDisconnect)
 
 	f := func(rwc io.ReadWriteCloser) error {
@@ -2084,7 +2309,7 @@ func (r *ProtocolLXD) ConsoleInstanceDynamic(instanceName string, console api.In
 		// Attach reader/writer.
 		shared.WebsocketSendStream(conn, rwc, -1)
 		<-shared.WebsocketRecvStream(rwc, conn)
-		conn.Close()
+		_ = conn.Close()
 
 		return nil
 	}
@@ -2106,7 +2331,7 @@ func (r *ProtocolLXD) GetInstanceConsoleLog(instanceName string, args *InstanceC
 	}
 
 	// Prepare the HTTP request
-	url := fmt.Sprintf("%s/1.0%s/%s/console", r.httpHost, path, url.PathEscape(instanceName))
+	url := fmt.Sprintf("%s/1.0%s/%s/console", r.httpBaseURL.String(), path, url.PathEscape(instanceName))
 
 	url, err = r.setQueryAttributes(url)
 	if err != nil {
@@ -2119,7 +2344,7 @@ func (r *ProtocolLXD) GetInstanceConsoleLog(instanceName string, args *InstanceC
 	}
 
 	// Send the request
-	resp, err := r.do(req)
+	resp, err := r.DoHTTP(req)
 	if err != nil {
 		return nil, err
 	}
@@ -2293,7 +2518,7 @@ func (r *ProtocolLXD) GetInstanceBackupFile(instanceName string, name string, re
 	}
 
 	// Build the URL
-	uri := fmt.Sprintf("%s/1.0%s/%s/backups/%s/export", r.httpHost, path, url.PathEscape(instanceName), url.PathEscape(name))
+	uri := fmt.Sprintf("%s/1.0%s/%s/backups/%s/export", r.httpBaseURL.String(), path, url.PathEscape(instanceName), url.PathEscape(name))
 	if r.project != "" {
 		uri += fmt.Sprintf("?project=%s", url.QueryEscape(r.project))
 	}
@@ -2313,7 +2538,7 @@ func (r *ProtocolLXD) GetInstanceBackupFile(instanceName string, name string, re
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	defer close(doneCh)
 
 	if response.StatusCode != http.StatusOK {
@@ -2415,8 +2640,8 @@ func (r *ProtocolLXD) proxyMigration(targetOp *operation, targetSecrets map[stri
 	go func() {
 		// Wait for control socket
 		<-proxies["control"].done
-		proxies["control"].sourceConn.Close()
-		proxies["control"].targetConn.Close()
+		_ = proxies["control"].sourceConn.Close()
+		_ = proxies["control"].targetConn.Close()
 
 		// Then deal with the others
 		for name, proxy := range proxies {
@@ -2425,8 +2650,8 @@ func (r *ProtocolLXD) proxyMigration(targetOp *operation, targetSecrets map[stri
 			}
 
 			<-proxy.done
-			proxy.sourceConn.Close()
-			proxy.targetConn.Close()
+			_ = proxy.sourceConn.Close()
+			_ = proxy.targetConn.Close()
 		}
 	}()
 
