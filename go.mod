@@ -1,6 +1,6 @@
 module github.com/MottainaiCI/lxd-compose
 
-go 1.17
+go 1.18
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible

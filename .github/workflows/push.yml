@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ["1.17.x", "1.18.x"]
+        go: ["1.18.x"]
         include:
         - go: 1.18.x
           latest: true
