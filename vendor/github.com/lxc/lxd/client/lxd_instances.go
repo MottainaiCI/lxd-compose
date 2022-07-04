@@ -2,6 +2,7 @@ package lxd
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -87,11 +88,7 @@ func (r *ProtocolLXD) GetInstanceNamesAllProjects(instanceType api.InstanceType)
 
 	names := map[string][]string{}
 	for _, instance := range instances {
-		if _, ok := names[instance.Project]; ok {
-			names[instance.Project] = append(names[instance.Project], instance.Name)
-		} else {
-			names[instance.Project] = []string{instance.Name}
-		}
+		names[instance.Project] = append(names[instance.Project], instance.Name)
 	}
 	return names, nil
 }
@@ -1374,9 +1371,9 @@ func (r *ProtocolLXD) rawSFTPConn(apiURL *url.URL) (net.Conn, error) {
 	var err error
 
 	if httpTransport.TLSClientConfig != nil {
-		conn, err = httpTransport.DialTLS("tcp", apiURL.Host)
+		conn, err = httpTransport.DialTLSContext(context.Background(), "tcp", apiURL.Host)
 	} else {
-		conn, err = httpTransport.Dial("tcp", apiURL.Host)
+		conn, err = httpTransport.DialContext(context.Background(), "tcp", apiURL.Host)
 	}
 	if err != nil {
 		return nil, err
@@ -1417,7 +1414,7 @@ func (r *ProtocolLXD) rawSFTPConn(apiURL *url.URL) (net.Conn, error) {
 // GetInstanceFileSFTPConn returns a connection to the instance's SFTP endpoint.
 func (r *ProtocolLXD) GetInstanceFileSFTPConn(instanceName string) (net.Conn, error) {
 	apiURL := api.NewURL()
-	apiURL.URL = *&r.httpBaseURL // Preload the URL with the client base URL.
+	apiURL.URL = r.httpBaseURL // Preload the URL with the client base URL.
 	apiURL.Path("1.0", "instances", instanceName, "sftp")
 	r.setURLQueryAttributes(&apiURL.URL)
 
