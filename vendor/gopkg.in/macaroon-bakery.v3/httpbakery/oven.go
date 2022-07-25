@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	errgo "gopkg.in/errgo.v1"
+	"gopkg.in/errgo.v1"
 
-	"gopkg.in/macaroon-bakery.v2/bakery"
-	"gopkg.in/macaroon-bakery.v2/bakery/checkers"
+	"gopkg.in/macaroon-bakery.v3/bakery"
+	"gopkg.in/macaroon-bakery.v3/bakery/checkers"
 )
 
 // Oven is like bakery.Oven except it provides a method for

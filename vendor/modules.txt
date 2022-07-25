@@ -137,10 +137,10 @@ github.com/json-iterator/go
 # github.com/juju/go4 v0.0.0-20160222163258-40d72ab9641a
 ## explicit
 github.com/juju/go4/lock
-# github.com/juju/persistent-cookiejar v0.0.0-20171026135701-d5e5a8405ef9
+# github.com/juju/persistent-cookiejar v1.0.0
 ## explicit
 github.com/juju/persistent-cookiejar
-# github.com/juju/schema v1.0.1-0.20190814234152-1f8aaeef0989
+# github.com/juju/schema v1.0.1
 ## explicit; go 1.11
 github.com/juju/schema
 # github.com/juju/webbrowser v1.0.0
@@ -161,7 +161,7 @@ github.com/kyokomi/emoji
 # github.com/logrusorgru/aurora v2.0.3+incompatible
 ## explicit
 github.com/logrusorgru/aurora
-# github.com/lxc/lxd v0.0.0-20220623214743-181fa10a337d
+# github.com/lxc/lxd v0.0.0-20220722163327-fee89073a8bf
 ## explicit; go 1.18
 github.com/lxc/lxd/client
 github.com/lxc/lxd/lxc/config
@@ -269,14 +269,15 @@ github.com/rogpeppe/fastuuid
 # github.com/shopspring/decimal v1.2.0
 ## explicit; go 1.13
 github.com/shopspring/decimal
-# github.com/sirupsen/logrus v1.8.1
+# github.com/sirupsen/logrus v1.9.0
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
 github.com/sirupsen/logrus/hooks/writer
-# github.com/spf13/afero v1.8.2
-## explicit; go 1.13
+# github.com/spf13/afero v1.9.2
+## explicit; go 1.16
 github.com/spf13/afero
+github.com/spf13/afero/internal/common
 github.com/spf13/afero/mem
 # github.com/spf13/cast v1.5.0
 ## explicit; go 1.18
@@ -346,7 +347,7 @@ golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20220622184535-263ec571b305
+# golang.org/x/net v0.0.0-20220708220712-1185a9018129
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -362,7 +363,7 @@ golang.org/x/net/publicsuffix
 ## explicit; go 1.11
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20220704084225-05e143d24a9e
+# golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
@@ -457,11 +458,13 @@ gopkg.in/juju/environschema.v1
 gopkg.in/juju/environschema.v1/form
 # gopkg.in/macaroon-bakery.v2 v2.3.0
 ## explicit; go 1.12
-gopkg.in/macaroon-bakery.v2/bakery
-gopkg.in/macaroon-bakery.v2/bakery/checkers
-gopkg.in/macaroon-bakery.v2/httpbakery
-gopkg.in/macaroon-bakery.v2/httpbakery/form
-gopkg.in/macaroon-bakery.v2/internal/httputil
+# gopkg.in/macaroon-bakery.v3 v3.0.0
+## explicit; go 1.14
+gopkg.in/macaroon-bakery.v3/bakery
+gopkg.in/macaroon-bakery.v3/bakery/checkers
+gopkg.in/macaroon-bakery.v3/httpbakery
+gopkg.in/macaroon-bakery.v3/httpbakery/form
+gopkg.in/macaroon-bakery.v3/internal/httputil
 # gopkg.in/macaroon.v2 v2.1.0
 ## explicit
 gopkg.in/macaroon.v2

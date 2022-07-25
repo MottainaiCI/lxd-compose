@@ -91,6 +91,7 @@ func KeyPairAndCA(dir, prefix string, kind CertKind, addHosts bool) (*CertInfo, 
 		ca:      ca,
 		crl:     crl,
 	}
+
 	return info, nil
 }
 
@@ -156,6 +157,7 @@ func (c *CertInfo) Fingerprint() string {
 	if err != nil {
 		panic("invalid public key material")
 	}
+
 	return fingerprint
 }
 
@@ -184,9 +186,11 @@ func TestingKeyPair() *CertInfo {
 	if err != nil {
 		panic(fmt.Sprintf("invalid X509 keypair material: %v", err))
 	}
+
 	cert := &CertInfo{
 		keypair: keypair,
 	}
+
 	return cert
 }
 
@@ -198,15 +202,17 @@ func TestingAltKeyPair() *CertInfo {
 	if err != nil {
 		panic(fmt.Sprintf("invalid X509 keypair material: %v", err))
 	}
+
 	cert := &CertInfo{
 		keypair: keypair,
 	}
+
 	return cert
 }
 
 /*
  * Generate a list of names for which the certificate will be valid.
- * This will include the hostname and ip address
+ * This will include the hostname and ip address.
  */
 func mynames() ([]string, error) {
 	h, err := os.Hostname()
@@ -235,7 +241,7 @@ func FindOrGenCert(certf string, keyf string, certtype bool, addHosts bool) erro
 	return nil
 }
 
-// GenCert will create and populate a certificate file and a key file
+// GenCert will create and populate a certificate file and a key file.
 func GenCert(certf string, keyf string, certtype bool, addHosts bool) error {
 	/* Create the basenames if needed */
 	dir := filepath.Dir(certf)
@@ -347,7 +353,8 @@ func GenerateMemCert(client bool, addHosts bool) ([]byte, []byte, error) {
 		}
 
 		for _, h := range hosts {
-			if ip, _, err := net.ParseCIDR(h); err == nil {
+			ip, _, err := net.ParseCIDR(h)
+			if err == nil {
 				if !ip.IsLinkLocalUnicast() && !ip.IsLinkLocalMulticast() {
 					template.IPAddresses = append(template.IPAddresses, ip)
 				}

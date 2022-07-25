@@ -1,7 +1,7 @@
 package bakery
 
 import (
-	"gopkg.in/macaroon-bakery.v2/bakery/checkers"
+	"gopkg.in/macaroon-bakery.v3/bakery/checkers"
 )
 
 // Bakery is a convenience type that contains both an Oven

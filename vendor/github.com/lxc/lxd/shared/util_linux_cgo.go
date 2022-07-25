@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	// Used by cgo
-	_ "github.com/lxc/lxd/lxd/include"
-
 	"golang.org/x/sys/unix"
+
+	_ "github.com/lxc/lxd/lxd/include" // Used by cgo
 )
 
 /*
@@ -74,6 +73,7 @@ func unCloexec(fd int) error {
 	if errno != 0 {
 		err = errno
 	}
+
 	return err
 }
 

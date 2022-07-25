@@ -57,6 +57,7 @@ func tlsHTTPClient(client *http.Client, tlsClientCert string, tlsClientKey strin
 				config = config.Clone()
 				config.ServerName = hostName
 			}
+
 			tlsConn := tls.Client(conn, config)
 
 			// Validate the connection
@@ -90,6 +91,7 @@ func tlsHTTPClient(client *http.Client, tlsClientCert string, tlsClientKey strin
 	if client == nil {
 		client = &http.Client{}
 	}
+
 	client.Transport = transport
 
 	// Setup redirect policy
@@ -127,6 +129,7 @@ func unixHTTPClient(client *http.Client, path string) (*http.Client, error) {
 	if client == nil {
 		client = &http.Client{}
 	}
+
 	client.Transport = transport
 
 	// Setup redirect policy
@@ -212,7 +215,7 @@ func urlsToResourceNames(matchPathPrefix string, urls ...string) ([]string, erro
 	return resourceNames, nil
 }
 
-// parseFilters translates filters passed at client side to form acceptable by server-side API
+// parseFilters translates filters passed at client side to form acceptable by server-side API.
 func parseFilters(filters []string) string {
 	var result []string
 	for _, filter := range filters {

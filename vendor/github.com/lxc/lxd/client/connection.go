@@ -12,14 +12,14 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"gopkg.in/macaroon-bakery.v2/httpbakery"
+	"gopkg.in/macaroon-bakery.v3/httpbakery"
 
 	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/logger"
 	"github.com/lxc/lxd/shared/simplestreams"
 )
 
-// ConnectionArgs represents a set of common connection properties
+// ConnectionArgs represents a set of common connection properties.
 type ConnectionArgs struct {
 	// TLS certificate of the remote server. If not specified, the system CA is used.
 	TLSServerCert string
@@ -201,6 +201,7 @@ func ConnectLXDUnixWithContext(ctx context.Context, path string, args *Connectio
 	if err != nil {
 		return nil, err
 	}
+
 	server.http = httpClient
 
 	// Test the connection and seed the server information
@@ -262,6 +263,7 @@ func ConnectSimpleStreams(url string, args *ConnectionArgs) (ImageServer, error)
 	if err != nil {
 		return nil, err
 	}
+
 	server.http = httpClient
 
 	// Get simplestreams client
@@ -295,7 +297,7 @@ func ConnectSimpleStreams(url string, args *ConnectionArgs) (ImageServer, error)
 	return &server, nil
 }
 
-// Internal function called by ConnectLXD and ConnectPublicLXD
+// Internal function called by ConnectLXD and ConnectPublicLXD.
 func httpsLXD(ctx context.Context, requestURL string, args *ConnectionArgs) (InstanceServer, error) {
 	// Use empty args if not specified
 	if args == nil {

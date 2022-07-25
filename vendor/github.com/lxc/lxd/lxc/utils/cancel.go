@@ -10,7 +10,7 @@ import (
 	"github.com/lxc/lxd/shared/i18n"
 )
 
-// CancelableWait waits for an operation and cancel it on SIGINT/SIGTERM
+// CancelableWait waits for an operation and cancel it on SIGINT/SIGTERM.
 func CancelableWait(rawOp any, progress *ProgressRenderer) error {
 	var op lxd.Operation
 	var rop lxd.RemoteOperation
@@ -37,6 +37,7 @@ func CancelableWait(rawOp any, progress *ProgressRenderer) error {
 		} else {
 			chOperation <- rop.Wait()
 		}
+
 		close(chOperation)
 	}()
 
@@ -53,6 +54,7 @@ func CancelableWait(rawOp any, progress *ProgressRenderer) error {
 			} else {
 				err = rop.CancelTarget()
 			}
+
 			if err == nil {
 				return fmt.Errorf(i18n.G("Remote operation canceled by user"))
 			}

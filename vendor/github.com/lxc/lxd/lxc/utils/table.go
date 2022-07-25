@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lxc/lxd/shared/i18n"
 	"github.com/olekukonko/tablewriter"
 	"gopkg.in/yaml.v2"
+
+	"github.com/lxc/lxd/shared/i18n"
 )
 
-// Table list format
+// Table list format.
 const (
 	TableFormatCSV     = "csv"
 	TableFormatJSON    = "json"
@@ -44,6 +45,7 @@ func RenderTable(format string, header []string, data [][]string, raw any) error
 		if err != nil {
 			return err
 		}
+
 	case TableFormatJSON:
 		enc := json.NewEncoder(os.Stdout)
 
@@ -51,6 +53,7 @@ func RenderTable(format string, header []string, data [][]string, raw any) error
 		if err != nil {
 			return err
 		}
+
 	case TableFormatYAML:
 		out, err := yaml.Marshal(raw)
 		if err != nil {

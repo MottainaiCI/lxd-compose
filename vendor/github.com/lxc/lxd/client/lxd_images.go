@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/api"
@@ -21,7 +22,7 @@ import (
 
 // Image handling functions
 
-// GetImages returns a list of available images as Image structs
+// GetImages returns a list of available images as Image structs.
 func (r *ProtocolLXD) GetImages() ([]api.Image, error) {
 	images := []api.Image{}
 
@@ -33,7 +34,7 @@ func (r *ProtocolLXD) GetImages() ([]api.Image, error) {
 	return images, nil
 }
 
-// GetImagesWithFilter returns a filtered list of available images as Image structs
+// GetImagesWithFilter returns a filtered list of available images as Image structs.
 func (r *ProtocolLXD) GetImagesWithFilter(filters []string) ([]api.Image, error) {
 	if !r.HasExtension("api_filtering") {
 		return nil, fmt.Errorf("The server is missing the required \"api_filtering\" API extension")
@@ -53,7 +54,7 @@ func (r *ProtocolLXD) GetImagesWithFilter(filters []string) ([]api.Image, error)
 	return images, nil
 }
 
-// GetImageFingerprints returns a list of available image fingerprints
+// GetImageFingerprints returns a list of available image fingerprints.
 func (r *ProtocolLXD) GetImageFingerprints() ([]string, error) {
 	// Fetch the raw URL values.
 	urls := []string{}
@@ -67,28 +68,29 @@ func (r *ProtocolLXD) GetImageFingerprints() ([]string, error) {
 	return urlsToResourceNames(baseURL, urls...)
 }
 
-// GetImage returns an Image struct for the provided fingerprint
+// GetImage returns an Image struct for the provided fingerprint.
 func (r *ProtocolLXD) GetImage(fingerprint string) (*api.Image, string, error) {
 	return r.GetPrivateImage(fingerprint, "")
 }
 
-// GetImageFile downloads an image from the server, returning an ImageFileRequest struct
+// GetImageFile downloads an image from the server, returning an ImageFileRequest struct.
 func (r *ProtocolLXD) GetImageFile(fingerprint string, req ImageFileRequest) (*ImageFileResponse, error) {
 	return r.GetPrivateImageFile(fingerprint, "", req)
 }
 
-// GetImageSecret is a helper around CreateImageSecret that returns a secret for the image
+// GetImageSecret is a helper around CreateImageSecret that returns a secret for the image.
 func (r *ProtocolLXD) GetImageSecret(fingerprint string) (string, error) {
 	op, err := r.CreateImageSecret(fingerprint)
 	if err != nil {
 		return "", err
 	}
+
 	opAPI := op.Get()
 
 	return opAPI.Metadata["secret"].(string), nil
 }
 
-// GetPrivateImage is similar to GetImage but allows passing a secret download token
+// GetPrivateImage is similar to GetImage but allows passing a secret download token.
 func (r *ProtocolLXD) GetPrivateImage(fingerprint string, secret string) (*api.Image, string, error) {
 	image := api.Image{}
 
@@ -116,7 +118,7 @@ func (r *ProtocolLXD) GetPrivateImage(fingerprint string, secret string) (*api.I
 	return &image, etag, nil
 }
 
-// GetPrivateImageFile is similar to GetImageFile but allows passing a secret download token
+// GetPrivateImageFile is similar to GetImageFile but allows passing a secret download token.
 func (r *ProtocolLXD) GetPrivateImageFile(fingerprint string, secret string, req ImageFileRequest) (*ImageFileResponse, error) {
 	// Quick checks.
 	if req.MetaFile == nil && req.RootfsFile == nil {
@@ -154,7 +156,14 @@ func (r *ProtocolLXD) GetPrivateImageFile(fingerprint string, secret string, req
 		}
 	}
 
-	return lxdDownloadImage(fingerprint, uri, r.httpUserAgent, r.http, req)
+	// Use relatively short response header timeout so as not to hold the image lock open too long.
+	// Deference client and transport in order to clone them so as to not modify timeout of base client.
+	httpClient := *r.http
+	httpTransport := httpClient.Transport.(*http.Transport).Clone()
+	httpTransport.ResponseHeaderTimeout = 30 * time.Second
+	httpClient.Transport = httpTransport
+
+	return lxdDownloadImage(fingerprint, uri, r.httpUserAgent, &httpClient, req)
 }
 
 func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *http.Client, req ImageFileRequest) (*ImageFileResponse, error) {
@@ -176,6 +185,7 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() { _ = response.Body.Close() }()
 	defer close(doneCh)
 
@@ -208,7 +218,6 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 		} else {
 			reader.Tracker.Handler = func(received int64, speed int64) {
 				req.ProgressHandler(ioprogress.ProgressData{Text: fmt.Sprintf("%s (%s/s)", units.GetByteSizeString(received, 2), units.GetByteSizeString(speed, 2))})
-
 			}
 		}
 
@@ -241,6 +250,7 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 		if err != nil {
 			return nil, err
 		}
+
 		resp.MetaSize = size
 		resp.MetaName = part.FileName()
 
@@ -258,6 +268,7 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 		if err != nil {
 			return nil, err
 		}
+
 		resp.RootfsSize = size
 		resp.RootfsName = part.FileName()
 
@@ -285,6 +296,7 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 	if err != nil {
 		return nil, err
 	}
+
 	resp.MetaSize = size
 	resp.MetaName = filename
 
@@ -297,7 +309,7 @@ func lxdDownloadImage(fingerprint string, uri string, userAgent string, client *
 	return &resp, nil
 }
 
-// GetImageAliases returns the list of available aliases as ImageAliasesEntry structs
+// GetImageAliases returns the list of available aliases as ImageAliasesEntry structs.
 func (r *ProtocolLXD) GetImageAliases() ([]api.ImageAliasesEntry, error) {
 	aliases := []api.ImageAliasesEntry{}
 
@@ -310,7 +322,7 @@ func (r *ProtocolLXD) GetImageAliases() ([]api.ImageAliasesEntry, error) {
 	return aliases, nil
 }
 
-// GetImageAliasNames returns the list of available alias names
+// GetImageAliasNames returns the list of available alias names.
 func (r *ProtocolLXD) GetImageAliasNames() ([]string, error) {
 	// Fetch the raw URL values.
 	urls := []string{}
@@ -324,7 +336,7 @@ func (r *ProtocolLXD) GetImageAliasNames() ([]string, error) {
 	return urlsToResourceNames(baseURL, urls...)
 }
 
-// GetImageAlias returns an existing alias as an ImageAliasesEntry struct
+// GetImageAlias returns an existing alias as an ImageAliasesEntry struct.
 func (r *ProtocolLXD) GetImageAlias(name string) (*api.ImageAliasesEntry, string, error) {
 	alias := api.ImageAliasesEntry{}
 
@@ -337,7 +349,7 @@ func (r *ProtocolLXD) GetImageAlias(name string) (*api.ImageAliasesEntry, string
 	return &alias, etag, nil
 }
 
-// GetImageAliasType returns an existing alias as an ImageAliasesEntry struct
+// GetImageAliasType returns an existing alias as an ImageAliasesEntry struct.
 func (r *ProtocolLXD) GetImageAliasType(imageType string, name string) (*api.ImageAliasesEntry, string, error) {
 	alias, etag, err := r.GetImageAlias(name)
 	if err != nil {
@@ -357,7 +369,7 @@ func (r *ProtocolLXD) GetImageAliasType(imageType string, name string) (*api.Ima
 	return alias, etag, nil
 }
 
-// GetImageAliasArchitectures returns a map of architectures / targets
+// GetImageAliasArchitectures returns a map of architectures / targets.
 func (r *ProtocolLXD) GetImageAliasArchitectures(imageType string, name string) (map[string]*api.ImageAliasesEntry, error) {
 	alias, _, err := r.GetImageAliasType(imageType, name)
 	if err != nil {
@@ -372,7 +384,7 @@ func (r *ProtocolLXD) GetImageAliasArchitectures(imageType string, name string) 
 	return map[string]*api.ImageAliasesEntry{img.Architecture: alias}, nil
 }
 
-// CreateImage requests that LXD creates, copies or import a new image
+// CreateImage requests that LXD creates, copies or import a new image.
 func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (Operation, error) {
 	if image.CompressionAlgorithm != "" {
 		if !r.HasExtension("image_compression_algorithm") {
@@ -409,6 +421,7 @@ func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (
 		if err != nil {
 			return nil, err
 		}
+
 		defer func() { _ = os.Remove(tmpfile.Name()) }()
 
 		// Setup the multipart writer
@@ -431,6 +444,7 @@ func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (
 		} else {
 			fw, err = w.CreateFormFile("rootfs", args.RootfsName)
 		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -530,6 +544,7 @@ func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() { _ = resp.Body.Close() }()
 
 	// Handle errors
@@ -554,7 +569,7 @@ func (r *ProtocolLXD) CreateImage(image api.ImagesPost, args *ImageCreateArgs) (
 	return &op, nil
 }
 
-// tryCopyImage iterates through the source server URLs until one lets it download the image
+// tryCopyImage iterates through the source server URLs until one lets it download the image.
 func (r *ProtocolLXD) tryCopyImage(req api.ImagesPost, urls []string) (RemoteOperation, error) {
 	if len(urls) == 0 {
 		return nil, fmt.Errorf("The source server isn't listening on the network")
@@ -652,7 +667,7 @@ func (r *ProtocolLXD) tryCopyImage(req api.ImagesPost, urls []string) (RemoteOpe
 	return &rop, nil
 }
 
-// CopyImage copies an image from a remote server. Additional options can be passed using ImageCopyArgs
+// CopyImage copies an image from a remote server. Additional options can be passed using ImageCopyArgs.
 func (r *ProtocolLXD) CopyImage(source ImageServer, image api.Image, args *ImageCopyArgs) (RemoteOperation, error) {
 	// Quick checks.
 	if r.isSameServer(source) {
@@ -885,7 +900,7 @@ func (r *ProtocolLXD) CopyImage(source ImageServer, image api.Image, args *Image
 	return r.tryCopyImage(req, info.Addresses)
 }
 
-// UpdateImage updates the image definition
+// UpdateImage updates the image definition.
 func (r *ProtocolLXD) UpdateImage(fingerprint string, image api.ImagePut, ETag string) error {
 	// Send the request
 	_, _, err := r.query("PUT", fmt.Sprintf("/images/%s", url.PathEscape(fingerprint)), image, ETag)
@@ -896,7 +911,7 @@ func (r *ProtocolLXD) UpdateImage(fingerprint string, image api.ImagePut, ETag s
 	return nil
 }
 
-// DeleteImage requests that LXD removes an image from the store
+// DeleteImage requests that LXD removes an image from the store.
 func (r *ProtocolLXD) DeleteImage(fingerprint string) (Operation, error) {
 	// Send the request
 	op, _, err := r.queryOperation("DELETE", fmt.Sprintf("/images/%s", url.PathEscape(fingerprint)), nil, "")
@@ -907,7 +922,7 @@ func (r *ProtocolLXD) DeleteImage(fingerprint string) (Operation, error) {
 	return op, nil
 }
 
-// RefreshImage requests that LXD issues an image refresh
+// RefreshImage requests that LXD issues an image refresh.
 func (r *ProtocolLXD) RefreshImage(fingerprint string) (Operation, error) {
 	if !r.HasExtension("image_force_refresh") {
 		return nil, fmt.Errorf("The server is missing the required \"image_force_refresh\" API extension")
@@ -922,7 +937,7 @@ func (r *ProtocolLXD) RefreshImage(fingerprint string) (Operation, error) {
 	return op, nil
 }
 
-// CreateImageSecret requests that LXD issues a temporary image secret
+// CreateImageSecret requests that LXD issues a temporary image secret.
 func (r *ProtocolLXD) CreateImageSecret(fingerprint string) (Operation, error) {
 	// Send the request
 	op, _, err := r.queryOperation("POST", fmt.Sprintf("/images/%s/secret", url.PathEscape(fingerprint)), nil, "")
@@ -933,7 +948,7 @@ func (r *ProtocolLXD) CreateImageSecret(fingerprint string) (Operation, error) {
 	return op, nil
 }
 
-// CreateImageAlias sets up a new image alias
+// CreateImageAlias sets up a new image alias.
 func (r *ProtocolLXD) CreateImageAlias(alias api.ImageAliasesPost) error {
 	// Send the request
 	_, _, err := r.query("POST", "/images/aliases", alias, "")
@@ -944,7 +959,7 @@ func (r *ProtocolLXD) CreateImageAlias(alias api.ImageAliasesPost) error {
 	return nil
 }
 
-// UpdateImageAlias updates the image alias definition
+// UpdateImageAlias updates the image alias definition.
 func (r *ProtocolLXD) UpdateImageAlias(name string, alias api.ImageAliasesEntryPut, ETag string) error {
 	// Send the request
 	_, _, err := r.query("PUT", fmt.Sprintf("/images/aliases/%s", url.PathEscape(name)), alias, ETag)
@@ -955,7 +970,7 @@ func (r *ProtocolLXD) UpdateImageAlias(name string, alias api.ImageAliasesEntryP
 	return nil
 }
 
-// RenameImageAlias renames an existing image alias
+// RenameImageAlias renames an existing image alias.
 func (r *ProtocolLXD) RenameImageAlias(name string, alias api.ImageAliasesEntryPost) error {
 	// Send the request
 	_, _, err := r.query("POST", fmt.Sprintf("/images/aliases/%s", url.PathEscape(name)), alias, "")
@@ -966,7 +981,7 @@ func (r *ProtocolLXD) RenameImageAlias(name string, alias api.ImageAliasesEntryP
 	return nil
 }
 
-// DeleteImageAlias removes an alias from the LXD image store
+// DeleteImageAlias removes an alias from the LXD image store.
 func (r *ProtocolLXD) DeleteImageAlias(name string) error {
 	// Send the request
 	_, _, err := r.query("DELETE", fmt.Sprintf("/images/aliases/%s", url.PathEscape(name)), nil, "")
@@ -977,7 +992,7 @@ func (r *ProtocolLXD) DeleteImageAlias(name string) error {
 	return nil
 }
 
-// ExportImage exports (copies) an image to a remote server
+// ExportImage exports (copies) an image to a remote server.
 func (r *ProtocolLXD) ExportImage(fingerprint string, image api.ImageExportPost) (Operation, error) {
 	if !r.HasExtension("images_push_relay") {
 		return nil, fmt.Errorf("The server is missing the required \"images_push_relay\" API extension")
@@ -990,5 +1005,4 @@ func (r *ProtocolLXD) ExportImage(fingerprint string, image api.ImageExportPost)
 	}
 
 	return op, nil
-
 }

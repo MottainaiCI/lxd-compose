@@ -1,12 +1,14 @@
 package api
 
-import "time"
+import (
+	"time"
+)
 
 // StoragePoolVolumeBackup represents a LXD volume backup
 //
 // swagger:model
 //
-// API extension: custom_volume_backup
+// API extension: custom_volume_backup.
 type StoragePoolVolumeBackup struct {
 	// Backup name
 	// Example: backup0
@@ -33,7 +35,7 @@ type StoragePoolVolumeBackup struct {
 //
 // swagger:model
 //
-// API extension: custom_volume_backup
+// API extension: custom_volume_backup.
 type StoragePoolVolumeBackupsPost struct {
 	// Backup name
 	// Example: backup0
@@ -60,7 +62,7 @@ type StoragePoolVolumeBackupsPost struct {
 //
 // swagger:model
 //
-// API extension: custom_volume_backup
+// API extension: custom_volume_backup.
 type StoragePoolVolumeBackupPost struct {
 	// New backup name
 	// Example: backup1

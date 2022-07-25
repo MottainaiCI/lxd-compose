@@ -44,7 +44,8 @@ func RFC3493Dialer(context context.Context, network string, address string) (net
 			continue
 		}
 
-		if tc, ok := c.(*net.TCPConn); ok {
+		tc, ok := c.(*net.TCPConn)
+		if ok {
 			_ = tc.SetKeepAlive(true)
 			_ = tc.SetKeepAlivePeriod(3 * time.Second)
 		}
@@ -244,6 +245,7 @@ func WebsocketRecvStream(w io.Writer, conn *websocket.Conn) chan bool {
 				logger.Debug("WebsocketRecvStream didn't write all of buf")
 				break
 			}
+
 			if err != nil {
 				logger.Debug("WebsocketRecvStream error writing buf", logger.Ctx{"err": err})
 				break
@@ -354,11 +356,13 @@ func DefaultWriter(conn *websocket.Conn, w io.WriteCloser, writeDone chan<- bool
 			logger.Debug("DefaultWriter got error writing to writer", logger.Ctx{"err": err})
 			break
 		}
+
 		i, err := w.Write(buf)
 		if i != len(buf) {
 			logger.Debug("DefaultWriter didn't write all of buf")
 			break
 		}
+
 		if err != nil {
 			logger.Debug("DefaultWriter error writing buf", logger.Ctx{"err": err})
 			break
@@ -368,7 +372,7 @@ func DefaultWriter(conn *websocket.Conn, w io.WriteCloser, writeDone chan<- bool
 	_ = w.Close()
 }
 
-// WebsocketIO is a wrapper implementing ReadWriteCloser on top of websocket
+// WebsocketIO is a wrapper implementing ReadWriteCloser on top of websocket.
 type WebsocketIO struct {
 	Conn   *websocket.Conn
 	reader io.Reader
@@ -501,7 +505,7 @@ var WebsocketUpgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// AllocatePort asks the kernel for a free open port that is ready to use
+// AllocatePort asks the kernel for a free open port that is ready to use.
 func AllocatePort() (int, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
