@@ -89,6 +89,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
+			project := env.GetProjectByName(proj)
+
 			if all {
 				nets = *env.GetNetworks()
 			} else {
@@ -146,51 +148,54 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					}
 				}
 			} else {
+
+				remoteMap := make(map[string]bool, 0)
 				// Create network to all groups
+				for _, grp := range project.Groups {
 
-				for _, proj := range *env.GetProjects() {
+					if _, ok := remoteMap[grp.Connection]; ok {
+						// Remote already processed.
+						continue
+					}
+					remoteMap[grp.Connection] = true
 
-					for _, grp := range proj.Groups {
+					executor := executor.NewLxdCExecutor(grp.Connection, confdir, nil, true,
+						config.GetLogging().CmdsOutput,
+						config.GetLogging().RuntimeCmdsOutput)
+					err = executor.Setup()
+					if err != nil {
+						fmt.Println("Error on setup executor for group " + grp.Name + ":" + err.Error() + "\n")
+						os.Exit(1)
+					}
 
-						executor := executor.NewLxdCExecutor(grp.Connection, confdir, nil, true,
-							config.GetLogging().CmdsOutput,
-							config.GetLogging().RuntimeCmdsOutput)
-						err = executor.Setup()
+					for _, net := range nets {
+
+						isPresent, err := executor.IsPresentNetwork(net.Name)
 						if err != nil {
-							fmt.Println("Error on setup executor for group " + grp.Name + ":" + err.Error() + "\n")
+							fmt.Println("Error on check if network " + net.Name + " is already present: " +
+								err.Error())
 							os.Exit(1)
 						}
 
-						for _, net := range nets {
-
-							isPresent, err := executor.IsPresentNetwork(net.Name)
+						if !isPresent {
+							err := executor.CreateNetwork(net)
 							if err != nil {
-								fmt.Println("Error on check if network " + net.Name + " is already present: " +
-									err.Error())
+								fmt.Println("Error on create network " + net.Name + ": " + err.Error())
 								os.Exit(1)
 							}
-
-							if !isPresent {
-								err := executor.CreateNetwork(net)
+							fmt.Println("Network " + net.Name + " created.")
+						} else {
+							if upd {
+								err := executor.UpdateNetwork(net)
 								if err != nil {
-									fmt.Println("Error on create network " + net.Name + ": " + err.Error())
+									fmt.Println("Error on update network " + net.Name + ": " + err.Error())
 									os.Exit(1)
 								}
-								fmt.Println("Network " + net.Name + " created.")
+								fmt.Println("Network " + net.Name + " updated.")
 							} else {
-								if upd {
-									err := executor.UpdateNetwork(net)
-									if err != nil {
-										fmt.Println("Error on update network " + net.Name + ": " + err.Error())
-										os.Exit(1)
-									}
-									fmt.Println("Network " + net.Name + " updated.")
-								} else {
-									fmt.Println("Network " + net.Name + " already present. Nothing to do.")
-								}
+								fmt.Println("Network " + net.Name + " already present. Nothing to do.")
 							}
 						}
-
 					}
 
 				}
