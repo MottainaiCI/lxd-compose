@@ -118,6 +118,26 @@ type StorageVolume struct {
 	//
 	// API extension: custom_block_volumes
 	ContentType string `json:"content_type" yaml:"content_type"`
+
+	// Project containing the volume.
+	// Example: default
+	//
+	// API extension: storage_volumes_all_projects
+	Project string `json:"project" yaml:"project"`
+}
+
+// URL returns the URL for the volume.
+func (v *StorageVolume) URL(apiVersion string, poolName string) *URL {
+	u := NewURL()
+
+	volName, snapName, isSnap := GetParentAndSnapshotName(v.Name)
+	if isSnap {
+		u = u.Path(apiVersion, "storage-pools", poolName, "volumes", v.Type, volName, "snapshots", snapName)
+	} else {
+		u = u.Path(apiVersion, "storage-pools", poolName, "volumes", v.Type, volName)
+	}
+
+	return u.Project(v.Project).Target(v.Location)
 }
 
 // StorageVolumePut represents the modifiable fields of a LXD storage volume

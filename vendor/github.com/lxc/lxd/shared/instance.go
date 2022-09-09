@@ -166,6 +166,7 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	"volatile.evacuate.origin":        validate.IsAny,
 	"volatile.last_state.idmap":       validate.IsAny,
 	"volatile.last_state.power":       validate.IsAny,
+	"volatile.last_state.ready":       validate.IsBool,
 	"volatile.idmap.base":             validate.IsAny,
 	"volatile.idmap.current":          validate.IsAny,
 	"volatile.idmap.next":             validate.IsAny,
@@ -364,6 +365,10 @@ func ConfigKeyChecker(key string, instanceType instancetype.Type) (func(value st
 		if strings.HasSuffix(key, ".uuid") {
 			return validate.IsAny, nil
 		}
+
+		if strings.HasSuffix(key, ".last_state.ready") {
+			return validate.IsBool, nil
+		}
 	}
 
 	if strings.HasPrefix(key, "environment.") {
@@ -389,17 +394,6 @@ func ConfigKeyChecker(key string, instanceType instancetype.Type) (func(value st
 	}
 
 	return nil, fmt.Errorf("Unknown configuration key: %s", key)
-}
-
-// InstanceGetParentAndSnapshotName returns the parent instance name, snapshot name,
-// and whether it actually was a snapshot name.
-func InstanceGetParentAndSnapshotName(name string) (string, string, bool) {
-	fields := strings.SplitN(name, SnapshotDelimiter, 2)
-	if len(fields) == 1 {
-		return name, "", false
-	}
-
-	return fields[0], fields[1], true
 }
 
 // InstanceIncludeWhenCopying is used to decide whether to include a config item or not when copying an instance.
