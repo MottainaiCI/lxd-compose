@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2020-2022  Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package cmd
 
@@ -37,7 +35,7 @@ const (
 
 Mottainai - LXD Compose Integrator`
 
-	LXD_COMPOSE_VERSION = `0.21.0`
+	LXD_COMPOSE_VERSION = `0.22.0`
 )
 
 var (
