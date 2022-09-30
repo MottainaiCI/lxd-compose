@@ -9,14 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ["1.18.x"]
-        include:
-        - go: 1.18.x
-          latest: true
+        go: ["1.18.x", "1.19.x"]
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v2 ${{ matrix.go }}
         with:
           go-version: ${{ matrix.go }}
 
