@@ -211,6 +211,8 @@ func sampleValue(t FieldType) interface{} {
 		return map[string]string{
 			"example": "value",
 		}
+	case Tlist:
+		return []string{"example"}
 	default:
 		panic(fmt.Errorf("unknown schema type %q", t))
 	}

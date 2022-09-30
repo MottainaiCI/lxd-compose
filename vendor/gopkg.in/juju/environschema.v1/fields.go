@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"strings"
 
-	"gopkg.in/errgo.v1"
 	"github.com/juju/schema"
+	"gopkg.in/errgo.v1"
 )
 
 // What to do about reading content from paths?
@@ -123,8 +123,12 @@ const (
 	// Tint represents an integer type. Its canonical Go type is int.
 	Tint FieldType = "int"
 
-	// Tattrs represents an attribute map. Its canonical Go type is map[string]string.
+	// Tattrs represents an attribute map. Its canonical Go type is
+	// map[string]string.
 	Tattrs FieldType = "attrs"
+
+	// Tlist represents an list of strings. Its canonical Go type is []string
+	Tlist FieldType = "list"
 )
 
 var checkers = map[FieldType]schema.Checker{
@@ -132,6 +136,7 @@ var checkers = map[FieldType]schema.Checker{
 	Tbool:   schema.Bool(),
 	Tint:    schema.ForceInt(),
 	Tattrs:  attrsChecker{},
+	Tlist:   schema.List(schema.String()),
 }
 
 // Alternative possibilities to ValidationSchema to bear in mind for
