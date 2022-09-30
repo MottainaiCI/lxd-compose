@@ -12,8 +12,8 @@ jobs:
         go: ["1.18.x", "1.19.x"]
 
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v2 ${{ matrix.go }}
+      - name: Install Go ${{ matrix.go }}
+        uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
 
