@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package loader
 
@@ -132,6 +130,19 @@ func (i *LxdCInstance) GetEnvsUsingProfile(name string) []*specs.LxdCEnvironment
 
 	for idx, e := range i.Environments {
 		_, err := e.GetProfile(name)
+		if err == nil {
+			ans = append(ans, &i.Environments[idx])
+		}
+	}
+
+	return ans
+}
+
+func (i *LxdCInstance) GetEnvsUsingACL(name string) []*specs.LxdCEnvironment {
+	ans := []*specs.LxdCEnvironment{}
+
+	for idx, e := range i.Environments {
+		_, err := e.GetACL(name)
 		if err == nil {
 			ans = append(ans, &i.Environments[idx])
 		}
@@ -570,6 +581,56 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				" add storage " + storage.GetName())
 
 			env.AddStorage(storage)
+
+		}
+
+	}
+
+	// Load external acls
+	if len(env.IncludeAclsFiles) > 0 {
+
+		for _, afile := range env.IncludeAclsFiles {
+
+			if !helpers.Exists(path.Join(envBaseDir, afile)) {
+				i.Logger.Warning("For environment", env.GetBaseFile(),
+					"included acl file", afile,
+					"is not present.")
+				continue
+			}
+
+			content, err := ioutil.ReadFile(path.Join(envBaseDir, afile))
+			if err != nil {
+				i.Logger.Debug("On read file", afile, ":", err.Error())
+				i.Logger.Debug("File", afile, "skipped.")
+				continue
+			}
+
+			if i.Config.IsEnableRenderEngine() {
+				// Render file
+				renderOut, err := helpers.RenderContent(string(content),
+					i.Config.RenderValuesFile,
+					i.Config.RenderDefaultFile,
+					afile,
+					i.Config.RenderEnvsVars,
+				)
+				if err != nil {
+					return err
+				}
+
+				content = []byte(renderOut)
+			}
+
+			acl, err := specs.AclFromYaml(content)
+			if err != nil {
+				i.Logger.Debug("On parse file", afile, ":", err.Error())
+				i.Logger.Debug("File", afile, "skipped.")
+				continue
+			}
+
+			i.Logger.Debug("For environment " + env.GetBaseFile() +
+				" add acl " + acl.GetName())
+
+			env.AddACL(acl)
 
 		}
 

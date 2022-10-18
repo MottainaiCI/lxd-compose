@@ -23,12 +23,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func (n *LxdCNetwork) GetName() string        { return n.Name }
-func (n *LxdCNetwork) GetType() string        { return n.Type }
-func (n *LxdCNetwork) GetDescription() string { return n.Description }
+func (n *LxdCAcl) GetName() string          { return n.Name }
+func (n *LxdCAcl) GetDescription() string   { return n.Description }
+func (n *LxdCAcl) GetDocumentation() string { return n.Documentation }
 
-func NetworkFromYaml(data []byte) (*LxdCNetwork, error) {
-	ans := &LxdCNetwork{}
+func (n *LxdCAcl) GetEgress() *[]LxdCAclRule {
+	return &n.Egress
+}
+
+func (n *LxdCAcl) GetIngress() *[]LxdCAclRule {
+	return &n.Ingress
+}
+
+func AclFromYaml(data []byte) (*LxdCAcl, error) {
+	ans := &LxdCAcl{}
 	if err := yaml.Unmarshal(data, ans); err != nil {
 		return nil, err
 	}

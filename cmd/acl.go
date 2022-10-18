@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020-2022  Daniele Rondina <geaaru@funtoo.org>
+Copyright (C) 2020-2022 Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -17,21 +17,28 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-package specs
+package cmd
 
 import (
-	"gopkg.in/yaml.v3"
+	. "github.com/MottainaiCI/lxd-compose/cmd/acl"
+	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
+
+	"github.com/spf13/cobra"
 )
 
-func (n *LxdCNetwork) GetName() string        { return n.Name }
-func (n *LxdCNetwork) GetType() string        { return n.Type }
-func (n *LxdCNetwork) GetDescription() string { return n.Description }
-
-func NetworkFromYaml(data []byte) (*LxdCNetwork, error) {
-	ans := &LxdCNetwork{}
-	if err := yaml.Unmarshal(data, ans); err != nil {
-		return nil, err
+func newAclCommand(config *specs.LxdComposeConfig) *cobra.Command {
+	var cmd = &cobra.Command{
+		Use:     "acl [command] [OPTIONS]",
+		Aliases: []string{"st"},
+		Short:   "Execute specific operations for LXD ACL",
+		Args:    cobra.NoArgs,
 	}
 
-	return ans, nil
+	cmd.AddCommand(
+		NewCreateCommand(config),
+		NewAvailableCommand(config),
+		NewListCommand(config),
+	)
+
+	return cmd
 }

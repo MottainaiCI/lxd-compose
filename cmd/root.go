@@ -91,6 +91,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	config.Viper.BindPFlag("logging.push_progressbar", pflags.Lookup("push-progress"))
 
 	rootCmd.AddCommand(
+		newAclCommand(config),
 		newApplyCommand(config),
 		newGroupCommand(config),
 		newDestroyCommand(config),

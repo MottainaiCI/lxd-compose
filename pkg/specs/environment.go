@@ -1,6 +1,5 @@
 /*
-
-Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2022  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package specs
 
@@ -105,6 +103,22 @@ func (e *LxdCEnvironment) GetStorages() *[]LxdCStorage {
 	return &e.Storages
 }
 
+func (e *LxdCEnvironment) GetACLs() *[]LxdCAcl {
+	return &e.Acls
+}
+
+func (e *LxdCEnvironment) GetACL(name string) (LxdCAcl, error) {
+	ans := LxdCAcl{}
+
+	for _, acl := range e.Acls {
+		if acl.Name == name {
+			return acl, nil
+		}
+	}
+
+	return ans, errors.New("ACL " + name + " not available.")
+}
+
 func (e *LxdCEnvironment) GetNetwork(name string) (LxdCNetwork, error) {
 	ans := LxdCNetwork{}
 
@@ -139,6 +153,10 @@ func (e *LxdCEnvironment) AddStorage(storage *LxdCStorage) {
 
 func (e *LxdCEnvironment) AddProfile(profile *LxdCProfile) {
 	e.Profiles = append(e.Profiles, *profile)
+}
+
+func (e *LxdCEnvironment) AddACL(acl *LxdCAcl) {
+	e.Acls = append(e.Acls, *acl)
 }
 
 func (e *LxdCEnvironment) GetBaseFile() string {

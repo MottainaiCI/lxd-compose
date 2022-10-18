@@ -59,6 +59,13 @@ networks:
       ipv4.nat: "true"
       ipv6.nat: "true"
 
+acls:
+  - name: "acltest"
+    ingress:
+      - action: allow
+        destination: 192.168.0.1
+        protocol: icmp4
+        state: enabled
 
 # Define commands / alias to apply
 commands:
