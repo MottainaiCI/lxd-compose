@@ -12,8 +12,8 @@ require (
 	github.com/lxc/lxd v0.0.0-20220922224603-c76bc42c6393
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onsi/ginkgo/v2 v2.1.4
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/ginkgo/v2 v2.1.6
+	github.com/onsi/gomega v1.20.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.6.0
 	github.com/spf13/viper v1.13.0
@@ -23,7 +23,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0 // indirect
 	golang.org/x/sys v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.10.0
+	helm.sh/helm/v3 v3.10.1
 )
 
 require (
@@ -49,6 +49,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
@@ -108,10 +109,10 @@ require (
 	gopkg.in/macaroon.v2 v2.1.0 // indirect
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.25.0 // indirect
-	k8s.io/apiextensions-apiserver v0.25.0 // indirect
-	k8s.io/apimachinery v0.25.0 // indirect
-	k8s.io/client-go v0.25.0 // indirect
+	k8s.io/api v0.25.2 // indirect
+	k8s.io/apiextensions-apiserver v0.25.2 // indirect
+	k8s.io/apimachinery v0.25.2 // indirect
+	k8s.io/client-go v0.25.2 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 // indirect
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed // indirect
