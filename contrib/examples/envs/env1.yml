@@ -207,7 +207,7 @@ projects:
           - net-mottainai0
 
         # Create the environment container as ephemeral or not.
-        ephemeral: true
+        ephemeral: {{ .Values.ephemeral | default "true" }}
 
         config:
           "user.groupkey": "value1"

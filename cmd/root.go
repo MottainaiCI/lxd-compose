@@ -105,6 +105,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newProjectCommand(config),
 		newCommandCommand(config),
 		newFetchCommand(config),
+		newStopCommand(config),
 	)
 }
 
