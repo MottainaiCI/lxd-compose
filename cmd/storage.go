@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package cmd
 
@@ -31,7 +29,7 @@ import (
 func newStorageCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:     "storage [command] [OPTIONS]",
-		Aliases: []string{"n"},
+		Aliases: []string{"st"},
 		Short:   "Execute specific operations for LXD Storage",
 		Args:    cobra.NoArgs,
 	}
