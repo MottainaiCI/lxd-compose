@@ -93,3 +93,113 @@ func (e *LxdCExecutor) UpdateNetwork(net specs.LxdCNetwork) error {
 
 	return e.LxdClient.UpdateNetwork(net.Name, lxdNetworkPut, "")
 }
+
+func (e *LxdCExecutor) SyncNetworkForwarders(net *specs.LxdCNetwork) error {
+	if net.Name == "" {
+		return errors.New("Invalid network with empty name")
+	}
+
+	// Retrieve the list of the NetworkForwards
+	listenAddresses, err := e.LxdClient.GetNetworkForwardAddresses(net.Name)
+	if err != nil {
+		return errors.New("Error on retrieve list of forwarders: " + err.Error())
+	}
+
+	if len(net.Forwards) == 0 && len(listenAddresses) == 0 {
+		// POST: nothing to do
+		return nil
+	}
+
+	laMap := make(map[string]bool, 0)
+	// Check if there are listenAddress to remove
+	for _, la := range listenAddresses {
+		if !net.IsPresentForwardAddress(la) {
+			err = e.LxdClient.DeleteNetworkForward(net.Name, la)
+			if err != nil {
+				return errors.New(
+					fmt.Sprintf(
+						"Error on delete network forward for listen address %s: %s",
+						la, err.Error()),
+				)
+			}
+		} else {
+			laMap[la] = true
+		}
+	}
+
+	// Create or update the available listenAddresses
+	for idx, _ := range net.Forwards {
+
+		_, toUpdate := laMap[net.Forwards[idx].ListenAddress]
+
+		if toUpdate {
+			put := e.netForward2Lxd(&net.Forwards[idx])
+			err = e.LxdClient.UpdateNetworkForward(
+				net.Name,
+				net.Forwards[idx].ListenAddress,
+				*put, "",
+			)
+			if err != nil {
+				return errors.New(fmt.Sprintf(
+					"Error on update net forward %s: %s",
+					net.Forwards[idx].ListenAddress,
+					err.Error()))
+			}
+
+		} else {
+			// POST: new Listen Address
+
+			put := e.netForward2Lxd(&net.Forwards[idx])
+			post := lxd_api.NetworkForwardsPost{
+				NetworkForwardPut: *put,
+				ListenAddress:     net.Forwards[idx].ListenAddress,
+			}
+
+			err := e.LxdClient.CreateNetworkForward(
+				net.Name, post,
+			)
+			if err != nil {
+				return errors.New(fmt.Sprintf(
+					"Error on create net forward %s: %s",
+					net.Forwards[idx].ListenAddress,
+					err.Error()))
+			}
+		}
+	}
+
+	return nil
+}
+
+func (e *LxdCExecutor) netForward2Lxd(f *specs.LxdCNetworkForward) *lxd_api.NetworkForwardPut {
+	ans := &lxd_api.NetworkForwardPut{
+		Description: f.Description,
+		Config:      f.Config,
+		Ports:       []lxd_api.NetworkForwardPort{},
+	}
+
+	if ans.Config == nil {
+		ans.Config = make(map[string]string, 0)
+	}
+	if ans.Description == "" {
+		ans.Description = fmt.Sprintf(
+			"Network forward for ip %s created by lxd-compose",
+			f.ListenAddress,
+		)
+	}
+
+	if len(f.Ports) > 0 {
+		for idx, _ := range f.Ports {
+			ans.Ports = append(ans.Ports,
+				lxd_api.NetworkForwardPort{
+					Description:   f.Ports[idx].Description,
+					Protocol:      f.Ports[idx].Protocol,
+					ListenPort:    f.Ports[idx].ListenPort,
+					TargetPort:    f.Ports[idx].TargetPort,
+					TargetAddress: f.Ports[idx].TargetAddress,
+				},
+			)
+		}
+	}
+
+	return ans
+}

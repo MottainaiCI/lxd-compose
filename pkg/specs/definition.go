@@ -48,11 +48,46 @@ type LxdCProfile struct {
 	Devices     map[string]map[string]string `json:"devices" yaml:"devices"`
 }
 
+type LxdCNetworkForwardPort struct {
+	// Description of the forward port
+	// Example: My web server forward
+	Description string `json:"description" yaml:"description"`
+
+	// Protocol for port forward (either tcp or udp)
+	// Example: tcp
+	Protocol string `json:"protocol" yaml:"protocol"`
+
+	// ListenPort(s) to forward (comma delimited ranges)
+	// Example: 80,81,8080-8090
+	ListenPort string `json:"listen_port" yaml:"listen_port"`
+
+	// TargetPort(s) to forward ListenPorts to (allows for many-to-one)
+	// Example: 80,81,8080-8090
+	TargetPort string `json:"target_port" yaml:"target_port"`
+
+	// TargetAddress to forward ListenPorts to
+	// Example: 198.51.100.2
+	TargetAddress string `json:"target_address" yaml:"target_address"`
+}
+
+type LxdCNetworkForward struct {
+	ListenAddress string `json:"listen_address" yaml:"listen_address"`
+
+	Description string            `json:"description" yaml:"description"`
+	Config      map[string]string `json:"config" yaml:"config"`
+
+	// Port forwards (optional)
+	Ports []LxdCNetworkForwardPort `json:"ports,omitempty" yaml:"ports,omitempty"`
+}
+
 type LxdCNetwork struct {
 	Name        string            `json:"name" yaml:"name"`
 	Type        string            `json:"type" yaml:"type"`
 	Description string            `json:"description" yaml:"description"`
 	Config      map[string]string `json:"config" yaml:"config"`
+
+	// NetworkForwards
+	Forwards []LxdCNetworkForward `json:"forwards,omitempty" yaml:"forwards,omitempty"`
 }
 
 type LxdCAclRule struct {

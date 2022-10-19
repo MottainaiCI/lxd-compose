@@ -35,3 +35,30 @@ func NetworkFromYaml(data []byte) (*LxdCNetwork, error) {
 
 	return ans, nil
 }
+
+func (n *LxdCNetwork) IsPresentForwardAddress(a string) bool {
+	ans := false
+	if len(n.Forwards) > 0 {
+		for idx, _ := range n.Forwards {
+			if n.Forwards[idx].ListenAddress == a {
+				ans = true
+				break
+			}
+		}
+	}
+	return ans
+}
+
+func (n *LxdCNetwork) GetForwardAddress(a string) *LxdCNetworkForward {
+	var ans *LxdCNetworkForward = nil
+
+	if len(n.Forwards) > 0 {
+		for idx, _ := range n.Forwards {
+			if n.Forwards[idx].ListenAddress == a {
+				return &n.Forwards[idx]
+			}
+		}
+	}
+
+	return ans
+}

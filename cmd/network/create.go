@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package cmd_network
 
@@ -68,6 +66,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			endpoint, _ := cmd.Flags().GetString("endpoint")
 			all, _ := cmd.Flags().GetBool("all")
 			upd, _ := cmd.Flags().GetBool("update")
+			withForwards, _ := cmd.Flags().GetBool("with-forwards")
 
 			err = composer.LoadEnvironments()
 			if err != nil {
@@ -139,11 +138,26 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 							fmt.Println("Error on create network " + net.Name + ": " + err.Error())
 							os.Exit(1)
 						}
+						if withForwards {
+							err := executor.SyncNetworkForwarders(&net)
+							if err != nil {
+								fmt.Println("Error on sync network forward for " + net.Name + ": " + err.Error())
+							}
+							fmt.Println("Network forwards of the net " + net.Name + " created.")
+						}
 					} else if upd {
 						err := executor.UpdateNetwork(net)
 						if err != nil {
 							fmt.Println("Error on update network " + net.Name + ": " + err.Error())
 							os.Exit(1)
+						}
+
+						if withForwards {
+							err := executor.SyncNetworkForwarders(&net)
+							if err != nil {
+								fmt.Println("Error on sync network forward for " + net.Name + ": " + err.Error())
+							}
+							fmt.Println("Network forwards of the net " + net.Name + " updated.")
 						}
 					}
 				}
@@ -184,14 +198,33 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 								os.Exit(1)
 							}
 							fmt.Println("Network " + net.Name + " created.")
+
+							if withForwards {
+								err := executor.SyncNetworkForwarders(&net)
+								if err != nil {
+									fmt.Println("Error on sync network forward for " + net.Name + ": " + err.Error())
+								}
+								fmt.Println("Network forwards of the net " + net.Name + " created.")
+							}
 						} else {
 							if upd {
+
 								err := executor.UpdateNetwork(net)
 								if err != nil {
 									fmt.Println("Error on update network " + net.Name + ": " + err.Error())
 									os.Exit(1)
 								}
 								fmt.Println("Network " + net.Name + " updated.")
+
+								if withForwards {
+									err := executor.SyncNetworkForwarders(&net)
+									if err != nil {
+										fmt.Println("Error on sync network forward for " + net.Name + ": " + err.Error())
+									}
+
+									fmt.Println("Network forwards of the net " + net.Name + " updated.")
+								}
+
 							} else {
 								fmt.Println("Network " + net.Name + " already present. Nothing to do.")
 							}
@@ -211,6 +244,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags.BoolP("update", "u", false, "Update the network if it's already present.")
 	pflags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
+	pflags.Bool("with-forwards", false,
+		"Update also network forwards. Note: the network must be present.")
 
 	return cmd
 }
