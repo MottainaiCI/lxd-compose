@@ -3,7 +3,6 @@ package shared
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -83,35 +82,13 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	"boot.stop.priority":         validate.Optional(validate.IsInt64),
 	"boot.host_shutdown_timeout": validate.Optional(validate.IsInt64),
 
-	"cloud-init.network-config": validate.Optional(validate.IsAny),
-	"cloud-init.user-data":      validate.Optional(validate.IsAny),
-	"cloud-init.vendor-data":    validate.Optional(validate.IsAny),
+	"cloud-init.network-config": validate.Optional(validate.IsYAML),
+	"cloud-init.user-data":      validate.Optional(validate.IsCloudInitUserData),
+	"cloud-init.vendor-data":    validate.Optional(validate.IsCloudInitUserData),
 
 	"cluster.evacuate": validate.Optional(validate.IsOneOf("auto", "migrate", "live-migrate", "stop")),
 
-	"limits.cpu": func(value string) error {
-		if value == "" {
-			return nil
-		}
-
-		// Validate the character set
-		match, _ := regexp.MatchString("^[-,0-9]*$", value)
-		if !match {
-			return fmt.Errorf("Invalid CPU limit syntax")
-		}
-
-		// Validate first character
-		if strings.HasPrefix(value, "-") || strings.HasPrefix(value, ",") {
-			return fmt.Errorf("CPU limit can't start with a separator")
-		}
-
-		// Validate last character
-		if strings.HasSuffix(value, "-") || strings.HasSuffix(value, ",") {
-			return fmt.Errorf("CPU limit can't end with a separator")
-		}
-
-		return nil
-	},
+	"limits.cpu":           validate.Optional(validate.IsValidCPUSet),
 	"limits.disk.priority": validate.Optional(validate.IsPriority),
 	"limits.memory": func(value string) error {
 		if value == "" {
@@ -155,7 +132,7 @@ var InstanceConfigKeysAny = map[string]func(value string) error{
 	"snapshots.pattern":          validate.IsAny,
 	"snapshots.expiry": func(value string) error {
 		// Validate expression
-		_, err := GetSnapshotExpiry(time.Time{}, value)
+		_, err := GetExpiry(time.Time{}, value)
 		return err
 	},
 

@@ -5,12 +5,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/gob"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"github.com/flosch/pongo2"
 
 	"github.com/lxc/lxd/lxd/revert"
+	"github.com/lxc/lxd/shared/api"
 	"github.com/lxc/lxd/shared/cancel"
 	"github.com/lxc/lxd/shared/ioprogress"
 	"github.com/lxc/lxd/shared/units"
@@ -519,7 +521,7 @@ func DirCopy(source string, dest string) error {
 	}
 
 	// Copy all files.
-	entries, err := ioutil.ReadDir(source)
+	entries, err := os.ReadDir(source)
 	if err != nil {
 		return fmt.Errorf("failed to read source directory %s: %w", source, err)
 	}
@@ -809,7 +811,7 @@ func TextEditor(inPath string, inContent []byte) ([]byte, error) {
 
 	if inPath == "" {
 		// If provided input, create a new file
-		f, err = ioutil.TempFile("", "lxd_editor_")
+		f, err = os.CreateTemp("", "lxd_editor_")
 		if err != nil {
 			return []byte{}, err
 		}
@@ -858,7 +860,7 @@ func TextEditor(inPath string, inContent []byte) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -1232,15 +1234,19 @@ func RenderTemplate(template string, ctx pongo2.Context) (string, error) {
 	return ret, err
 }
 
-func GetSnapshotExpiry(refDate time.Time, s string) (time.Time, error) {
+// GetExpiry returns the expiry date based on the reference date and a length of time.
+// The length of time format is "<integer>(S|M|H|d|w|m|y)", and can contain multiple such fields, e.g.
+// "1d 3H" (1 day and 3 hours).
+func GetExpiry(refDate time.Time, s string) (time.Time, error) {
 	expr := strings.TrimSpace(s)
 
 	if expr == "" {
 		return time.Time{}, nil
 	}
 
-	re := regexp.MustCompile(`^(\d+)(M|H|d|w|m|y)$`)
+	re := regexp.MustCompile(`^(\d+)(S|M|H|d|w|m|y)$`)
 	expiry := map[string]int{
+		"S": 0,
 		"M": 0,
 		"H": 0,
 		"d": 0,
@@ -1275,7 +1281,7 @@ func GetSnapshotExpiry(refDate time.Time, s string) (time.Time, error) {
 	}
 
 	t := refDate.AddDate(expiry["y"], expiry["m"], expiry["d"]+expiry["w"]*7).Add(
-		time.Hour*time.Duration(expiry["H"]) + time.Minute*time.Duration(expiry["M"]))
+		time.Hour*time.Duration(expiry["H"]) + time.Minute*time.Duration(expiry["M"]) + time.Second*time.Duration(expiry["S"]))
 
 	return t, nil
 }
@@ -1317,4 +1323,36 @@ func SplitNTrimSpace(s string, sep string, n int, nilIfEmpty bool) []string {
 	}
 
 	return parts
+}
+
+// JoinTokenDecode decodes a base64 and JSON encode join token.
+func JoinTokenDecode(input string) (*api.ClusterMemberJoinToken, error) {
+	joinTokenJSON, err := base64.StdEncoding.DecodeString(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var j api.ClusterMemberJoinToken
+	err = json.Unmarshal(joinTokenJSON, &j)
+	if err != nil {
+		return nil, err
+	}
+
+	if j.ServerName == "" {
+		return nil, fmt.Errorf("No server name in join token")
+	}
+
+	if len(j.Addresses) < 1 {
+		return nil, fmt.Errorf("No cluster member addresses in join token")
+	}
+
+	if j.Secret == "" {
+		return nil, fmt.Errorf("No secret in join token")
+	}
+
+	if j.Fingerprint == "" {
+		return nil, fmt.Errorf("No certificate fingerprint in join token")
+	}
+
+	return &j, nil
 }

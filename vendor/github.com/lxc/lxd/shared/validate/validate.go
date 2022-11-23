@@ -16,6 +16,7 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/pborman/uuid"
 	"github.com/robfig/cron/v3"
+	"gopkg.in/yaml.v2"
 
 	"github.com/lxc/lxd/shared/osarch"
 	"github.com/lxc/lxd/shared/units"
@@ -783,6 +784,88 @@ func IsRequestURL(value string) error {
 	_, err := url.ParseRequestURI(value)
 	if err != nil {
 		return fmt.Errorf("Invalid URL: %w", err)
+	}
+
+	return nil
+}
+
+// IsCloudInitUserData checks value is valid cloud-init user data.
+func IsCloudInitUserData(value string) error {
+	if value == "#cloud-config" || strings.HasPrefix(value, "#cloud-config\n") {
+		lines := strings.SplitN(value, "\n", 2)
+
+		// If value only contains the cloud-config header, it is valid.
+		if len(lines) == 1 {
+			return nil
+		}
+
+		return IsYAML(lines[1])
+	}
+
+	// Since there are various other user-data formats besides cloud-config, consider those valid.
+	return nil
+}
+
+// IsYAML checks value is valid YAML.
+func IsYAML(value string) error {
+	out := struct{}{}
+
+	err := yaml.Unmarshal([]byte(value), &out)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IsValidCPUSet checks value is a valid CPU set.
+func IsValidCPUSet(value string) error {
+	// Validate the CPU set syntax.
+	match, _ := regexp.MatchString("^([0-9]+([,-][0-9]+)?)(,[0-9]+([,-][0-9]+)*)?$", value)
+	if !match {
+		return fmt.Errorf("Invalid CPU limit syntax")
+	}
+
+	cpus := make(map[int64]int)
+	chunks := strings.Split(value, ",")
+
+	for _, chunk := range chunks {
+		if strings.Contains(chunk, "-") {
+			// Range
+			fields := strings.SplitN(chunk, "-", 2)
+			if len(fields) != 2 {
+				return fmt.Errorf("Invalid cpuset value: %s", value)
+			}
+
+			low, err := strconv.ParseInt(fields[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("Invalid cpuset value: %s", value)
+			}
+
+			high, err := strconv.ParseInt(fields[1], 10, 64)
+			if err != nil {
+				return fmt.Errorf("Invalid cpuset value: %s", value)
+			}
+
+			for i := low; i <= high; i++ {
+				cpus[i]++
+			}
+		} else {
+			// Simple entry
+			nr, err := strconv.ParseInt(chunk, 10, 64)
+			if err != nil {
+				return fmt.Errorf("Invalid cpuset value: %s", value)
+			}
+
+			cpus[nr]++
+		}
+	}
+
+	for i := range cpus {
+		// The CPU was specified more than once, e.g. 1-3,3.
+		if cpus[i] > 1 {
+			return fmt.Errorf("Cannot define CPU multiple times")
+		}
 	}
 
 	return nil
