@@ -120,6 +120,8 @@ projects:
     include_hooks_files:
       - ../hooks/hooks1.yml
 
+    shell_envs_filter:
+      - filteredEnv
 
     # hooks:
       # event values are
@@ -192,6 +194,7 @@ projects:
       - envs:
           key1: "value1"
           key2: "value2"
+          filteredEnv: "value3"
 
           obj:
             key: "xxx"
@@ -308,6 +311,14 @@ projects:
               - event: post-node-sync
                 commands:
                   - echo "${mynode_data1}"
+
+              - event: post-node-sync
+                commands:
+                  - |
+                    if [ "${filteredEnv}" == "value3" ] ; then
+                    echo "Something goes wrong!"
+                    exit 1
+                    fi
 
               - event: post-node-sync
                 node: "host"

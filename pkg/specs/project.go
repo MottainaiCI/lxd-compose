@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package specs
 
@@ -40,9 +38,10 @@ func (p *LxdCProject) Init() {
 	}
 }
 
-func (p *LxdCProject) GetGroups() *[]LxdCGroup { return &p.Groups }
-func (p *LxdCProject) GetDescription() string  { return p.Description }
-func (p *LxdCProject) GetName() string         { return p.Name }
+func (p *LxdCProject) GetGroups() *[]LxdCGroup       { return &p.Groups }
+func (p *LxdCProject) GetDescription() string        { return p.Description }
+func (p *LxdCProject) GetName() string               { return p.Name }
+func (p *LxdCProject) GetShellEnvsFilter() *[]string { return &p.ShellEnvsFilter }
 
 func (p *LxdCProject) AddGroup(grp *LxdCGroup) {
 	p.Groups = append(p.Groups, *grp)
@@ -67,8 +66,21 @@ func (p *LxdCProject) GetEnvsMap() (map[string]string, error) {
 	}
 	ans["project"] = string(pData)
 
+	mfilter := make(map[string]bool, 0)
+	if len(p.ShellEnvsFilter) > 0 {
+		for _, k := range p.ShellEnvsFilter {
+			mfilter[k] = true
+		}
+	}
+
 	for _, e := range p.Environments {
 		for k, v := range e.EnvVars {
+
+			_, filtered := mfilter[k]
+			if filtered {
+				continue
+			}
+
 			// Bash doesn't support variable with dash.
 			// I will convert dash with underscore.
 			if strings.Contains(k, "-") {

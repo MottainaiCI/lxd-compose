@@ -191,6 +191,8 @@ type LxdCProject struct {
 
 	Environments []LxdCEnvVars `json:"vars,omitempty" yaml:"vars,omitempty"`
 
+	ShellEnvsFilter []string `json:"shell_envs_filter,omitempty" yaml:"shell_envs_filter,omitempty"`
+
 	Groups      []LxdCGroup `json:"groups" yaml:"groups"`
 	NodesPrefix string      `json:"nodes_prefix,omitempty" yaml:"nodes_prefix,omitempty"`
 
