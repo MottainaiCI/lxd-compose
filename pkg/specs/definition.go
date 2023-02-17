@@ -37,8 +37,14 @@ type LxdCEnvironment struct {
 	Storages             []LxdCStorage `json:"storages,omitempty" yaml:"storages,omitempty"`
 	IncludeStorageFiles  []string      `json:"include_storage_files,omitempty" yaml:"include_storage_files,omitempty"`
 
-	Acls             []LxdCAcl `json:"acls,omitempty" yaml:"acls,omitempty"`
-	IncludeAclsFiles []string  `json:"include_acls_files,omitempty" yaml:"include_acls_files,omitempty"`
+	Acls             []LxdCAcl      `json:"acls,omitempty" yaml:"acls,omitempty"`
+	IncludeAclsFiles []string       `json:"include_acls_files,omitempty" yaml:"include_acls_files,omitempty"`
+	PackExtra        *LxdCPackExtra `json:"pack_extra,omitempty" yaml:"pack_extra,omitempty"`
+}
+
+type LxdCPackExtra struct {
+	Dirs  []string `json:"dirs,omitempty" yaml:"dirs,omitempty"`
+	Files []string `json:"files,omitempty" yaml:"files,omitempty"`
 }
 
 type LxdCProfile struct {

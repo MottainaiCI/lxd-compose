@@ -99,6 +99,18 @@ commands:
 include_commands_files:
   - commands/cmd1.yml
 
+# Define extra files to inject with packaging.
+# NOTE: The static files/dirs used on sync phase
+#       if not related to templates must be defined
+#       here.
+#       The paths are always related to the environment
+#       file directory.
+pack_extra:
+  dirs:
+  files:
+    - ../../contrib/filters/ansible_wrapper.py
+    - ../../contrib/filters/from_json.py
+
 projects:
 
   - name: "lxd-compose-example1"

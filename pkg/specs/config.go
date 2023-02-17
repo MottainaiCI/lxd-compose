@@ -1,6 +1,5 @@
 /*
-
-Copyright (C) 2020-2022  Daniele Rondina <geaaru@funtoo.org>
+Copyright (C) 2020-2023  Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package specs
 
@@ -80,6 +78,31 @@ func NewLxdComposeConfig(viper *v.Viper) *LxdComposeConfig {
 
 	GenDefault(viper)
 	return &LxdComposeConfig{Viper: viper}
+}
+
+func (c *LxdComposeConfig) Clone() *LxdComposeConfig {
+	ans := NewLxdComposeConfig(nil)
+
+	ans.EnvironmentDirs = c.EnvironmentDirs
+	ans.RenderDefaultFile = c.RenderDefaultFile
+	ans.RenderValuesFile = c.RenderValuesFile
+
+	ans.General.Debug = c.General.Debug
+	ans.General.LxdConfDir = c.General.LxdConfDir
+	ans.General.LxdLocalDisable = c.General.LxdLocalDisable
+	ans.General.P2PMode = c.General.P2PMode
+
+	ans.Logging.Path = c.Logging.Path
+	ans.Logging.EnableLogFile = c.Logging.EnableLogFile
+	ans.Logging.JsonFormat = c.Logging.JsonFormat
+	ans.Logging.Level = c.Logging.Level
+	ans.Logging.EnableEmoji = c.Logging.EnableEmoji
+	ans.Logging.Color = c.Logging.Color
+	ans.Logging.RuntimeCmdsOutput = c.Logging.RuntimeCmdsOutput
+	ans.Logging.CmdsOutput = c.Logging.CmdsOutput
+	ans.Logging.PushProgressBar = c.Logging.PushProgressBar
+
+	return ans
 }
 
 func (c *LxdComposeConfig) GetGeneral() *LxdCGeneral {

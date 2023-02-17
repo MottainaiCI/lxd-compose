@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020-2022  Daniele Rondina <geaaru@funtoo.org>
+Copyright (C) 2020-2023  Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -101,6 +101,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newNodeCommand(config),
 		newNetworkCommand(config),
 		newStorageCommand(config),
+		newPackCommand(config),
 		newProfileCommand(config),
 		newDiagnoseCommand(config),
 		newProjectCommand(config),
