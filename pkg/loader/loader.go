@@ -22,7 +22,7 @@ package loader
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -366,13 +366,15 @@ func (i *LxdCInstance) LoadEnvironments() error {
 	for _, edir := range i.Config.GetEnvironmentDirs() {
 		i.Logger.Debug("Checking directory", edir, "...")
 
-		files, err := ioutil.ReadDir(edir)
+		dirEntries, err := os.ReadDir(edir)
 		if err != nil {
 			i.Logger.Debug("Skip dir", edir, ":", err.Error())
 			continue
 		}
 
-		for _, file := range files {
+		// NOTE: Moving to os.ReadDir from ioutil.ReadDir
+		//       the array returned is of DirEntry structs.
+		for _, file := range dirEntries {
 			if file.IsDir() {
 				continue
 			}
@@ -382,7 +384,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 				continue
 			}
 
-			content, err := ioutil.ReadFile(path.Join(edir, file.Name()))
+			content, err := os.ReadFile(path.Join(edir, file.Name()))
 			if err != nil {
 				i.Logger.Debug("On read file", file.Name(), ":", err.Error())
 				i.Logger.Debug("File", file.Name(), "skipped.")
@@ -448,7 +450,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				continue
 			}
 
-			content, err := ioutil.ReadFile(path.Join(envBaseDir, nfile))
+			content, err := os.ReadFile(path.Join(envBaseDir, nfile))
 			if err != nil {
 				i.Logger.Debug("On read file", nfile, ":", err.Error())
 				i.Logger.Debug("File", nfile, "skipped.")
@@ -498,7 +500,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				continue
 			}
 
-			content, err := ioutil.ReadFile(path.Join(envBaseDir, pfile))
+			content, err := os.ReadFile(path.Join(envBaseDir, pfile))
 			if err != nil {
 				i.Logger.Debug("On read file", pfile, ":", err.Error())
 				i.Logger.Debug("File", pfile, "skipped.")
@@ -548,7 +550,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				continue
 			}
 
-			content, err := ioutil.ReadFile(path.Join(envBaseDir, sfile))
+			content, err := os.ReadFile(path.Join(envBaseDir, sfile))
 			if err != nil {
 				i.Logger.Debug("On read file", sfile, ":", err.Error())
 				i.Logger.Debug("File", sfile, "skipped.")
@@ -598,7 +600,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				continue
 			}
 
-			content, err := ioutil.ReadFile(path.Join(envBaseDir, afile))
+			content, err := os.ReadFile(path.Join(envBaseDir, afile))
 			if err != nil {
 				i.Logger.Debug("On read file", afile, ":", err.Error())
 				i.Logger.Debug("File", afile, "skipped.")
@@ -648,7 +650,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 				continue
 			}
 
-			content, err := ioutil.ReadFile(path.Join(envBaseDir, cfile))
+			content, err := os.ReadFile(path.Join(envBaseDir, cfile))
 			if err != nil {
 				i.Logger.Debug("On read file", cfile, ":", err.Error())
 				i.Logger.Debug("File", cfile, "skipped.")
@@ -698,7 +700,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					continue
 				}
 
-				content, err := ioutil.ReadFile(path.Join(envBaseDir, gfile))
+				content, err := os.ReadFile(path.Join(envBaseDir, gfile))
 				if err != nil {
 					i.Logger.Debug("On read file", gfile, ":", err.Error())
 					i.Logger.Debug("File", gfile, "skipped.")
@@ -834,7 +836,7 @@ func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject)
 		return ans, nil
 	}
 
-	content, err := ioutil.ReadFile(hfileAbs)
+	content, err := os.ReadFile(hfileAbs)
 	if err != nil {
 		i.Logger.Debug("On read file", hfile, ":", err.Error())
 		i.Logger.Debug("File", hfile, "skipped.")
@@ -886,7 +888,7 @@ func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCPro
 		return nil, nil
 	}
 
-	content, err := ioutil.ReadFile(path.Join(envBaseDir, efile))
+	content, err := os.ReadFile(path.Join(envBaseDir, efile))
 	if err != nil {
 		i.Logger.Debug("On read file", efile, ":", err.Error())
 		i.Logger.Debug("File", efile, "skipped.")

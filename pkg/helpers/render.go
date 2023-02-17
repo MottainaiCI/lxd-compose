@@ -1,6 +1,5 @@
 /*
-
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2023  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -17,13 +16,12 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package helpers
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -47,7 +45,7 @@ func RenderContent(raw, valuesFile, defaultFile, originFile string,
 			return "", errors.New(fmt.Sprintf(
 				"Render value file %s not existing ", valuesFile))
 		}
-		val, err := ioutil.ReadFile(valuesFile)
+		val, err := os.ReadFile(valuesFile)
 		if err != nil {
 			return "", errors.New(fmt.Sprintf(
 				"Error on reading Render value file %s: %s", valuesFile, err.Error()))
@@ -65,7 +63,7 @@ func RenderContent(raw, valuesFile, defaultFile, originFile string,
 				"Render value file %s not existing ", defaultFile))
 		}
 
-		def, err := ioutil.ReadFile(defaultFile)
+		def, err := os.ReadFile(defaultFile)
 		if err != nil {
 			return "", errors.New(fmt.Sprintf(
 				"Error on reading Render value file %s: %s", valuesFile, err.Error()))

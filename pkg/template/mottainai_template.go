@@ -1,6 +1,6 @@
 /*
 
-Copyright © 2019-2021 Ettore Di Giacinto <mudler@gentoo.org>
+Copyright © 2019-2023 Ettore Di Giacinto <mudler@gentoo.org>
                       Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -28,7 +28,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -45,7 +45,7 @@ type Template struct {
 func NewTemplate() *Template { return &Template{Values: map[string]interface{}{}} }
 
 func (tem *Template) DrawFromFile(file string) (string, error) {
-	dat, err := ioutil.ReadFile(file)
+	dat, err := os.ReadFile(file)
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +57,7 @@ func (tem *Template) AppendValue(k string, v interface{}) {
 	}
 }
 func (tem *Template) LoadValuesFromFile(file string) error {
-	dat, err := ioutil.ReadFile(file)
+	dat, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}

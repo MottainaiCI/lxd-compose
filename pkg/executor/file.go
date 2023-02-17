@@ -1,6 +1,5 @@
 /*
-
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2023  Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package executor
 
@@ -27,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -177,7 +174,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 
 			args.Type = "symlink"
 			args.Content = bytes.NewReader([]byte(symlinkTarget))
-			readCloser = ioutil.NopCloser(args.Content)
+			readCloser = io.NopCloser(args.Content)
 		} else {
 			// File handling
 			f, err := os.Open(p)
@@ -328,7 +325,7 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 		}
 
 	} else if resp.Type == "symlink" {
-		linkTarget, err := ioutil.ReadAll(buf)
+		linkTarget, err := io.ReadAll(buf)
 		if err != nil {
 			return err
 		}

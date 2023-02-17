@@ -21,7 +21,7 @@ package specs
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -148,7 +148,7 @@ func (p *LxdCProject) SetNodesPrefix(prefix string) {
 }
 
 func (p *LxdCProject) LoadEnvVarsFile(file string) error {
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}

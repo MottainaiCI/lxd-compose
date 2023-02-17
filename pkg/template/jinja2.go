@@ -1,6 +1,5 @@
 /*
-
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2023  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -17,12 +16,10 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package template
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -62,7 +59,7 @@ func (r *Jinja2Compiler) Compile(sourceFile, destFile string) error {
 	var dataFile string
 
 	// Create temporary directory
-	tmpdir, err := ioutil.TempDir("", "lxd-compose-j2")
+	tmpdir, err := os.MkdirTemp("", "lxd-compose-j2")
 	if err != nil {
 		return err
 	}
@@ -88,7 +85,7 @@ func (r *Jinja2Compiler) Compile(sourceFile, destFile string) error {
 			return err
 		}
 
-		err = ioutil.WriteFile(dataFile, d, 0644)
+		err = os.WriteFile(dataFile, d, 0644)
 		if err != nil {
 			return err
 		}
@@ -128,7 +125,7 @@ func (r *Jinja2Compiler) Compile(sourceFile, destFile string) error {
 func (r *Jinja2Compiler) CompileRaw(sourceData string) (string, error) {
 
 	// Create temporary directory
-	tmpdir, err := ioutil.TempDir("", "lxd-compose-j2")
+	tmpdir, err := os.MkdirTemp("", "lxd-compose-j2")
 	if err != nil {
 		return "", err
 	}
@@ -136,7 +133,7 @@ func (r *Jinja2Compiler) CompileRaw(sourceData string) (string, error) {
 
 	sourceFile := filepath.Join(tmpdir, "source.j2")
 	destFile := filepath.Join(tmpdir, "dest.yaml")
-	err = ioutil.WriteFile(sourceFile, []byte(sourceData), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceData), 0644)
 	if err != nil {
 		return "", err
 	}
@@ -146,7 +143,7 @@ func (r *Jinja2Compiler) CompileRaw(sourceData string) (string, error) {
 		return "", err
 	}
 
-	ans, err := ioutil.ReadFile(destFile)
+	ans, err := os.ReadFile(destFile)
 	if err != nil {
 		return "", err
 	}
