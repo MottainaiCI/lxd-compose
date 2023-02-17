@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package specs
 
@@ -35,7 +33,7 @@ func (g *LxdCGroup) Init() {
 		g.Config = make(map[string]string, 0)
 	}
 
-	for idx, _ := range g.Nodes {
+	for idx := range g.Nodes {
 		g.Nodes[idx].Init()
 	}
 }
@@ -60,7 +58,7 @@ func (g *LxdCGroup) GetNodes() *[]LxdCNode       { return &g.Nodes }
 func (g *LxdCGroup) SetNodesPrefix(prefix string) {
 	g.NodesPrefix = prefix
 
-	for idx, _ := range g.Nodes {
+	for idx := range g.Nodes {
 		if g.Nodes[idx].NamePrefix == "" {
 			g.Nodes[idx].NamePrefix = prefix
 		}

@@ -40,7 +40,7 @@ func EnvironmentFromYaml(data []byte, file string) (*LxdCEnvironment, error) {
 		ans.IncludeCommandsFiles = []string{}
 	}
 
-	for idx, _ := range ans.Projects {
+	for idx := range ans.Projects {
 		ans.Projects[idx].Init()
 	}
 

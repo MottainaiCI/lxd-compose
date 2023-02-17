@@ -33,7 +33,7 @@ func (p *LxdCProject) Init() {
 		p.Hooks = []LxdCHook{}
 	}
 
-	for idx, _ := range p.Groups {
+	for idx := range p.Groups {
 		p.Groups[idx].Init()
 	}
 }
@@ -142,7 +142,7 @@ func (p *LxdCProject) GetNodesPrefix() string { return p.NodesPrefix }
 
 func (p *LxdCProject) SetNodesPrefix(prefix string) {
 	p.NodesPrefix = prefix
-	for idx, _ := range p.Groups {
+	for idx := range p.Groups {
 		p.Groups[idx].SetNodesPrefix(prefix)
 	}
 }
