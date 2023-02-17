@@ -219,7 +219,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 			}
 
 			if !cmd.ApplyAlias {
-				msg := fmt.Sprintf("Command %s wih apply_alias disable. Not yet supported.",
+				msg := fmt.Sprintf("Command %s with apply_alias disable. Not yet supported.",
 					cmd.Name)
 
 				if !ignoreError {
