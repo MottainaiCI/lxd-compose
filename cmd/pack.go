@@ -56,6 +56,7 @@ func newPackCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			to, _ := cmd.Flags().GetString("to")
+			sourceCommonPath, _ := cmd.Flags().GetString("source-common-path")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -82,19 +83,27 @@ func newPackCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			t := tarf.NewTarFormersWithLog(cfg, true)
 			tarf.SetDefaultTarFormers(t)
 
-			err = composer.PackProjects(to, args)
+			commonSourceDir, err := composer.PackProjects(
+				to, sourceCommonPath, args)
 			if err != nil {
 				fmt.Println("Error on pack environments: " + err.Error())
 				os.Exit(1)
 			}
 
-			fmt.Println(fmt.Sprintf("Tarball %s generated.", to))
+			composer.Logger.InfoC(
+				fmt.Sprintf("Tarball %s generated.",
+					composer.Logger.Aurora.Bold(to)))
+			composer.Logger.InfoC(fmt.Sprintf(
+				"The source dir to use is: %s",
+				composer.Logger.Aurora.Bold(commonSourceDir)))
 		},
 	}
 
 	flags := cmd.Flags()
 
 	flags.String("to", "", "Path of the tarball to generate.")
+	flags.String("source-common-path", "",
+		"Define the directory path common for all templates that could be reduce.")
 	flags.StringArrayVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
 	flags.StringSliceVar(&varsFiles, "vars-file", []string{},

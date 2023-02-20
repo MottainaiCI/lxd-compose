@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
@@ -33,13 +34,15 @@ import (
 )
 
 type PackJob struct {
-	Envs         []*specs.LxdCEnvironment
-	MapHooks     map[string]bool
-	MapTemplates map[string]bool
-	MapEnvsfiles map[string]bool
-	MapExtra     map[string]bool
-	MapEIncludes map[string]bool
-	Specfile     *tarf_specs.SpecFile
+	Envs                []*specs.LxdCEnvironment
+	MapHooks            map[string]bool
+	MapTemplates        map[string]bool
+	MapEnvsfiles        map[string]bool
+	MapExtra            map[string]bool
+	MapEIncludes        map[string]bool
+	Specfile            *tarf_specs.SpecFile
+	SourceDir           string
+	SourceCommonPathDir string
 
 	EnvsDirs map[string]bool
 }
@@ -93,6 +96,19 @@ func (i *LxdCInstance) preparePackSpec4Group(
 				if _, present := job.MapTemplates[tfile]; !present {
 					job.MapTemplates[tfile] = true
 					job.Specfile.Writer.AddFile(tfile)
+
+					if job.SourceCommonPathDir != "" && strings.HasPrefix(t.Source, job.SourceCommonPathDir) {
+						ntfile := filepath.Join(job.SourceDir,
+							t.Source[len(job.SourceCommonPathDir):])
+						i.Logger.InfoC(fmt.Sprintf("Template %s -> %s",
+							tfile, ntfile))
+						job.Specfile.Rename = append(job.Specfile.Rename,
+							tarf_specs.RenameRule{
+								Source: tfile,
+								Dest:   ntfile,
+							},
+						)
+					}
 				}
 			}
 		}
@@ -104,6 +120,19 @@ func (i *LxdCInstance) preparePackSpec4Group(
 				if _, present := job.MapTemplates[tfile]; !present {
 					job.MapTemplates[tfile] = true
 					job.Specfile.Writer.AddFile(tfile)
+
+					if job.SourceCommonPathDir != "" && strings.HasPrefix(t.Source, job.SourceCommonPathDir) {
+						ntfile := filepath.Join(job.SourceDir+"/",
+							t.Source[len(job.SourceCommonPathDir):])
+						i.Logger.InfoC(fmt.Sprintf("Template %s -> %s",
+							tfile, ntfile))
+						job.Specfile.Rename = append(job.Specfile.Rename,
+							tarf_specs.RenameRule{
+								Source: tfile,
+								Dest:   ntfile,
+							},
+						)
+					}
 				}
 			}
 		}
@@ -143,8 +172,8 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 	}
 
 	job.Specfile.Writer.AddFile(e.File)
-	i.Logger.Debug(fmt.Sprintf(
-		"For project %s using env file %s.", project, e.File))
+	i.Logger.InfoC(fmt.Sprintf(
+		":factory:Processing project %s with env file %s.", project, e.File))
 
 	envBaseDir := filepath.Dir(e.File)
 
@@ -375,7 +404,8 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 	return nil
 }
 
-func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
+func (i *LxdCInstance) PackProjects(tarball, sourceCPDir string,
+	projects []string) (string, error) {
 
 	// Prepare tar-formers specs
 	s := tarf_specs.NewSpecFile()
@@ -383,14 +413,19 @@ func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
 	s.Writer = tarf_specs.NewWriter()
 
 	job := &PackJob{
-		Envs:         []*specs.LxdCEnvironment{},
-		MapHooks:     make(map[string]bool, 0),
-		MapEnvsfiles: make(map[string]bool, 0),
-		MapTemplates: make(map[string]bool, 0),
-		MapEIncludes: make(map[string]bool, 0),
-		MapExtra:     make(map[string]bool, 0),
-		EnvsDirs:     make(map[string]bool, 0),
-		Specfile:     s,
+		Envs:                []*specs.LxdCEnvironment{},
+		MapHooks:            make(map[string]bool, 0),
+		MapEnvsfiles:        make(map[string]bool, 0),
+		MapTemplates:        make(map[string]bool, 0),
+		MapEIncludes:        make(map[string]bool, 0),
+		MapExtra:            make(map[string]bool, 0),
+		EnvsDirs:            make(map[string]bool, 0),
+		Specfile:            s,
+		SourceCommonPathDir: sourceCPDir,
+	}
+
+	if sourceCPDir != "" {
+		job.SourceDir = "sources"
 	}
 
 	// Using a map to avoid process multiple times the same
@@ -404,7 +439,7 @@ func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
 
 			err := i.preparePackSpec4Project(job, p)
 			if err != nil {
-				return err
+				return "", err
 			}
 		}
 	}
@@ -423,6 +458,8 @@ func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
 	// Create the new lxd-compose config file with only
 	// the environment directories of the projects injected.
 	cfg := i.Config.Clone()
+	// Always disable debug by default
+	cfg.General.Debug = false
 	// Set only the selected env dir
 	cfg.EnvironmentDirs = []string{}
 	for k, _ := range job.EnvsDirs {
@@ -431,7 +468,7 @@ func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
 	// Create temporary file
 	newCfgFile, err := os.CreateTemp("", "lxd-compose-pack*")
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer os.Remove(newCfgFile.Name())
 
@@ -439,14 +476,14 @@ func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
 	data, err := cfg.Yaml()
 	if err != nil {
 		newCfgFile.Close()
-		return err
+		return "", err
 	}
 	if _, err := newCfgFile.Write(data); err != nil {
 		newCfgFile.Close()
-		return err
+		return "", err
 	}
 	if err := newCfgFile.Close(); err != nil {
-		return err
+		return "", err
 	}
 	// Add the file for injection and his rename
 	job.Specfile.Writer.AddFile(newCfgFile.Name())
@@ -457,12 +494,19 @@ func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
 		},
 	)
 
+	// Reduce memory usage
+	job.MapHooks = nil
+	job.MapEnvsfiles = nil
+	job.MapEnvsfiles = nil
+	job.MapEIncludes = nil
+	job.MapTemplates = nil
+
 	// Prepare tarball creation
 	opts := tools.NewTarCompressionOpts(true)
 	defer opts.Close()
 	err = tools.PrepareTarWriter(tarball, opts)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	tarformers := tarf.NewTarFormers(tarf.GetOptimusPrime().Config)
@@ -474,8 +518,10 @@ func (i *LxdCInstance) PackProjects(tarball string, projects []string) error {
 
 	err = tarformers.RunTaskWriter(job.Specfile)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	// The sources directory is set to the lxd-compose path
+	// and not to envs.
+	return "../" + job.SourceDir, nil
 }
