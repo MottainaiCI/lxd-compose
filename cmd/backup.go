@@ -22,7 +22,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
+	"time"
 
 	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
@@ -31,14 +31,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
+func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledGroups []string
 	var disabledGroups []string
 	var renderEnvs []string
 
 	var cmd = &cobra.Command{
-		Use:     "fetch [list-of-projects]",
-		Short:   "Fetch images of the nodes defined on specified groups.",
+		Use:     "backup [list-of-projects]",
+		Short:   "Backup the container of the listed projects.",
 		Aliases: []string{"f"},
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
@@ -74,6 +74,9 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			projects := args[0:]
 			mapExecutors := make(map[string]*lxd_executor.LxdCExecutor, 0)
 
+			t := time.Now()
+			containerPostfix := t.Format("20060102")
+
 			for _, proj := range projects {
 
 				env := composer.GetEnvByProjectName(proj)
@@ -82,7 +85,7 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					os.Exit(1)
 				}
 
-				composer.Logger.Info("Fetching images for project " + proj + "...")
+				composer.Logger.Info(":rocket:Backup containers for project " + proj + "...")
 				pObj := env.GetProjectByName(proj)
 
 				for _, grp := range *pObj.GetGroups() {
@@ -94,14 +97,14 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					for _, node := range grp.Nodes {
 
 						key := fmt.Sprintf(
-							"%s|%s|%s",
-							grp.Connection, node.ImageSource, node.ImageRemoteServer,
+							"%s", grp.Connection,
 						)
 
-						if _, ok := mapExecutors[key]; !ok {
+						executor, ok := mapExecutors[key]
 
+						if !ok {
 							// Initialize executor
-							executor := lxd_executor.NewLxdCExecutor(grp.Connection,
+							executor = lxd_executor.NewLxdCExecutor(grp.Connection,
 								config.GetGeneral().LxdConfDir, []string{}, grp.Ephemeral,
 								config.GetLogging().CmdsOutput,
 								config.GetLogging().RuntimeCmdsOutput)
@@ -113,41 +116,86 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 										grp.GetName(), grp.Connection, err.Error()))
 								fmt.Println("Skipping group", grp.Name)
 								ret = 1
+								continue
 							}
 
 							executor.SetP2PMode(config.GetGeneral().P2PMode)
 							mapExecutors[key] = executor
+						}
+
+						backupName := node.GetName() + "-" + containerPostfix
+
+						originPresent, err := executor.IsPresentContainer(node.GetName())
+						if err != nil {
+							fmt.Println(
+								fmt.Sprintf(
+									"Error on check if the container %s is present: %s. Skipping.",
+									node.GetName(), err.Error()))
+							ret = 1
+							continue
+						}
+
+						if !originPresent {
+							fmt.Println(
+								fmt.Sprintf(
+									"Container %s is not present on group %s. Skipped.",
+									node.GetName(), grp.Name,
+								))
+							continue
+						}
+
+						present, err := executor.IsPresentContainer(backupName)
+						if err != nil {
+							fmt.Println(
+								fmt.Sprintf(
+									"Error on check if the container %s is present: %s. Skipping.",
+									backupName, err.Error()))
+							ret = 1
+							continue
+						}
+
+						if present {
+							composer.Logger.InfoC(
+								fmt.Sprintf(
+									":icecream:%s Container already present :check_mark:.",
+									composer.Logger.Aurora.BrightCyan(
+										fmt.Sprintf("[%s]", backupName))))
+						} else {
+							err := executor.CopyContainerOnInstance(
+								node.GetName(), backupName,
+							)
+							if err != nil {
+								fmt.Println(
+									fmt.Sprintf(
+										"Error on check copy container %s: %s. Skipping.",
+										node.GetName(), err.Error()))
+								ret = 1
+								continue
+							}
+
+							composer.Logger.InfoC(
+								fmt.Sprintf(
+									":icecream:%s Container %s copied. :check_mark:",
+									composer.Logger.Aurora.Bold(
+										composer.Logger.Aurora.BrightCyan(
+											fmt.Sprintf("[%s]", backupName))),
+									composer.Logger.Aurora.Bold(node.GetName())))
 
 						}
+
 					}
-				}
-			}
-
-			if len(mapExecutors) > 0 {
-
-				for key, executor := range mapExecutors {
-
-					// Split key to retrieve needed informations
-					imageData := strings.Split(key, "|")
-					_, err := executor.PullImage(imageData[1], imageData[2])
-					if err != nil {
-						composer.Logger.Error(
-							fmt.Sprintf("Error on fetch image %s from connection %s.",
-								imageData[1], imageData[0]))
-						ret += 1
-					}
-
 				}
 			}
 
 			if ret != 0 {
-				fmt.Println("Not all images are been fetched correctly.")
+				fmt.Println("Not all containers are been copy correctly.")
 
 			} else {
-				fmt.Println("All done.")
+				composer.Logger.InfoC(
+					fmt.Sprintf(":chequered_flag:%s :chequered_flag:",
+						composer.Logger.Aurora.Bold("All done!")),
+				)
 			}
-
-			os.Exit(ret)
 		},
 	}
 

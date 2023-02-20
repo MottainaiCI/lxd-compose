@@ -93,6 +93,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	rootCmd.AddCommand(
 		newAclCommand(config),
 		newApplyCommand(config),
+		newBackupCommand(config),
 		newGroupCommand(config),
 		newDestroyCommand(config),
 		newPrintCommand(config),

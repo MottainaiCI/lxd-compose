@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package executor
 
@@ -33,6 +31,7 @@ import (
 
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
+	lxd_utils "github.com/lxc/lxd/lxc/utils"
 )
 
 type LxdCExecutor struct {
@@ -272,6 +271,65 @@ func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
 	}
 
 	return ans, nil
+}
+
+func (e *LxdCExecutor) CopyContainerOnInstance(
+	containerName, newContainerName string) error {
+
+	args := lxd.InstanceCopyArgs{
+		Name: newContainerName,
+		// Always follow stateless copy.
+		Live: false,
+		// Ignore containers snapshot
+		InstanceOnly: true,
+		Mode:         "pull",
+		// I don't think that it makes sense an incremental update
+		// in our use case.
+		Refresh: false,
+		// Ignore copy errors for volatile files.
+		AllowInconsistent: true,
+	}
+
+	entry, _, err := e.LxdClient.GetInstance(containerName)
+	if err != nil {
+		return err
+	}
+
+	if entry.Config != nil {
+		// Strip the last_state.power key in all cases
+		delete(entry.Config, "volatile.last_state.power")
+	}
+
+	op, err := e.LxdClient.CopyInstance(e.LxdClient, *entry, &args)
+	if err != nil {
+		return err
+	}
+
+	// Watch the background operation
+	progress := lxd_utils.ProgressRenderer{
+		Format: "Copy container: %s",
+		Quiet:  false,
+	}
+
+	_, err = op.AddHandler(progress.UpdateOp)
+	if err != nil {
+		progress.Done("")
+		return err
+	}
+
+	// Wait the copy of the container
+	err = lxd_utils.CancelableWait(op, &progress)
+	if err != nil {
+		progress.Done("")
+		return err
+	}
+
+	progress.Done("")
+
+	e.Emitter.DebugLog(false,
+		fmt.Sprintf("Container %s copy to %s.", containerName, newContainerName))
+
+	return nil
 }
 
 func (e *LxdCExecutor) DeleteContainer(containerName string) error {
