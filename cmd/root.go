@@ -35,7 +35,7 @@ const (
 
 Mottainai - LXD Compose Integrator`
 
-	LXD_COMPOSE_VERSION = `0.25.0`
+	LXD_COMPOSE_VERSION = `0.26.0`
 )
 
 var (
@@ -102,6 +102,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newNetworkCommand(config),
 		newStorageCommand(config),
 		newPackCommand(config),
+		newUnpackCommand(config),
 		newProfileCommand(config),
 		newDiagnoseCommand(config),
 		newProjectCommand(config),
