@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/geaaru/tar-formers v0.8.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/icza/dyno v0.0.0-20200205103839-49cb13720835
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
@@ -26,8 +27,6 @@ require (
 	helm.sh/helm/v3 v3.11.1
 )
 
-require github.com/geaaru/tar-formers v0.7.1
-
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -41,7 +40,6 @@ require (
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/fvbommel/sortorder v1.0.2 // indirect
-	github.com/geaaru/tar-formers v0.8.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-macaroon-bakery/macaroon-bakery/v3 v3.0.1 // indirect
 	github.com/go-macaroon-bakery/macaroonpb v1.0.0 // indirect

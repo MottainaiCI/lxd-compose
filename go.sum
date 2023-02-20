@@ -89,8 +89,6 @@ github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
 github.com/fvbommel/sortorder v1.0.2 h1:mV4o8B2hKboCdkJm+a7uX/SIpZob4JzUpc5GGnM45eo=
 github.com/fvbommel/sortorder v1.0.2/go.mod h1:uk88iVf1ovNn1iLfgUVU2F9o5eO30ui720w+kxuqRs0=
-github.com/geaaru/tar-formers v0.7.1 h1:rQ5ZNMgu6W+UsN19QsQ9eIDHmFIocXpwK6Yx3OGZIZU=
-github.com/geaaru/tar-formers v0.7.1/go.mod h1:bVs94+J3CxqheTcMNCyfBcpfG2CF5sO991ZHL/J6B7E=
 github.com/geaaru/tar-formers v0.8.0 h1:TyT0314fkZayTlG1D+w6Ir3WgPAwZDP4ETglmF2XKPU=
 github.com/geaaru/tar-formers v0.8.0/go.mod h1:bVs94+J3CxqheTcMNCyfBcpfG2CF5sO991ZHL/J6B7E=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
