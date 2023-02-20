@@ -44,7 +44,7 @@ github.com/fsnotify/fsnotify
 # github.com/fvbommel/sortorder v1.0.2
 ## explicit; go 1.13
 github.com/fvbommel/sortorder
-# github.com/geaaru/tar-formers v0.7.1
+# github.com/geaaru/tar-formers v0.8.0
 ## explicit; go 1.18
 github.com/geaaru/tar-formers/pkg/executor
 github.com/geaaru/tar-formers/pkg/logger
