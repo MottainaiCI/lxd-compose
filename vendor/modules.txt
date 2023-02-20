@@ -198,7 +198,7 @@ github.com/kyokomi/emoji
 # github.com/logrusorgru/aurora v2.0.3+incompatible
 ## explicit
 github.com/logrusorgru/aurora
-# github.com/lxc/lxd v0.0.0-20230113042242-b058577fdbf5
+# github.com/lxc/lxd v0.0.0-20230217031332-3ee687474e01
 ## explicit; go 1.18
 github.com/lxc/lxd/client
 github.com/lxc/lxd/lxc/config
@@ -663,7 +663,7 @@ k8s.io/kube-openapi/pkg/openapiconv
 k8s.io/kube-openapi/pkg/schemamutation
 k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
+# k8s.io/utils v0.0.0-20230209194617-a36077c30491
 ## explicit; go 1.18
 k8s.io/utils/clock
 k8s.io/utils/clock/testing
