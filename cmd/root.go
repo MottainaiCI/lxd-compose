@@ -64,6 +64,13 @@ func initConfig(config *specs.LxdComposeConfig) {
 
 }
 
+func cmdNeedConfig(cmd string) bool {
+	if cmd != "unpack" {
+		return true
+	}
+	return false
+}
+
 func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	var pflags = rootCmd.PersistentFlags()
 
@@ -151,7 +158,7 @@ func Execute() {
 
 			// Parse configuration file
 			err = config.Unmarshal()
-			if err != nil {
+			if err != nil && cmdNeedConfig(cmd.CalledAs()) {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
