@@ -93,9 +93,11 @@ func newPackCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			composer.Logger.InfoC(
 				fmt.Sprintf("Tarball %s generated.",
 					composer.Logger.Aurora.Bold(to)))
-			composer.Logger.InfoC(fmt.Sprintf(
-				"The source dir to use is: %s",
-				composer.Logger.Aurora.Bold(commonSourceDir)))
+			if commonSourceDir != "" {
+				composer.Logger.InfoC(fmt.Sprintf(
+					"The source dir to use is: %s",
+					composer.Logger.Aurora.Bold(commonSourceDir)))
+			}
 		},
 	}
 
