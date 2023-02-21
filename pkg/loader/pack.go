@@ -40,8 +40,10 @@ type PackJob struct {
 	MapEnvsfiles        map[string]bool
 	MapExtra            map[string]bool
 	MapEIncludes        map[string]bool
+	MapRenames          map[string]bool
 	Specfile            *tarf_specs.SpecFile
 	SourceDir           string
+	TargetSourcedir     string
 	SourceCommonPathDir string
 
 	EnvsDirs map[string]bool
@@ -179,6 +181,16 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 
 	job.EnvsDirs[envBaseDir] = true
 
+	// Calculate the target source dir only the first time
+	if job.TargetSourcedir == "" && job.SourceDir != "" {
+		job.TargetSourcedir = job.SourceDir
+		n := len(strings.Split(envBaseDir, "/"))
+		for i := 0; i < n; i++ {
+			job.TargetSourcedir = "../" + job.TargetSourcedir
+		}
+
+	}
+
 	// Check if the environment is already been added
 	if !job.HasEnv(e) {
 
@@ -298,6 +310,19 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 					}
 				}
 			}
+
+			if len(e.PackExtra.Rename) > 0 {
+				for _, r := range e.PackExtra.Rename {
+					fsource := r.Source
+					if _, present := job.MapRenames[fsource]; !present {
+						job.MapRenames[fsource] = true
+						job.Specfile.Rename = append(
+							job.Specfile.Rename, *r,
+						)
+					}
+				}
+
+			}
 		}
 
 	}
@@ -327,7 +352,7 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 	if len(p.IncludeEnvFiles) > 0 {
 		for _, f := range p.IncludeEnvFiles {
 			vfile := filepath.Join(envBaseDir, f)
-			// Variables files could be common between differnt projects.
+			// Variables files could be common between different projects.
 			if _, present := job.MapEnvsfiles[vfile]; !present {
 				job.MapEnvsfiles[vfile] = true
 				job.Specfile.Writer.AddFile(vfile)
@@ -420,7 +445,9 @@ func (i *LxdCInstance) PackProjects(tarball, sourceCPDir string,
 		MapEIncludes:        make(map[string]bool, 0),
 		MapExtra:            make(map[string]bool, 0),
 		EnvsDirs:            make(map[string]bool, 0),
+		MapRenames:          make(map[string]bool, 0),
 		Specfile:            s,
+		TargetSourcedir:     "",
 		SourceCommonPathDir: sourceCPDir,
 	}
 
@@ -500,6 +527,7 @@ func (i *LxdCInstance) PackProjects(tarball, sourceCPDir string,
 	job.MapEnvsfiles = nil
 	job.MapEIncludes = nil
 	job.MapTemplates = nil
+	job.MapRenames = nil
 
 	// Prepare tarball creation
 	opts := tools.NewTarCompressionOpts(true)
@@ -523,5 +551,5 @@ func (i *LxdCInstance) PackProjects(tarball, sourceCPDir string,
 
 	// The sources directory is set to the lxd-compose path
 	// and not to envs.
-	return "../" + job.SourceDir, nil
+	return job.TargetSourcedir, nil
 }

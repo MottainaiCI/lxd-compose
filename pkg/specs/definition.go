@@ -19,6 +19,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package specs
 
+import (
+	tarf_specs "github.com/geaaru/tar-formers/pkg/specs"
+)
+
 type LxdCEnvironment struct {
 	Version string `json:"version,omitempty" yaml:"version,omitempty"`
 	File    string `json:"-" yaml:"-"`
@@ -43,8 +47,9 @@ type LxdCEnvironment struct {
 }
 
 type LxdCPackExtra struct {
-	Dirs  []string `json:"dirs,omitempty" yaml:"dirs,omitempty"`
-	Files []string `json:"files,omitempty" yaml:"files,omitempty"`
+	Dirs   []string                 `json:"dirs,omitempty" yaml:"dirs,omitempty"`
+	Files  []string                 `json:"files,omitempty" yaml:"files,omitempty"`
+	Rename []*tarf_specs.RenameRule `json:"rename,omitempty" yaml:"rename,omitempty"`
 }
 
 type LxdCProfile struct {
