@@ -130,6 +130,10 @@ $> lxd-compose unpack /tmp/myproj.tar.gz --render-file render/default.yaml \
 				t.SetReader(opts.FileReader)
 			}
 
+			if to == "" {
+				to = "."
+			}
+
 			err = t.RunTask(s, to)
 			opts.Close()
 			if err != nil {
