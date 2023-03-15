@@ -267,6 +267,10 @@ type LxdCNode struct {
 
 	Hooks             []LxdCHook `json:"hooks" yaml:"hooks"`
 	IncludeHooksFiles []string   `json:"include_hooks_files,omitempty" yaml:"include_hooks_files,omitempty"`
+
+	// Wait ip address before execute post-node-creation hooks for the timeout
+	// in seconds defined. A value 0 means skip waiting.
+	WaitIp int64 `json:"wait_ip,omitempty" yaml:"wait_ip,omitempty"`
 }
 
 type LxdCConfigTemplate struct {

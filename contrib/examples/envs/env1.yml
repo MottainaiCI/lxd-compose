@@ -256,6 +256,7 @@ projects:
           - name: node1
             image_source: "alpine/edge"
             #image_remote_server: "images"
+            wait_ip: 2
 
             # Define labels to node for particular configuration tasks.
             # labels:

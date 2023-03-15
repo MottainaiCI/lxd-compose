@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2023  Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -26,12 +26,14 @@ import (
 	"os/user"
 	"path"
 	"strings"
+	"time"
 
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
 	lxd_utils "github.com/lxc/lxd/lxc/utils"
+	lxd_api "github.com/lxc/lxd/shared/api"
 )
 
 type LxdCExecutor struct {
@@ -355,6 +357,61 @@ func (e *LxdCExecutor) DeleteContainer(containerName string) error {
 			return err
 		}
 		_ = e.WaitOperation(currOper, nil)
+	}
+
+	return nil
+}
+
+func (e *LxdCExecutor) WaitIpOfContainer(containerName string, timeout int64) error {
+	filters := []string{
+		"name=" + containerName,
+	}
+
+	start := time.Now().Unix()
+	diff := int64(0)
+	withoutIp := true
+	for withoutIp && diff < timeout {
+		instances, err := e.LxdClient.GetInstancesFullWithFilter(
+			lxd_api.InstanceTypeContainer,
+			filters,
+		)
+		if err != nil {
+			e.Emitter.ErrorLog(false, "Error on get instances: "+err.Error())
+			return err
+		}
+
+		if len(instances) == 0 {
+			return errors.New("No container found with name " + containerName)
+		} else if len(instances) > 1 {
+			return errors.New("Found multiple container with name " + containerName)
+		}
+
+		c := instances[0]
+		for netIface, net := range c.State.Network {
+			if net.Type == "loopback" {
+				continue
+			}
+			for _, a := range net.Addresses {
+				if a.Scope == "link" || a.Scope == "local" {
+					continue
+				}
+
+				if a.Family == "inet" {
+					if a.Address != "" && a.Netmask != "" {
+						e.Emitter.Emits(LxdContainerIpAssigned, map[string]interface{}{
+							"name":    containerName,
+							"iface":   netIface,
+							"address": fmt.Sprintf("%s/%s", a.Address, a.Netmask),
+						})
+						withoutIp = false
+						break
+					}
+				}
+			}
+		}
+
+		time.Sleep(100 * time.Millisecond)
+		diff = time.Now().Unix() - start
 	}
 
 	return nil

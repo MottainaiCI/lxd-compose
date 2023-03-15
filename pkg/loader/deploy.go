@@ -1,6 +1,5 @@
 /*
-
-Copyright (C) 2020-2021  Daniele Rondina <geaaru@sabayonlinux.org>
+Copyright (C) 2020-2023  Daniele Rondina <geaaru@funtoo.org>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -17,7 +16,6 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 */
 package loader
 
@@ -452,6 +450,16 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 				i.Logger.Error("Error on create container " +
 					node.GetName() + ":" + err.Error())
 				return err
+			}
+
+			// Wait ip
+			if node.Wait4Ip() > 0 {
+				err = executor.WaitIpOfContainer(node.GetName(), node.Wait4Ip())
+				if err != nil {
+					i.Logger.Error("Something goes wrong on waiting for the ip address: " +
+						err.Error())
+					return err
+				}
 			}
 
 			postCreationHooks := i.GetNodeHooks4Event("post-node-creation", proj, group, &node)
