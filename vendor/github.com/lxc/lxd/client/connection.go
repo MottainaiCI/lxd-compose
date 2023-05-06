@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-macaroon-bakery/macaroon-bakery/v3/httpbakery"
 	"github.com/gorilla/websocket"
+	"github.com/zitadel/oidc/v2/pkg/oidc"
 
 	"github.com/lxc/lxd/shared"
 	"github.com/lxc/lxd/shared/logger"
@@ -57,6 +58,9 @@ type ConnectionArgs struct {
 	// Cookie jar
 	CookieJar http.CookieJar
 
+	// OpenID Connect tokens
+	OIDCTokens *oidc.Tokens[*oidc.IDTokenClaims]
+
 	// Skip automatic GetServer request upon connection
 	SkipGetServer bool
 
@@ -84,10 +88,10 @@ func ConnectLXD(url string, args *ConnectionArgs) (InstanceServer, error) {
 //
 // Unless the remote server is trusted by the system CA, the remote certificate must be provided (TLSServerCert).
 func ConnectLXDWithContext(ctx context.Context, url string, args *ConnectionArgs) (InstanceServer, error) {
-	logger.Debug("Connecting to a remote LXD over HTTPS")
-
 	// Cleanup URL
 	url = strings.TrimSuffix(url, "/")
+
+	logger.Debug("Connecting to a remote LXD over HTTPS", logger.Ctx{"url": url})
 
 	return httpsLXD(ctx, url, args)
 }
@@ -328,7 +332,7 @@ func httpsLXD(ctx context.Context, requestURL string, args *ConnectionArgs) (Ins
 		eventListeners:     make(map[string][]*EventListener),
 	}
 
-	if args.AuthType == "candid" {
+	if shared.StringInSlice(args.AuthType, []string{"candid", "oidc"}) {
 		server.RequireAuthenticated(true)
 	}
 
@@ -345,6 +349,8 @@ func httpsLXD(ctx context.Context, requestURL string, args *ConnectionArgs) (Ins
 	server.http = httpClient
 	if args.AuthType == "candid" {
 		server.setupBakeryClient()
+	} else if args.AuthType == "oidc" {
+		server.setupOIDCClient(args.OIDCTokens)
 	}
 
 	// Test the connection and seed the server information

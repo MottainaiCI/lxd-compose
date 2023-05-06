@@ -375,11 +375,15 @@ func DefaultWriter(conn *websocket.Conn, w io.WriteCloser, writeDone chan<- bool
 type WebsocketIO struct {
 	Conn   *websocket.Conn
 	reader io.Reader
-	mu     sync.Mutex
+	mur    sync.Mutex
+	muw    sync.Mutex
 }
 
 func (w *WebsocketIO) Read(p []byte) (n int, err error) {
-	// First read from this message
+	w.mur.Lock()
+	defer w.mur.Unlock()
+
+	// Get new message if no active one.
 	if w.reader == nil {
 		var mt int
 
@@ -388,51 +392,44 @@ func (w *WebsocketIO) Read(p []byte) (n int, err error) {
 			return 0, err
 		}
 
-		if mt == websocket.CloseMessage {
-			return 0, io.EOF
-		}
+		if mt == websocket.CloseMessage || mt == websocket.TextMessage {
+			w.reader = nil // At the end of the message, reset reader.
 
-		if mt == websocket.TextMessage {
 			return 0, io.EOF
 		}
 	}
 
-	// Perform the read itself
+	// Perform the read itself.
 	n, err = w.reader.Read(p)
-	if err == io.EOF {
-		// At the end of the message, reset reader
-		w.reader = nil
-		return n, nil
-	}
-
 	if err != nil {
-		return 0, err
+		w.reader = nil // At the end of the message, reset reader.
+
+		if err == io.EOF {
+			return n, nil // Don't return EOF error at end of message.
+		}
+
+		return n, err
 	}
 
 	return n, nil
 }
 
-func (w *WebsocketIO) Write(p []byte) (n int, err error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	wr, err := w.Conn.NextWriter(websocket.BinaryMessage)
+func (w *WebsocketIO) Write(p []byte) (int, error) {
+	w.muw.Lock()
+	defer w.muw.Unlock()
+
+	err := w.Conn.WriteMessage(websocket.BinaryMessage, p)
 	if err != nil {
 		return -1, err
 	}
 
-	n, err = wr.Write(p)
-	if err != nil {
-		return -1, err
-	}
-
-	return n, wr.Close()
+	return len(p), nil
 }
 
-// Close sends a control message indicating the stream is finished, but it does not actually close
-// the socket.
+// Close sends a control message indicating the stream is finished, but it does not actually close the socket.
 func (w *WebsocketIO) Close() error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.muw.Lock()
+	defer w.muw.Unlock()
 	// Target expects to get a control message indicating stream is finished.
 	return w.Conn.WriteMessage(websocket.TextMessage, []byte{})
 }
@@ -501,7 +498,8 @@ func WebsocketConsoleMirror(conn *websocket.Conn, w io.WriteCloser, r io.ReadClo
 }
 
 var WebsocketUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin:      func(r *http.Request) bool { return true },
+	HandshakeTimeout: time.Second * 5,
 }
 
 // AllocatePort asks the kernel for a free open port that is ready to use.
