@@ -103,6 +103,7 @@ $> lxd-compose unpack /tmp/myproj.tar.gz --render-file render/default.yaml \
 
 			to, _ := cmd.Flags().GetString("to")
 			renderFile, _ := cmd.Flags().GetString("render-file")
+			sameOwner, _ := cmd.Flags().GetBool("same-owner")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -117,6 +118,7 @@ $> lxd-compose unpack /tmp/myproj.tar.gz --render-file render/default.yaml \
 			tarf.SetDefaultTarFormers(t)
 
 			s := tarf_specs.NewSpecFile()
+			s.SameOwner = sameOwner
 			opts := tarf_tools.NewTarReaderCompressionOpts(true)
 			err := tarf_tools.PrepareTarReader(args[0], opts)
 			if err != nil {
@@ -164,6 +166,8 @@ $> lxd-compose unpack /tmp/myproj.tar.gz --render-file render/default.yaml \
 		"Render file where update the source base dir.")
 	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Render env variable to replace with the new value.")
+	flags.Bool("same-owner", false,
+		"Maintain original uid/gid from the tarball.")
 
 	return cmd
 }
