@@ -164,7 +164,7 @@ func (tem *Template) Draw(raw string) (string, error) {
 	}
 	tf["getKeys"] = func(m map[interface{}]interface{}) []string {
 		var ans []string
-		for k, _ := range m {
+		for k := range m {
 			ans = append(ans, k.(string))
 		}
 		return ans

@@ -76,7 +76,7 @@ func (e *LxdCExecutor) CreateACL(acl *specs.LxdCAcl) error {
 	}
 
 	if len(acl.Egress) > 0 {
-		for idx, _ := range acl.Egress {
+		for idx := range acl.Egress {
 			post.NetworkACLPut.Egress = append(
 				post.NetworkACLPut.Egress,
 				*e.aclRule2Lxd(&acl.Egress[idx]),
@@ -85,7 +85,7 @@ func (e *LxdCExecutor) CreateACL(acl *specs.LxdCAcl) error {
 	}
 
 	if len(acl.Ingress) > 0 {
-		for idx, _ := range acl.Ingress {
+		for idx := range acl.Ingress {
 			post.NetworkACLPut.Ingress = append(
 				post.NetworkACLPut.Ingress,
 				*e.aclRule2Lxd(&acl.Ingress[idx]),
@@ -117,7 +117,7 @@ func (e *LxdCExecutor) UpdateACL(acl *specs.LxdCAcl) error {
 	}
 
 	if len(acl.Egress) > 0 {
-		for idx, _ := range acl.Egress {
+		for idx := range acl.Egress {
 			put.Egress = append(
 				put.Egress,
 				*e.aclRule2Lxd(&acl.Egress[idx]),
@@ -126,7 +126,7 @@ func (e *LxdCExecutor) UpdateACL(acl *specs.LxdCAcl) error {
 	}
 
 	if len(acl.Ingress) > 0 {
-		for idx, _ := range acl.Ingress {
+		for idx := range acl.Ingress {
 			put.Ingress = append(
 				put.Ingress,
 				*e.aclRule2Lxd(&acl.Ingress[idx]),

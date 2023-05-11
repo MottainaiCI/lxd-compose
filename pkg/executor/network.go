@@ -128,7 +128,7 @@ func (e *LxdCExecutor) SyncNetworkForwarders(net *specs.LxdCNetwork) error {
 	}
 
 	// Create or update the available listenAddresses
-	for idx, _ := range net.Forwards {
+	for idx := range net.Forwards {
 
 		_, toUpdate := laMap[net.Forwards[idx].ListenAddress]
 
@@ -188,7 +188,7 @@ func (e *LxdCExecutor) netForward2Lxd(f *specs.LxdCNetworkForward) *lxd_api.Netw
 	}
 
 	if len(f.Ports) > 0 {
-		for idx, _ := range f.Ports {
+		for idx := range f.Ports {
 			ans.Ports = append(ans.Ports,
 				lxd_api.NetworkForwardPort{
 					Description:   f.Ports[idx].Description,

@@ -489,7 +489,7 @@ func (i *LxdCInstance) PackProjects(tarball, sourceCPDir string,
 	cfg.General.Debug = false
 	// Set only the selected env dir
 	cfg.EnvironmentDirs = []string{}
-	for k, _ := range job.EnvsDirs {
+	for k := range job.EnvsDirs {
 		cfg.EnvironmentDirs = append(cfg.EnvironmentDirs, k)
 	}
 	// Create temporary file
