@@ -106,6 +106,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newPrintCommand(config),
 		newValidateCommand(config),
 		newCompileCommand(config),
+		newImagesCommand(config),
 		newNodeCommand(config),
 		newNetworkCommand(config),
 		newStorageCommand(config),
