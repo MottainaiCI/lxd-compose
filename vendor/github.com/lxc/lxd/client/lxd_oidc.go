@@ -1,7 +1,6 @@
 package lxd
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -61,7 +60,7 @@ func (o *oidcTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 var errRefreshAccessToken = fmt.Errorf("Failed refreshing access token")
-var oidcScopes = []string{oidc.ScopeOpenID, oidc.ScopeOfflineAccess}
+var oidcScopes = []string{oidc.ScopeOpenID, oidc.ScopeOfflineAccess, oidc.ScopeEmail}
 
 type oidcClient struct {
 	httpClient    *http.Client
@@ -98,19 +97,8 @@ func (o *oidcClient) do(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	// Since the response body can only be read once (io.ReadCloser), we store it, and feed it back
-	// to the response before returning it. This way, the caller won't have an empty body after
-	// we're done processing it.
-	var bodyBytes []byte
-	if resp.Body != nil {
-		bodyBytes, _ = io.ReadAll(resp.Body)
-	}
-
-	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	_, _, err = lxdParseResponse(resp)
-	if err == nil {
-		resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	// Return immediately if the error is not HTTP status unauthorized.
+	if resp.StatusCode != http.StatusUnauthorized {
 		return resp, nil
 	}
 
