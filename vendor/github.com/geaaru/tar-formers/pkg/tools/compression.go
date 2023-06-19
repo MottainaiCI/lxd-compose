@@ -59,7 +59,7 @@ func ParseCompressionMode(s string) CompressionMode {
 
 	if s == "gz" || s == "gzip" {
 		ans = Gzip
-	} else if s == "zstd" {
+	} else if s == "zstd" || s == "zst" {
 		ans = Zstd
 	} else if s == "xz" {
 		ans = Xz
@@ -75,7 +75,7 @@ func GetCompressionMode(file string) CompressionMode {
 
 	if strings.HasSuffix(file, ".gz") || strings.HasSuffix(file, ".gzip") {
 		cMode = Gzip
-	} else if strings.HasSuffix(file, ".zstd") {
+	} else if strings.HasSuffix(file, ".zstd") || strings.HasSuffix(file, ".zst") {
 		cMode = Zstd
 	} else if strings.HasSuffix(file, ".xz") {
 		cMode = Xz
