@@ -25,8 +25,8 @@ import (
 	"time"
 
 	lxd "github.com/lxc/lxd/client"
-	lxd_utils "github.com/lxc/lxd/lxc/utils"
 	lxd_api "github.com/lxc/lxd/shared/api"
+	lxd_cli "github.com/lxc/lxd/shared/cmd"
 )
 
 func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []string) error {
@@ -74,7 +74,7 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 	}
 
 	// Watch the background operation
-	progress := lxd_utils.ProgressRenderer{
+	progress := lxd_cli.ProgressRenderer{
 		Format: "Retrieving image: %s",
 		Quiet:  false,
 	}
@@ -113,7 +113,7 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 	return e.DoAction2Container(name, "start")
 }
 
-func (e *LxdCExecutor) WaitOperation(rawOp interface{}, p *lxd_utils.ProgressRenderer) error {
+func (e *LxdCExecutor) WaitOperation(rawOp interface{}, p *lxd_cli.ProgressRenderer) error {
 	var err error = nil
 
 	// NOTE: currently on ARM we have a weird behavior where the process that waits
@@ -130,9 +130,9 @@ func (e *LxdCExecutor) WaitOperation(rawOp interface{}, p *lxd_utils.ProgressRen
 	// err = op.Wait()
 
 	if p != nil {
-		err = lxd_utils.CancelableWait(rawOp, p)
+		err = lxd_cli.CancelableWait(rawOp, p)
 	} else {
-		err = lxd_utils.CancelableWait(rawOp, nil)
+		err = lxd_cli.CancelableWait(rawOp, nil)
 	}
 
 	return err
@@ -192,7 +192,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 		return err
 	}
 
-	progress := lxd_utils.ProgressRenderer{
+	progress := lxd_cli.ProgressRenderer{
 		Quiet: false,
 	}
 
@@ -322,7 +322,7 @@ func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer
 	}
 
 	// Watch the background operation
-	progress := lxd_utils.ProgressRenderer{
+	progress := lxd_cli.ProgressRenderer{
 		Format: "Retrieving image: %s",
 		Quiet:  false,
 	}

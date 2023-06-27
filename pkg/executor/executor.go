@@ -32,8 +32,8 @@ import (
 
 	lxd "github.com/lxc/lxd/client"
 	lxd_config "github.com/lxc/lxd/lxc/config"
-	lxd_utils "github.com/lxc/lxd/lxc/utils"
 	lxd_api "github.com/lxc/lxd/shared/api"
+	lxd_cli "github.com/lxc/lxd/shared/cmd"
 )
 
 type LxdCExecutor struct {
@@ -308,7 +308,7 @@ func (e *LxdCExecutor) CopyContainerOnInstance(
 	}
 
 	// Watch the background operation
-	progress := lxd_utils.ProgressRenderer{
+	progress := lxd_cli.ProgressRenderer{
 		Format: "Copy container: %s",
 		Quiet:  false,
 	}
@@ -320,7 +320,7 @@ func (e *LxdCExecutor) CopyContainerOnInstance(
 	}
 
 	// Wait the copy of the container
-	err = lxd_utils.CancelableWait(op, &progress)
+	err = lxd_cli.CancelableWait(op, &progress)
 	if err != nil {
 		progress.Done("")
 		return err

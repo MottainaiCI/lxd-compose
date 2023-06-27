@@ -33,8 +33,8 @@ import (
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 
 	lxd "github.com/lxc/lxd/client"
-	lxd_utils "github.com/lxc/lxd/lxc/utils"
 	lxd_shared "github.com/lxc/lxd/shared"
+	lxd_cli "github.com/lxc/lxd/shared/cmd"
 	"github.com/lxc/lxd/shared/ioprogress"
 	lxd_units "github.com/lxc/lxd/shared/units"
 )
@@ -188,7 +188,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 			readCloser = f
 		}
 
-		progress := lxd_utils.ProgressRenderer{
+		progress := lxd_cli.ProgressRenderer{
 			Format: fmt.Sprintf("Pushing %s to %s: %%s", p, targetPath),
 			Quiet:  false,
 		}
@@ -295,7 +295,7 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 			return err
 		}
 
-		progress := lxd_utils.ProgressRenderer{
+		progress := lxd_cli.ProgressRenderer{
 			Format: fmt.Sprintf("Pulling %s from %s: %%s", destPath, target),
 			Quiet:  false,
 		}
