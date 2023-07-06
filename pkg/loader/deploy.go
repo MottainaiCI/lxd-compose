@@ -175,10 +175,14 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						executorMap[node] = executor
 					} else {
 
-						if group == nil {
+						if group == nil && grp == nil {
 							return errors.New(fmt.Sprintf(
 								"Error on retrieve node information for %s and hook %v",
 								node, h))
+						}
+
+						if group == nil {
+							group = grp
 						}
 
 						executor = lxd_executor.NewLxdCExecutor(group.Connection,
