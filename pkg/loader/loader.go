@@ -393,11 +393,12 @@ func (i *LxdCInstance) LoadEnvironments() error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContent(string(content),
+				renderOut, err := helpers.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					file.Name(),
 					i.Config.RenderEnvsVars,
+					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
 					return err
@@ -459,11 +460,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContent(string(content),
+				renderOut, err := helpers.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					nfile,
 					i.Config.RenderEnvsVars,
+					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
 					return err
@@ -509,11 +511,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContent(string(content),
+				renderOut, err := helpers.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					pfile,
 					i.Config.RenderEnvsVars,
+					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
 					return err
@@ -559,11 +562,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContent(string(content),
+				renderOut, err := helpers.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					sfile,
 					i.Config.RenderEnvsVars,
+					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
 					return err
@@ -609,11 +613,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContent(string(content),
+				renderOut, err := helpers.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					afile,
 					i.Config.RenderEnvsVars,
+					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
 					return err
@@ -659,11 +664,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContent(string(content),
+				renderOut, err := helpers.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					cfile,
 					i.Config.RenderEnvsVars,
+					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
 					return err
@@ -709,11 +715,12 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 				if i.Config.IsEnableRenderEngine() {
 					// Render file
-					renderOut, err := helpers.RenderContent(string(content),
+					renderOut, err := helpers.RenderContentWithTemplates(string(content),
 						i.Config.RenderValuesFile,
 						i.Config.RenderDefaultFile,
 						gfile,
 						i.Config.RenderEnvsVars,
+						i.Config.RenderTemplatesDirs,
 					)
 					if err != nil {
 						return err
@@ -845,11 +852,12 @@ func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject)
 
 	if i.Config.IsEnableRenderEngine() {
 		// Render file
-		renderOut, err := helpers.RenderContent(string(content),
+		renderOut, err := helpers.RenderContentWithTemplates(string(content),
 			i.Config.RenderValuesFile,
 			i.Config.RenderDefaultFile,
 			hfile,
 			i.Config.RenderEnvsVars,
+			i.Config.RenderTemplatesDirs,
 		)
 		if err != nil {
 			return ans, err
@@ -897,11 +905,12 @@ func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCPro
 
 	if i.Config.IsEnableRenderEngine() {
 		// Render file
-		renderOut, err := helpers.RenderContent(string(content),
+		renderOut, err := helpers.RenderContentWithTemplates(string(content),
 			i.Config.RenderValuesFile,
 			i.Config.RenderDefaultFile,
 			efile,
 			i.Config.RenderEnvsVars,
+			i.Config.RenderTemplatesDirs,
 		)
 		if err != nil {
 			return nil, err

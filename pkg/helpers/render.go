@@ -22,6 +22,8 @@ package helpers
 import (
 	"fmt"
 	"os"
+	"path"
+	"regexp"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -30,8 +32,49 @@ import (
 	"helm.sh/helm/v3/pkg/engine"
 )
 
-func RenderContent(raw, valuesFile, defaultFile, originFile string,
-	overrideValues map[string]interface{}) (string, error) {
+func GetTemplates(templateDirs []string) ([]*chart.File, error) {
+	var regexConfs = regexp.MustCompile(`.yaml$`)
+
+	ans := []*chart.File{}
+	for _, tdir := range templateDirs {
+		dirEntries, err := os.ReadDir(tdir)
+		if err != nil {
+			return ans, err
+		}
+
+		for _, file := range dirEntries {
+			if file.IsDir() {
+				continue
+			}
+
+			if !regexConfs.MatchString(file.Name()) {
+				continue
+			}
+
+			content, err := os.ReadFile(path.Join(tdir, file.Name()))
+			if err != nil {
+				return ans, fmt.Errorf(
+					"Error on read template file %s/%s: %s",
+					tdir, file.Name(), err.Error())
+			}
+
+			ans = append(ans, &chart.File{
+				Name: file.Name(),
+				Data: content,
+			})
+
+		}
+	}
+
+	return ans, nil
+}
+
+func RenderContentWithTemplates(
+	raw, valuesFile, defaultFile, originFile string,
+	overrideValues map[string]interface{},
+	templateDirs []string) (string, error) {
+
+	var err error
 
 	if valuesFile == "" && defaultFile == "" {
 		return "", errors.New("Both render files are missing")
@@ -81,15 +124,26 @@ func RenderContent(raw, valuesFile, defaultFile, originFile string,
 		}
 	}
 
+	charts := []*chart.File{}
+	if len(templateDirs) > 0 {
+		charts, err = GetTemplates(templateDirs)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	charts = append(charts, &chart.File{
+		Name: "templates",
+		Data: []byte(raw),
+	})
+
 	c := &chart.Chart{
 		Metadata: &chart.Metadata{
 			Name:    "",
 			Version: "",
 		},
-		Templates: []*chart.File{
-			{Name: "templates", Data: []byte(raw)},
-		},
-		Values: map[string]interface{}{"Values": d},
+		Templates: charts,
+		Values:    map[string]interface{}{"Values": d},
 	}
 
 	v, err := chartutil.CoalesceValues(c, map[string]interface{}{"Values": values})
@@ -104,4 +158,11 @@ func RenderContent(raw, valuesFile, defaultFile, originFile string,
 	}
 
 	return out["templates"], nil
+}
+
+func RenderContent(raw, valuesFile, defaultFile, originFile string,
+	overrideValues map[string]interface{}) (string, error) {
+
+	return RenderContentWithTemplates(raw, valuesFile, defaultFile, originFile,
+		overrideValues, []string{})
 }
