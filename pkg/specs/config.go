@@ -172,7 +172,7 @@ func GenDefault(viper *v.Viper) {
 	viper.SetDefault("general.lxd_confdir", "")
 	viper.SetDefault("render_default_file", "")
 	viper.SetDefault("render_values_file", "")
-	viper.SetDefault("render_templates_dirs", []string{""})
+	viper.SetDefault("render_templates_dirs", []string{})
 
 	viper.SetDefault("logging.level", "info")
 	viper.SetDefault("logging.enable_logfile", false)

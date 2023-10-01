@@ -401,6 +401,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
+					i.Logger.Error("Error on render file", file.Name())
 					return err
 				}
 
