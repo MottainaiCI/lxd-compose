@@ -35,6 +35,7 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledGroups []string
 	var disabledGroups []string
 	var renderEnvs []string
+	var testProfiles []string
 
 	var cmd = &cobra.Command{
 		Use:     "fetch [list-of-projects]",
@@ -65,6 +66,7 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			prefix, _ := cmd.Flags().GetString("nodes-prefix")
+			testImages, _ := cmd.Flags().GetBool("test-images")
 			ret := 0
 
 			composer.SetGroupsDisabled(disabledGroups)
@@ -132,9 +134,30 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					_, err := executor.PullImage(imageData[1], imageData[2])
 					if err != nil {
 						composer.Logger.Error(
-							fmt.Sprintf("Error on fetch image %s from connection %s.",
+							fmt.Sprintf("Error on fetch image %s from server %s.",
 								imageData[1], imageData[0]))
 						ret += 1
+					} else if testImages {
+
+						composer.Logger.Info(fmt.Sprintf(
+							"[%s] Testing image %s for group %s...",
+							imageData[0], imageData[0], key))
+
+						err = executor.CreateContainer("test-image",
+							imageData[1], imageData[0], testProfiles)
+						if err != nil {
+							composer.Logger.Error(
+								fmt.Sprintf("Error on create container with image %s for group %s: %s",
+									imageData[1], key, err.Error()))
+						}
+
+						err = executor.DeleteContainer("test-image")
+						if err != nil {
+							composer.Logger.Error(
+								fmt.Sprintf("Error on delete container with image %s for group %s: %s",
+									imageData[1], key, err.Error()))
+						}
+
 					}
 
 				}
@@ -160,6 +183,10 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
+
+	flags.StringSliceVar(&testProfiles, "test-profile", []string{},
+		"Define the list of LXD profile to use on testing container. Used with --test-images")
+	flags.Bool("test-images", false, "Testing fetched images.")
 
 	return cmd
 }
