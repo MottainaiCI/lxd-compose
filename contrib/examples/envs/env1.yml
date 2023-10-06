@@ -173,6 +173,7 @@ projects:
       - event: pre-group
         flags:
           - template
+        node: "host"
         commands:
           {{ template "defines.def1" . }}
           {{ include "tpl/commands" .Values | nindent 8 }}
