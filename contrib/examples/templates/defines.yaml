@@ -1,0 +1,3 @@
+{{ define "defines.def1" }}
+        - echo "prova {{ . }}"
+{{ end }}

@@ -1,0 +1,3 @@
+# List of variables injected in additional of values/defaults
+template_var: "template var"
+template_var2: {{ .run }}

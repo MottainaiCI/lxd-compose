@@ -172,6 +172,13 @@ projects:
     hooks:
       - event: pre-group
         flags:
+          - template
+        commands:
+          {{ template "defines.def1" . }}
+          {{ include "tpl/commands" .Values | nindent 8 }}
+
+      - event: pre-group
+        flags:
           - disabled
         node: "host"
         commands:
@@ -214,6 +221,8 @@ projects:
           dash-var: "xxxx"
 
           LUET_YES: "true"
+
+          {{- include "tpl/tvalue" .Values | nindent 10 }}
 
     groups:
       - name: "group1"
