@@ -24,6 +24,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -59,7 +60,8 @@ func GetTemplates(templateDirs []string) ([]*chart.File, error) {
 			}
 
 			ans = append(ans, &chart.File{
-				Name: file.Name(),
+				// Using filename without extension for chart file name
+				Name: strings.ReplaceAll(file.Name(), ".yaml", ""),
 				Data: content,
 			})
 
@@ -139,7 +141,7 @@ func RenderContentWithTemplates(
 
 	c := &chart.Chart{
 		Metadata: &chart.Metadata{
-			Name:    "",
+			Name:    "tpl",
 			Version: "",
 		},
 		Templates: charts,
@@ -157,7 +159,12 @@ func RenderContentWithTemplates(
 			"Error on rendering file %s: %s", originFile, err.Error()))
 	}
 
-	return out["templates"], nil
+	debugHelmTemplate := os.Getenv("LXD_COMPOSE_HELM_DEBUG")
+	if debugHelmTemplate == "1" {
+		fmt.Println(out["tpl/templates"])
+	}
+
+	return out["tpl/templates"], nil
 }
 
 func RenderContent(raw, valuesFile, defaultFile, originFile string,
