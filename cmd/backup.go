@@ -22,6 +22,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
@@ -65,6 +68,7 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			prefix, _ := cmd.Flags().GetString("nodes-prefix")
+			maxBackups, _ := cmd.Flags().GetInt("max-backups")
 			ret := 0
 
 			composer.SetGroupsDisabled(disabledGroups)
@@ -183,6 +187,56 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 						}
 
+						if maxBackups > 0 {
+							// POST: We need to maintain limited number of backups.
+
+							// Retrieve the list of container.
+							list, err := executor.GetContainerList()
+							if err != nil {
+								composer.Logger.Error(
+									fmt.Sprintf(
+										"Error on retrieve the list of container"))
+								ret = 1
+								continue
+							}
+
+							matchedDates := []string{}
+
+							for _, n := range list {
+								if strings.HasPrefix(n, node.GetName()+"-") {
+									if len(n) == len(node.GetName())+9 {
+										date := n[len(node.GetName())+1:]
+										if _, err := strconv.Atoi(date); err == nil {
+											matchedDates = append(matchedDates, date)
+										}
+									}
+								}
+							}
+
+							if len(matchedDates) > 0 && len(matchedDates) > maxBackups {
+								sort.Strings(matchedDates)
+
+								backup2remove := len(matchedDates) - maxBackups
+								for i := 0; i < backup2remove; i++ {
+									cname := node.GetName() + "-" + matchedDates[i]
+									composer.Logger.InfoC(
+										composer.Logger.Aurora.Bold(
+											fmt.Sprintf(":knife:[%s] Removing container...",
+												cname)))
+
+									err := executor.DeleteContainer(cname)
+									if err != nil {
+										composer.Logger.Warning(
+											fmt.Sprintf("error on removing container %s: %s",
+												cname, err.Error()))
+										ret = 1
+									}
+
+								}
+							}
+
+						}
+
 					}
 				}
 			}
@@ -208,6 +262,7 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
+	flags.Int("max-backups", 0, "Number of max backups to keep. 0 means no limit.")
 
 	return cmd
 }
