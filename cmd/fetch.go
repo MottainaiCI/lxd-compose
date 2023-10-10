@@ -140,8 +140,8 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					} else if testImages {
 
 						composer.Logger.Info(fmt.Sprintf(
-							"[%s] Testing image %s for group %s...",
-							imageData[0], imageData[0], key))
+							"[%s] Testing image %s fetched from server %s...",
+							imageData[0], imageData[1], imageData[2]))
 
 						err = executor.CreateContainer("test-image",
 							imageData[1], imageData[0], testProfiles)
