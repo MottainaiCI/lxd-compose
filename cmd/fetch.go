@@ -155,7 +155,7 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 						if err != nil {
 							composer.Logger.Error(
 								fmt.Sprintf("Error on delete container with image %s for group %s: %s",
-									imageData[1], key, err.Error()))
+									imageData[1], imageData[0], err.Error()))
 						}
 
 					}
