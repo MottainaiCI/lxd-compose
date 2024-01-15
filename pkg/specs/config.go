@@ -87,6 +87,7 @@ func (c *LxdComposeConfig) Clone() *LxdComposeConfig {
 	ans.EnvironmentDirs = c.EnvironmentDirs
 	ans.RenderDefaultFile = c.RenderDefaultFile
 	ans.RenderValuesFile = c.RenderValuesFile
+	ans.RenderTemplatesDirs = c.RenderTemplatesDirs
 
 	ans.General.Debug = c.General.Debug
 	ans.General.LxdConfDir = c.General.LxdConfDir

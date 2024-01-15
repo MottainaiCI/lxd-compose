@@ -482,6 +482,12 @@ func (i *LxdCInstance) PackProjects(tarball, sourceCPDir string,
 		job.Specfile.Writer.AddFile(i.Config.RenderValuesFile)
 	}
 
+	if len(i.Config.RenderTemplatesDirs) > 0 {
+		for _, d := range i.Config.RenderTemplatesDirs {
+			job.Specfile.Writer.AddDir(d)
+		}
+	}
+
 	// Create the new lxd-compose config file with only
 	// the environment directories of the projects injected.
 	cfg := i.Config.Clone()
