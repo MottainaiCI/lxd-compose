@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020-2023  Daniele Rondina <geaaru@funtoo.org>
+Copyright (C) 2020-2024  Daniele Rondina <geaaru@gmail.com>
 Credits goes also to Gogs authors, some code portions and re-implemented design
 are also coming from the Gogs project, which is using the go-macaron framework
 and was really source of ispiration. Kudos to them!
@@ -35,7 +35,7 @@ const (
 
 Mottainai - LXD Compose Integrator`
 
-	LXD_COMPOSE_VERSION = `0.30.1`
+	LXD_COMPOSE_VERSION = `0.31.0`
 )
 
 var (
