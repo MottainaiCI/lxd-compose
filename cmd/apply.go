@@ -75,6 +75,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			skipSync, _ := cmd.Flags().GetBool("skip-sync")
 			destroy, _ := cmd.Flags().GetBool("destroy")
+			upgrade, _ := cmd.Flags().GetBool("upgrade")
 			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 
 			composer.SetFlagsDisabled(disabledFlags)
@@ -83,6 +84,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			composer.SetGroupsEnabled(enabledGroups)
 			composer.SetSkipSync(skipSync)
 			composer.SetNodesPrefix(prefix)
+			composer.SetUpgradeMode(upgrade)
 
 			projects := args[0:]
 
@@ -153,6 +155,7 @@ func newApplyCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
 		"Add additional environments vars file.")
 	flags.Bool("skip-sync", false, "Disable sync of files.")
+	flags.Bool("upgrade", false, "Enable upgrade mode.")
 	flags.Bool("destroy", false, "Destroy the selected groups at the end.")
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
 

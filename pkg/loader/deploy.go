@@ -423,67 +423,20 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 		if !isPresent {
 
-			// Retrieve pre-node-creation hooks
-			preCreationHooks := i.GetNodeHooks4Event(specs.HookPreNodeCreation, proj, group, &node)
-			// Run pre-node-creation hooks
-			i.Logger.Debug(fmt.Sprintf(
-				"[%s - %s] Running %d %s hooks for node %s... ",
-				proj.Name, group.Name, len(preCreationHooks),
-				specs.HookPreNodeCreation,
-				node.GetName()))
-			err = i.ProcessHooks(&preCreationHooks, proj, group, &node)
-			if err != nil {
-				return err
-			}
-
-			profiles := []string{}
-			profiles = append(profiles, group.CommonProfiles...)
-			profiles = append(profiles, node.Profiles...)
-
-			configMap := node.GetLxdConfig(group.GetLxdConfig())
-
-			i.Logger.Debug(fmt.Sprintf("[%s] Using profiles %s",
-				node.GetName(), profiles))
-
-			i.Logger.Debug(fmt.Sprintf("[%s] Using config map %s",
-				node.GetName(), configMap))
-
-			err := i.validateProfiles(instanceProfiles, profiles)
-			if err != nil {
-				return err
-			}
-
-			err = executor.CreateContainerWithConfig(node.GetName(), node.ImageSource,
-				node.ImageRemoteServer, profiles, configMap)
-			if err != nil {
-				i.Logger.Error("Error on create container " +
-					node.GetName() + ":" + err.Error())
-				return err
-			}
-
-			// Wait ip
-			if node.Wait4Ip() > 0 {
-				err = executor.WaitIpOfContainer(node.GetName(), node.Wait4Ip())
-				if err != nil {
-					i.Logger.Error("Something goes wrong on waiting for the ip address: " +
-						err.Error())
-					return err
-				}
-			}
-
-			postCreationHooks := i.GetNodeHooks4Event(specs.HookPostNodeCreation, proj, group, &node)
-
-			// Run post-node-creation hooks
-			i.Logger.Debug(fmt.Sprintf(
-				"[%s - %s] Running %d %s hooks for node %s... ",
-				proj.Name, group.Name, len(postCreationHooks),
-				specs.HookPostNodeCreation, node.GetName()))
-			err = i.ProcessHooks(&postCreationHooks, proj, group, &node)
+			// Execute the pre-node-creation hooks,
+			// create the container and run the post-node-creation
+			// hooks.
+			err := i.createInstance(
+				proj, group, &node,
+				executor,
+				instanceProfiles,
+			)
 			if err != nil {
 				return err
 			}
 
 		} else {
+
 			isRunning, err := executor.IsRunningContainer(node.GetName())
 			if err != nil {
 				i.Logger.Error(
@@ -491,18 +444,80 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 						node.GetName(), err.Error()))
 				return err
 			}
-			if !isRunning {
+
+			if i.Upgrade {
+
+				// POST: The instance is already present
+				//       but the upgrade flag is enable.
+
+				if isRunning {
+
+					preNodeUpgradeHooks := i.GetNodeHooks4Event(
+						specs.HookPreNodeUpgrade,
+						proj, group, &node)
+
+					// Run post-node-creation hooks
+					i.Logger.Debug(fmt.Sprintf(
+						"[%s - %s] Running %d %s hooks for node %s... ",
+						proj.Name, group.Name, len(preNodeUpgradeHooks),
+						specs.HookPreNodeUpgrade, node.GetName()))
+					err = i.ProcessHooks(&preNodeUpgradeHooks, proj, group, &node)
+					if err != nil {
+						return err
+					}
+
+				}
+
+				// POST: The running container is stopped
+				//       and destroyed.
+				err = executor.DeleteContainer(node.GetName())
+				if err != nil {
+					i.Logger.Error("Error on destroy container " + node.GetName() +
+						": " + err.Error())
+					return err
+				}
+
+				// Execute the pre-node-creation hooks,
+				// create the container and run the post-node-creation
+				// hooks.
+				err := i.createInstance(
+					proj, group, &node,
+					executor,
+					instanceProfiles,
+				)
+				if err != nil {
+					return err
+				}
+
+				postNodeUpgradeHooks := i.GetNodeHooks4Event(
+					specs.HookPostNodeUpgrade,
+					proj, group, &node)
+
 				// Run post-node-creation hooks
 				i.Logger.Debug(fmt.Sprintf(
-					"[%s - %s] Node %s is already present but not running. I'm starting it.",
-					proj.Name, group.Name, node.GetName()))
-
-				err = executor.StartContainer(node.GetName())
+					"[%s - %s] Running %d %s hooks for node %s... ",
+					proj.Name, group.Name, len(postNodeUpgradeHooks),
+					specs.HookPostNodeUpgrade, node.GetName()))
+				err = i.ProcessHooks(&postNodeUpgradeHooks, proj, group, &node)
 				if err != nil {
-					i.Logger.Error(
-						fmt.Sprintf("Error on start container %s: %s",
-							node.GetName(), err.Error()))
 					return err
+				}
+
+			} else {
+
+				if !isRunning {
+					// Run post-node-creation hooks
+					i.Logger.Debug(fmt.Sprintf(
+						"[%s - %s] Node %s is already present but not running. I'm starting it.",
+						proj.Name, group.Name, node.GetName()))
+
+					err = executor.StartContainer(node.GetName())
+					if err != nil {
+						i.Logger.Error(
+							fmt.Sprintf("Error on start container %s: %s",
+								node.GetName(), err.Error()))
+						return err
+					}
 				}
 			}
 
@@ -606,6 +621,76 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	err = i.ProcessHooks(&postGroupHooks, proj, group, nil)
 
 	return err
+}
+
+func (i *LxdCInstance) createInstance(
+	proj *specs.LxdCProject,
+	group *specs.LxdCGroup,
+	node *specs.LxdCNode,
+	executor *lxd_executor.LxdCExecutor,
+	instanceProfiles []string) error {
+
+	// Retrieve pre-node-creation hooks
+	preCreationHooks := i.GetNodeHooks4Event(specs.HookPreNodeCreation, proj, group, node)
+	// Run pre-node-creation hooks
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s - %s] Running %d %s hooks for node %s... ",
+		proj.Name, group.Name, len(preCreationHooks),
+		specs.HookPreNodeCreation,
+		node.GetName()))
+	err := i.ProcessHooks(&preCreationHooks, proj, group, node)
+	if err != nil {
+		return err
+	}
+
+	profiles := []string{}
+	profiles = append(profiles, group.CommonProfiles...)
+	profiles = append(profiles, node.Profiles...)
+
+	configMap := node.GetLxdConfig(group.GetLxdConfig())
+
+	i.Logger.Debug(fmt.Sprintf("[%s] Using profiles %s",
+		node.GetName(), profiles))
+
+	i.Logger.Debug(fmt.Sprintf("[%s] Using config map %s",
+		node.GetName(), configMap))
+
+	err = i.validateProfiles(instanceProfiles, profiles)
+	if err != nil {
+		return err
+	}
+
+	err = executor.CreateContainerWithConfig(node.GetName(), node.ImageSource,
+		node.ImageRemoteServer, profiles, configMap)
+	if err != nil {
+		i.Logger.Error("Error on create container " +
+			node.GetName() + ":" + err.Error())
+		return err
+	}
+
+	// Wait ip
+	if node.Wait4Ip() > 0 {
+		err = executor.WaitIpOfContainer(node.GetName(), node.Wait4Ip())
+		if err != nil {
+			i.Logger.Error("Something goes wrong on waiting for the ip address: " +
+				err.Error())
+			return err
+		}
+	}
+
+	postCreationHooks := i.GetNodeHooks4Event(specs.HookPostNodeCreation, proj, group, node)
+
+	// Run post-node-creation hooks
+	i.Logger.Debug(fmt.Sprintf(
+		"[%s - %s] Running %d %s hooks for node %s... ",
+		proj.Name, group.Name, len(postCreationHooks),
+		specs.HookPostNodeCreation, node.GetName()))
+	err = i.ProcessHooks(&postCreationHooks, proj, group, node)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (i *LxdCInstance) ApplyCommand(c *specs.LxdCCommand, proj *specs.LxdCProject, envs []string, varfiles []string) error {

@@ -42,6 +42,8 @@ type LxdCInstance struct {
 	GroupsEnabled  []string
 	GroupsDisabled []string
 	NodesPrefix    string
+
+	Upgrade bool
 }
 
 func NewLxdCInstance(config *specs.LxdComposeConfig) *LxdCInstance {
@@ -49,6 +51,7 @@ func NewLxdCInstance(config *specs.LxdComposeConfig) *LxdCInstance {
 		Config:       config,
 		Logger:       log.NewLxdCLogger(config),
 		Environments: make([]specs.LxdCEnvironment, 0),
+		Upgrade:      false,
 	}
 
 	// Initialize logging
@@ -75,6 +78,8 @@ func (i *LxdCInstance) SetNodesPrefix(s string)     { i.NodesPrefix = s }
 func (i *LxdCInstance) GetNodesPrefix() string      { return i.NodesPrefix }
 func (i *LxdCInstance) SetSkipSync(v bool)          { i.SkipSync = v }
 func (i *LxdCInstance) GetSkipSync() bool           { return i.SkipSync }
+func (i *LxdCInstance) SetUpgradeMode(v bool)       { i.Upgrade = v }
+func (i *LxdCInstance) GetUpgradeMode() bool        { return i.Upgrade }
 func (i *LxdCInstance) GetGroupsEnabled() []string  { return i.GroupsEnabled }
 func (i *LxdCInstance) GetGroupsDisabled() []string { return i.GroupsDisabled }
 func (i *LxdCInstance) SetGroupsEnabled(groups []string) {

@@ -39,6 +39,9 @@ const (
 	HookPostGroupShutdown   = "post-group-shutdown"
 	HookPreNodeShutdown     = "pre-node-shutdown"
 	HookPostNodeShutdown    = "post-node-shutdown"
+
+	HookPreNodeUpgrade  = "pre-node-upgrade"
+	HookPostNodeUpgrade = "post-node-upgrade"
 )
 
 func getHooks(hooks *[]LxdCHook, event string) []LxdCHook {
