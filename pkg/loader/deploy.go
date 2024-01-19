@@ -64,12 +64,13 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	}
 
 	// Get only host hooks. All other hooks are handled by group and node.
-	preProjHooks := proj.GetHooks4Nodes("pre-project", []string{"host"})
-	postProjHooks := proj.GetHooks4Nodes("post-project", []string{"*", "host"})
+	preProjHooks := proj.GetHooks4Nodes(specs.HookPreProject, []string{"host"})
+	postProjHooks := proj.GetHooks4Nodes(specs.HookPostProject, []string{"*", "host"})
 
 	// Execute pre-project hooks
 	i.Logger.Debug(fmt.Sprintf(
-		"[%s] Running %d pre-project hooks... ", projectName, len(preProjHooks)))
+		"[%s] Running %d %s hooks... ", projectName,
+		len(preProjHooks), specs.HookPreProject))
 	err := i.ProcessHooks(&preProjHooks, proj, nil, nil)
 	if err != nil {
 		return err
@@ -102,7 +103,8 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 
 	// Execute post-project hooks
 	i.Logger.Debug(fmt.Sprintf(
-		"[%s] Running %d post-project hooks... ", projectName, len(preProjHooks)))
+		"[%s] Running %d %s hooks... ", projectName,
+		len(preProjHooks), specs.HookPostProject))
 	err = i.ProcessHooks(&postProjHooks, proj, nil, nil)
 	if err != nil {
 		return err
@@ -355,13 +357,14 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 
 	// Retrieve pre-group hooks from project
-	preGroupHooks := proj.GetHooks4Nodes("pre-group", []string{"*", "host"})
+	preGroupHooks := proj.GetHooks4Nodes(specs.HookPreGroup, []string{"*", "host"})
 	// Retrieve pre-group hooks from group
-	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes("pre-group", []string{"*", "host"})...)
+	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes(specs.HookPreGroup, []string{"*", "host"})...)
 
 	// Run pre-group hooks
 	i.Logger.Debug(fmt.Sprintf(
-		"[%s - %s] Running %d pre-group hooks... ", proj.Name, group.Name, len(preGroupHooks)))
+		"[%s - %s] Running %d %s hooks... ", proj.Name, group.Name,
+		len(preGroupHooks), specs.HookPreGroup))
 	err = i.ProcessHooks(&preGroupHooks, proj, group, nil)
 	if err != nil {
 		return err
@@ -421,11 +424,13 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		if !isPresent {
 
 			// Retrieve pre-node-creation hooks
-			preCreationHooks := i.GetNodeHooks4Event("pre-node-creation", proj, group, &node)
+			preCreationHooks := i.GetNodeHooks4Event(specs.HookPreNodeCreation, proj, group, &node)
 			// Run pre-node-creation hooks
 			i.Logger.Debug(fmt.Sprintf(
-				"[%s - %s] Running %d pre-node-creation hooks for node %s... ",
-				proj.Name, group.Name, len(preCreationHooks), node.GetName()))
+				"[%s - %s] Running %d %s hooks for node %s... ",
+				proj.Name, group.Name, len(preCreationHooks),
+				specs.HookPreNodeCreation,
+				node.GetName()))
 			err = i.ProcessHooks(&preCreationHooks, proj, group, &node)
 			if err != nil {
 				return err
@@ -466,12 +471,13 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 				}
 			}
 
-			postCreationHooks := i.GetNodeHooks4Event("post-node-creation", proj, group, &node)
+			postCreationHooks := i.GetNodeHooks4Event(specs.HookPostNodeCreation, proj, group, &node)
 
 			// Run post-node-creation hooks
 			i.Logger.Debug(fmt.Sprintf(
-				"[%s - %s] Running %d post-node-creation hooks for node %s... ",
-				proj.Name, group.Name, len(postCreationHooks), node.GetName()))
+				"[%s - %s] Running %d %s hooks for node %s... ",
+				proj.Name, group.Name, len(postCreationHooks),
+				specs.HookPostNodeCreation, node.GetName()))
 			err = i.ProcessHooks(&postCreationHooks, proj, group, &node)
 			if err != nil {
 				return err
@@ -503,7 +509,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		}
 
 		// Retrieve pre-node-sync hooks of the node from project
-		preSyncHooks := i.GetNodeHooks4Event("pre-node-sync", proj, group, &node)
+		preSyncHooks := i.GetNodeHooks4Event(specs.HookPreNodeSync, proj, group, &node)
 
 		// Run pre-node-sync hooks
 		err = i.ProcessHooks(&preSyncHooks, proj, group, &node)
@@ -579,7 +585,7 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		}
 
 		// Retrieve post-node-sync hooks of the node from project
-		postSyncHooks := i.GetNodeHooks4Event("post-node-sync", proj, group, &node)
+		postSyncHooks := i.GetNodeHooks4Event(specs.HookPostNodeSync, proj, group, &node)
 
 		// Run post-node-sync hooks
 		err = i.ProcessHooks(&postSyncHooks, proj, group, &node)
@@ -590,12 +596,13 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 
 	// Retrieve post-group hooks from project
-	postGroupHooks := proj.GetHooks4Nodes("post-group", []string{"*", "host"})
-	postGroupHooks = append(postGroupHooks, group.GetHooks4Nodes("post-group", []string{"*", "host"})...)
+	postGroupHooks := proj.GetHooks4Nodes(specs.HookPostGroup, []string{"*", "host"})
+	postGroupHooks = append(postGroupHooks, group.GetHooks4Nodes(specs.HookPostGroup, []string{"*", "host"})...)
 
 	// Execute post-group hooks
 	i.Logger.Debug(fmt.Sprintf(
-		"[%s - %s] Running %d post-group hooks... ", proj.Name, group.Name, len(postGroupHooks)))
+		"[%s - %s] Running %d %s hooks... ", proj.Name, group.Name,
+		len(postGroupHooks), specs.HookPostGroup))
 	err = i.ProcessHooks(&postGroupHooks, proj, group, nil)
 
 	return err

@@ -121,7 +121,7 @@ nodes:
 				},
 				Hooks: []LxdCHook{
 					{
-						Event: "pre-node-creation",
+						Event: HookPreNodeCreation,
 						Commands: []string{
 							"echo 1",
 							"echo 2",

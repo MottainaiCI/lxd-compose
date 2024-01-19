@@ -44,12 +44,13 @@ func (i *LxdCInstance) StopProject(projectName string) error {
 	}
 
 	// Retrieve pre-project-shutdown/post-project-shutdown hooks
-	preProjHooks := proj.GetHooks4Nodes("pre-project-shutdown", []string{"*"})
-	postProjHooks := proj.GetHooks4Nodes("post-project-shutdown", []string{"*"})
+	preProjHooks := proj.GetHooks4Nodes(specs.HookPreProjectShutdown, []string{"*"})
+	postProjHooks := proj.GetHooks4Nodes(specs.HookPostProjectShutdown, []string{"*"})
 
 	// Execute pre-project hooks
 	i.Logger.Debug(fmt.Sprintf(
-		"[%s] Running %d pre-project-shutdown hooks... ", projectName, len(preProjHooks)))
+		"[%s] Running %d %s hooks... ", projectName,
+		len(preProjHooks), specs.HookPreProjectShutdown))
 	err := i.ProcessHooks(&preProjHooks, proj, nil, nil)
 	if err != nil {
 		return err
@@ -71,7 +72,8 @@ func (i *LxdCInstance) StopProject(projectName string) error {
 
 	// Execute pre-project hooks
 	i.Logger.Debug(fmt.Sprintf(
-		"[%s] Running %d post-project-shutdown hooks... ", projectName, len(postProjHooks)))
+		"[%s] Running %d %s hooks... ", projectName,
+		len(postProjHooks), specs.HookPostProjectShutdown))
 	err = i.ProcessHooks(&postProjHooks, proj, nil, nil)
 
 	return err
@@ -91,9 +93,9 @@ func (i *LxdCInstance) StopGroup(group *specs.LxdCGroup, proj *specs.LxdCProject
 	}
 
 	// Retrieve pre-group hooks from project
-	preGroupHooks := proj.GetHooks4Nodes("pre-group-shutdown", []string{"*"})
+	preGroupHooks := proj.GetHooks4Nodes(specs.HookPreGroupShutdown, []string{"*"})
 	// Retrieve pre-group hooks from group
-	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes("pre-group-shutdown", []string{"*"})...)
+	preGroupHooks = append(preGroupHooks, group.GetHooks4Nodes(specs.HookPreGroupShutdown, []string{"*"})...)
 
 	// Run pre-group hooks
 	i.Logger.Debug(fmt.Sprintf(
@@ -115,7 +117,7 @@ func (i *LxdCInstance) StopGroup(group *specs.LxdCGroup, proj *specs.LxdCProject
 		if isPresent {
 
 			// Retrieve and run pre-node-shutdown hooks of the node from project
-			preNodeShutdownHooks := i.GetNodeHooks4Event("pre-node-shutdown", proj, group, &node)
+			preNodeShutdownHooks := i.GetNodeHooks4Event(specs.HookPreNodeShutdown, proj, group, &node)
 			err = i.ProcessHooks(&preNodeShutdownHooks, proj, group, &node)
 			if err != nil {
 				return err
@@ -140,11 +142,12 @@ func (i *LxdCInstance) StopGroup(group *specs.LxdCGroup, proj *specs.LxdCProject
 	}
 
 	// Retrieve post-group hooks from project
-	postGroupHooks := proj.GetHooks4Nodes("post-group-shutdown", []string{"*"})
-	postGroupHooks = append(postGroupHooks, group.GetHooks4Nodes("post-group-shutdown", []string{"*"})...)
+	postGroupHooks := proj.GetHooks4Nodes(specs.HookPostGroupShutdown, []string{"*"})
+	postGroupHooks = append(postGroupHooks, group.GetHooks4Nodes(specs.HookPostGroupShutdown, []string{"*"})...)
 
 	i.Logger.Debug(fmt.Sprintf(
-		"[%s - %s] Running %d post-group-shutdown hooks... ", proj.Name, group.Name, len(postGroupHooks)))
+		"[%s - %s] Running %d %s hooks... ", proj.Name, group.Name,
+		len(postGroupHooks), specs.HookPostGroupShutdown))
 	err = i.ProcessHooks(&postGroupHooks, proj, group, nil)
 
 	return err

@@ -248,7 +248,7 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 
 			// Check project's hooks events
 			for _, h := range proj.Hooks {
-				if (h.Event == "pre-project" || h.Event == "pre-group") && h.Node != "host" {
+				if (h.Event == specs.HookPreProject || h.Event == specs.HookPreGroup) && h.Node != "host" {
 					i.Logger.Warning("On project " + proj.Name + " is present an hook " +
 						h.Event + " for node " + h.Node + ". Only node host is admitted.")
 
@@ -282,12 +282,12 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 				// Check group's hooks events
 				if len(grp.Hooks) > 0 {
 					for _, h := range grp.Hooks {
-						if h.Event != "pre-node-creation" &&
-							h.Event != "post-node-creation" &&
-							h.Event != "pre-node-sync" &&
-							h.Event != "post-node-sync" &&
-							h.Event != "pre-group" &&
-							h.Event != "post-group" {
+						if h.Event != specs.HookPreNodeCreation &&
+							h.Event != specs.HookPostNodeCreation &&
+							h.Event != specs.HookPreNodeSync &&
+							h.Event != specs.HookPostNodeSync &&
+							h.Event != specs.HookPreGroup &&
+							h.Event != specs.HookPostGroup {
 
 							wrongHooks++
 
@@ -327,10 +327,10 @@ func (i *LxdCInstance) Validate(ignoreError bool) error {
 								}
 							}
 
-							if h.Event != "pre-node-creation" &&
-								h.Event != "post-node-creation" &&
-								h.Event != "pre-node-sync" &&
-								h.Event != "post-node-sync" {
+							if h.Event != specs.HookPreNodeCreation &&
+								h.Event != specs.HookPostNodeCreation &&
+								h.Event != specs.HookPreNodeSync &&
+								h.Event != specs.HookPostNodeSync {
 
 								wrongHooks++
 

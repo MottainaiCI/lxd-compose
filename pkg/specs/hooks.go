@@ -24,6 +24,23 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	HookPreProject          = "pre-project"
+	HookPreGroup            = "pre-group"
+	HookPreNodeCreation     = "pre-node-creation"
+	HookPostNodeCreation    = "post-node-creation"
+	HookPreNodeSync         = "pre-node-sync"
+	HookPostNodeSync        = "post-node-sync"
+	HookPostGroup           = "post-group"
+	HookPostProject         = "post-project"
+	HookPreProjectShutdown  = "pre-project-shutdown"
+	HookPostProjectShutdown = "post-project-shutdown"
+	HookPreGroupShutdown    = "pre-group-shutdown"
+	HookPostGroupShutdown   = "post-group-shutdown"
+	HookPreNodeShutdown     = "pre-node-shutdown"
+	HookPostNodeShutdown    = "post-node-shutdown"
+)
+
 func getHooks(hooks *[]LxdCHook, event string) []LxdCHook {
 	return getHooks4Nodes(hooks, event, []string{""})
 }
