@@ -23,7 +23,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package helpers
 
 import (
+	"fmt"
 	"regexp"
+	"strings"
+
+	"github.com/MottainaiCI/lxd-compose/pkg/logger"
 )
 
 func RegexEntry(regexString string, listEntries []string) []string {
@@ -37,4 +41,23 @@ func RegexEntry(regexString string, listEntries []string) []string {
 		}
 	}
 	return ans
+}
+
+func Ask(msg string) bool {
+	var input string
+
+	log := logger.GetDefaultLogger()
+
+	log.Msg("info", false, false, msg)
+	_, err := fmt.Scanln(&input)
+	if err != nil {
+		return false
+	}
+	input = strings.ToLower(input)
+
+	if input == "y" || input == "yes" {
+		return true
+	}
+
+	return false
 }

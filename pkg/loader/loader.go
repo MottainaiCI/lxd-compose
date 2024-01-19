@@ -44,6 +44,7 @@ type LxdCInstance struct {
 	NodesPrefix    string
 
 	Upgrade bool
+	Ask     bool
 }
 
 func NewLxdCInstance(config *specs.LxdComposeConfig) *LxdCInstance {
@@ -80,6 +81,8 @@ func (i *LxdCInstance) SetSkipSync(v bool)          { i.SkipSync = v }
 func (i *LxdCInstance) GetSkipSync() bool           { return i.SkipSync }
 func (i *LxdCInstance) SetUpgradeMode(v bool)       { i.Upgrade = v }
 func (i *LxdCInstance) GetUpgradeMode() bool        { return i.Upgrade }
+func (i *LxdCInstance) SetAskMode(v bool)           { i.Ask = v }
+func (i *LxdCInstance) GetAskMode() bool            { return i.Ask }
 func (i *LxdCInstance) GetGroupsEnabled() []string  { return i.GroupsEnabled }
 func (i *LxdCInstance) GetGroupsDisabled() []string { return i.GroupsDisabled }
 func (i *LxdCInstance) SetGroupsEnabled(groups []string) {

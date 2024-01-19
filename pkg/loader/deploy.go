@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 
 	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
+	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 	"github.com/MottainaiCI/lxd-compose/pkg/template"
 )
@@ -452,6 +453,19 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 				if isRunning {
 
+					if i.Ask {
+						wantUpgrade := helpers.Ask(
+							fmt.Sprintf(
+								"[%s - %s] Found running node %s, are you sure to proceed with the upgrade? [y/N]: ",
+								proj.Name, group.Name, node.GetName(),
+							))
+						if !wantUpgrade {
+							return fmt.Errorf(
+								"Upgrade process stopped by user.",
+							)
+						}
+					}
+
 					preNodeUpgradeHooks := i.GetNodeHooks4Event(
 						specs.HookPreNodeUpgrade,
 						proj, group, &node)
@@ -466,6 +480,17 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 						return err
 					}
 
+				} else if i.Ask {
+					wantUpgrade := helpers.Ask(
+						fmt.Sprintf(
+							"[%s - %s] Found stopped node %s, are you sure to proceed with the upgrade of the node? [y/N]: ",
+							proj.Name, group.Name, node.GetName(),
+						))
+					if !wantUpgrade {
+						return fmt.Errorf(
+							"Upgrade process stopped by user.",
+						)
+					}
 				}
 
 				// POST: The running container is stopped
