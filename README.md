@@ -23,7 +23,7 @@ both VMs and Incus project too.
 ## Installation
 
 **lxd-compose** is available as Macaroni OS package and installable in every Linux
-distro through [luet](https://luet-lab.github.io/docs/) tool with these steps:
+distro through [luet](https://www.macaronios.org/docs/pms/#luet) tool with these steps:
 
 ```bash
 $> curl https://raw.githubusercontent.com/geaaru/luet/geaaru/contrib/config/get_luet_root.sh | sudo sh
