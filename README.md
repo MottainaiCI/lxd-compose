@@ -9,11 +9,16 @@
 
 **lxd-compose** supply a way to deploy a complex environment to an LXD Cluster or LXD standalone installation.
 
-It permits to organize and trace all configuration steps of infrastructure and create test suites.
+It permits organizing and tracing all infrastructure configuration steps and creating test suites, following
+the IAAS (Infrastructure As A Code) paradigm.
 
 All configuration files could be created at runtime through two different template engines: Helm or Jinja2 (require `j2cli` tool).
 
-It's under heavy development phase and specification could be changed in the near future.
+To keep API changes fast we haven't yet release a major released but we consider
+the tool pretty stable.
+
+At the moment, it uses the Container API and doesn't support VMs but we will migrate to Instance API soon to support
+both VMs and Incus project too.
 
 ## Installation
 
@@ -41,78 +46,6 @@ The complete *lxd-compose* documentation is available [here](https://mottainaici
 ## Examples
 
 We maintain a project that supply ready to build environments at [LXD Compose Galaxy](https://github.com/MottainaiCI/lxd-compose-galaxy).
-
-## Getting Started
-
-### Deploy an environment
-
-```bash
-
-$> lxd-compose apply myproject
-
-# Disable hooks with flag foo
-$> lxd-compose apply --disable-flag foo
-
-# Execute only hooks with flag foo
-$> lxd-compose apply --enable-flag foo
-
-```
-
-
-### Destroy an environment
-
-```bash
-
-$> lxd-compose destroy myproject
-
-```
-
-### Stop an environment
-
-For environment with containers not ephemeral.
-
-```bash
-$> lxd-compose stop myproject
-```
-
-### Validate environemnts
-
-
-```bash
-
-$> lxd-compose validate
-
-```
-
-### Create single node
-
-```bash
-
-$> lxd-compose node create node1 --hooks
-
-# Execute only hooks with flag foo
-$> lxd-compose node create node1 --hooks --enable-flag foo
-
-# Disable hooks with flag foo
-$> lxd-compose node create node1 --hooks --disable-flag foo
-
-```
-
-### Diagnose loaded variables
-
-```bash
-
-$> lxd-compose diagnose vars project1
-
-```
-
-### Show list of the project
-
-```bash
-
-$> lxd-compose project list
-
-```
 
 ## Community
 
