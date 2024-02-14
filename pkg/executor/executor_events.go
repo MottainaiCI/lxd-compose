@@ -24,6 +24,7 @@ type LxdCExecutorEvent string
 const (
 	LxdClientSetupDone     LxdCExecutorEvent = "client-setup"
 	LxdContainerCreated    LxdCExecutorEvent = "container-created"
+	LxdContainerUpdated    LxdCExecutorEvent = "container-updated"
 	LxdContainerStarted    LxdCExecutorEvent = "container-started"
 	LxdContainerStopped    LxdCExecutorEvent = "container-stopped"
 	LxdContainerIpAssigned LxdCExecutorEvent = "container-ip"

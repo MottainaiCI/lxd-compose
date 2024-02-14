@@ -29,6 +29,12 @@ template_engine:
       # map[string]string 
 #    devices:
       # map[string]map[string]string
+profiles:
+- name: autostart
+  config:
+    boot.autostart: "true"
+  description: Autostart container on boot
+
 
 # Include network files
 # include_profiles_files:
@@ -237,6 +243,7 @@ projects:
         common_profiles:
           - default
           - net-mottainai0
+          - autostart
 
         # Create the environment container as ephemeral or not.
         ephemeral: {{ .Values.ephemeral | default "true" }}

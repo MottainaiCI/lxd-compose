@@ -38,6 +38,7 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var enabledGroups []string
 	var disabledGroups []string
 	var renderEnvs []string
+	var profiles2remove []string
 
 	var cmd = &cobra.Command{
 		Use:     "backup [list-of-projects]",
@@ -185,6 +186,29 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 											fmt.Sprintf("[%s]", backupName))),
 									composer.Logger.Aurora.Bold(node.GetName())))
 
+							if len(profiles2remove) > 0 {
+								composer.Logger.InfoC(
+									fmt.Sprintf(
+										":knife:%s Removed profiles: %s.",
+										composer.Logger.Aurora.BrightCyan(
+											fmt.Sprintf("[%s]", backupName)),
+										strings.Join(profiles2remove, ","),
+									))
+
+								err = executor.RemoveProfilesFromContainer(
+									backupName, profiles2remove,
+								)
+								if err != nil {
+									composer.Logger.Error(
+										fmt.Sprintf(
+											"Error on removing profiles from %s container: %s",
+											backupName, err.Error()),
+									)
+									ret = 1
+									continue
+								}
+							}
+
 						}
 
 						if maxBackups > 0 {
@@ -259,6 +283,8 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Skip selected group from deploy.")
 	flags.StringSliceVar(&enabledGroups, "enable-group", []string{},
 		"Apply only selected groups.")
+	flags.StringSliceVar(&profiles2remove, "remove-profile", []string{},
+		"Define the profile to remove on the backuped containers.")
 	flags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")
 	flags.String("nodes-prefix", "", "Customize project nodes name with a prefix")
