@@ -118,18 +118,32 @@ func (e *LxdCExecutor) StartContainer(name string) error {
 }
 
 func (e *LxdCExecutor) GetContainerList() ([]string, error) {
-	return e.LxdClient.GetContainerNames()
+	if e.LegacyApi {
+		return e.LxdClient.GetContainerNames()
+	} else {
+		return e.LxdClient.GetInstanceNames(lxd_api.InstanceTypeContainer)
+	}
 }
 
 func (e *LxdCExecutor) IsRunningContainer(name string) (bool, error) {
 	ans := false
+	var status string
 
-	cInfo, _, err := e.LxdClient.GetContainer(name)
-	if err != nil {
-		return ans, err
+	if e.LegacyApi {
+		cInfo, _, err := e.LxdClient.GetContainer(name)
+		if err != nil {
+			return ans, err
+		}
+		status = cInfo.Status
+	} else {
+		iInfo, _, err := e.LxdClient.GetInstance(name)
+		if err != nil {
+			return ans, err
+		}
+		status = iInfo.Status
 	}
 
-	if cInfo.Status == "Running" {
+	if status == "Running" {
 		ans = true
 	}
 
@@ -137,14 +151,19 @@ func (e *LxdCExecutor) IsRunningContainer(name string) (bool, error) {
 }
 
 func (e *LxdCExecutor) IsEphemeralContainer(containerName string) (bool, error) {
-	ans := false
-
-	cInfo, _, err := e.LxdClient.GetContainer(containerName)
-	if err != nil {
-		return ans, err
+	if e.LegacyApi {
+		cInfo, _, err := e.LxdClient.GetContainer(containerName)
+		if err != nil {
+			return false, err
+		}
+		return cInfo.ContainerPut.Ephemeral, nil
+	} else {
+		iInfo, _, err := e.LxdClient.GetInstance(containerName)
+		if err != nil {
+			return false, err
+		}
+		return iInfo.InstancePut.Ephemeral, nil
 	}
-
-	return cInfo.ContainerPut.Ephemeral, nil
 }
 
 func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
