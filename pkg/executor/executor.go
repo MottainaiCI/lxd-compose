@@ -30,10 +30,10 @@ import (
 
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 
-	lxd "github.com/lxc/lxd/client"
-	lxd_config "github.com/lxc/lxd/lxc/config"
-	lxd_api "github.com/lxc/lxd/shared/api"
-	lxd_cli "github.com/lxc/lxd/shared/cmd"
+	lxd "github.com/canonical/lxd/client"
+	lxd_config "github.com/canonical/lxd/lxc/config"
+	lxd_api "github.com/canonical/lxd/shared/api"
+	lxd_cli "github.com/canonical/lxd/shared/cmd"
 )
 
 type LxdCExecutor struct {

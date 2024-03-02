@@ -25,7 +25,7 @@ import (
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
-	lxd_api "github.com/lxc/lxd/shared/api"
+	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
 func (e *LxdCExecutor) GetAclList() ([]string, error) {

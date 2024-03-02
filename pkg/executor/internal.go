@@ -24,9 +24,9 @@ import (
 	"strings"
 	"time"
 
-	lxd "github.com/lxc/lxd/client"
-	lxd_api "github.com/lxc/lxd/shared/api"
-	lxd_cli "github.com/lxc/lxd/shared/cmd"
+	lxd "github.com/canonical/lxd/client"
+	lxd_api "github.com/canonical/lxd/shared/api"
+	lxd_cli "github.com/canonical/lxd/shared/cmd"
 )
 
 func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []string) error {

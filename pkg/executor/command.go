@@ -30,9 +30,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	lxd "github.com/lxc/lxd/client"
-	lxd_api "github.com/lxc/lxd/shared/api"
-	"github.com/lxc/lxd/shared/termios"
+	lxd "github.com/canonical/lxd/client"
+	lxd_api "github.com/canonical/lxd/shared/api"
+	"github.com/canonical/lxd/shared/termios"
 )
 
 func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error) {

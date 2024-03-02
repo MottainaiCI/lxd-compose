@@ -20,7 +20,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package executor
 
 import (
-	lxd_api "github.com/lxc/lxd/shared/api"
+	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
 // Get the container data and the ETag

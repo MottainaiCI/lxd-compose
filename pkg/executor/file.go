@@ -32,14 +32,14 @@ import (
 
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 
-	lxd "github.com/lxc/lxd/client"
-	lxd_shared "github.com/lxc/lxd/shared"
-	lxd_cli "github.com/lxc/lxd/shared/cmd"
-	"github.com/lxc/lxd/shared/ioprogress"
-	lxd_units "github.com/lxc/lxd/shared/units"
+	lxd "github.com/canonical/lxd/client"
+	lxd_shared "github.com/canonical/lxd/shared"
+	lxd_cli "github.com/canonical/lxd/shared/cmd"
+	"github.com/canonical/lxd/shared/ioprogress"
+	lxd_units "github.com/canonical/lxd/shared/units"
 )
 
-// Based on code of lxc client tool https://github.com/lxc/lxd/blob/master/lxc/file.go
+// Based on code of lxc client tool https://github.com/canonical/lxd/blob/master/lxc/file.go
 func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os.FileMode, uid int64, gid int64) error {
 
 	/* special case, every container has a /, we don't need to do anything */
@@ -98,7 +98,7 @@ func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os
 	return nil
 }
 
-// Based on code of lxc client tool https://github.com/lxc/lxd/blob/master/lxc/file.go
+// Based on code of lxc client tool https://github.com/canonical/lxd/blob/master/lxc/file.go
 func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) error {
 	var targetIsFile bool = true
 	var sourceIsFile bool = true
@@ -250,7 +250,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 	return filepath.Walk(source, sendFile)
 }
 
-// Based on code of lxc client tool https://github.com/lxc/lxd/blob/master/lxc/file.go
+// Based on code of lxc client tool https://github.com/canonical/lxd/blob/master/lxc/file.go
 func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, localPath string, localAsTarget bool) error {
 
 	buf, resp, err := l.LxdClient.GetContainerFile(nameContainer, destPath)
