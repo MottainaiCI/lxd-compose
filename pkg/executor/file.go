@@ -1,21 +1,6 @@
 /*
-Copyright (C) 2020-2023  Daniele Rondina <geaaru@funtoo.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
+See AUTHORS and LICENSE for the license details and contributors.
 */
 package executor
 
@@ -55,13 +40,24 @@ func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os
 
 	for ; i >= 1; i-- {
 		cur := filepath.Join(parts[:i]...)
-		_, resp, err := e.LxdClient.GetContainerFile(nameContainer, cur)
-		if err != nil {
-			continue
-		}
+		if e.LegacyApi {
+			_, resp, err := e.LxdClient.GetContainerFile(nameContainer, cur)
+			if err != nil {
+				continue
+			}
 
-		if resp.Type != "directory" {
-			return fmt.Errorf("%s is not a directory", cur)
+			if resp.Type != "directory" {
+				return fmt.Errorf("%s is not a directory", cur)
+			}
+		} else {
+			_, resp, err := e.LxdClient.GetInstanceFile(nameContainer, cur)
+			if err != nil {
+				continue
+			}
+
+			if resp.Type != "directory" {
+				return fmt.Errorf("%s is not a directory", cur)
+			}
 		}
 
 		i++
@@ -80,18 +76,35 @@ func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os
 		if mode != nil {
 			modeArg = int(mode.Perm())
 		}
-		args := lxd.ContainerFileArgs{
-			UID:  uid,
-			GID:  gid,
-			Mode: modeArg,
-			Type: "directory",
-		}
 
-		e.Emitter.DebugLog(false, fmt.Sprintf("Creating %s (%s)", cur, args.Type))
+		if e.LegacyApi {
+			args := lxd.ContainerFileArgs{
+				UID:  uid,
+				GID:  gid,
+				Mode: modeArg,
+				Type: "directory",
+			}
 
-		err := e.LxdClient.CreateContainerFile(nameContainer, cur, args)
-		if err != nil {
-			return err
+			e.Emitter.DebugLog(false, fmt.Sprintf("Creating %s (%s)", cur, args.Type))
+
+			err := e.LxdClient.CreateContainerFile(nameContainer, cur, args)
+			if err != nil {
+				return err
+			}
+		} else {
+			args := lxd.InstanceFileArgs{
+				UID:  uid,
+				GID:  gid,
+				Mode: modeArg,
+				Type: "directory",
+			}
+
+			e.Emitter.DebugLog(false, fmt.Sprintf("Creating %s (%s)", cur, args.Type))
+
+			err := e.LxdClient.CreateInstanceFile(nameContainer, cur, args)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -247,15 +260,159 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 		return nil
 	}
 
-	return filepath.Walk(source, sendFile)
+	sendFileInstance := func(p string, fInfo os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("Failed to walk path for %s: %s", p, err)
+		}
+
+		// Detect unsupported files
+		if !fInfo.Mode().IsRegular() && !fInfo.Mode().IsDir() && fInfo.Mode()&os.ModeSymlink != os.ModeSymlink {
+			return fmt.Errorf("'%s' isn't a supported file type", p)
+		}
+
+		// Prepare for file transfer
+		targetPath := path.Join(target, filepath.ToSlash(p[sourceLen:]))
+
+		if p == source {
+			if targetIsFile && sourceIsFile {
+				targetPath = target
+			} else if targetIsFile && !sourceIsFile {
+				// Nothing to do. The directory is already been created.
+				e.Emitter.DebugLog(false, fmt.Sprintf("Skipping dir %s. Already created.", p))
+				return nil
+			}
+		}
+
+		mode, uid, gid := lxd_shared.GetOwnerMode(fInfo)
+		args := lxd.InstanceFileArgs{
+			UID:  int64(uid),
+			GID:  int64(gid),
+			Mode: int(mode.Perm()),
+		}
+
+		var readCloser io.ReadCloser
+		logger := log.GetDefaultLogger()
+
+		if fInfo.IsDir() {
+			// Directory handling
+			args.Type = "directory"
+		} else if fInfo.Mode()&os.ModeSymlink == os.ModeSymlink {
+			// Symlink handling
+			symlinkTarget, err := os.Readlink(p)
+			if err != nil {
+				return err
+			}
+
+			args.Type = "symlink"
+			args.Content = bytes.NewReader([]byte(symlinkTarget))
+			readCloser = io.NopCloser(args.Content)
+		} else {
+			// File handling
+			f, err := os.Open(p)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			args.Type = "file"
+			args.Content = f
+			readCloser = f
+		}
+
+		progress := lxd_cli.ProgressRenderer{
+			Format: fmt.Sprintf("Pushing %s to %s: %%s", p, targetPath),
+			Quiet:  false,
+		}
+
+		if args.Type != "directory" {
+			contentLength, err := args.Content.Seek(0, io.SeekEnd)
+			if err != nil {
+				return err
+			}
+
+			_, err = args.Content.Seek(0, io.SeekStart)
+			if err != nil {
+				return err
+			}
+
+			args.Content = lxd_shared.NewReadSeeker(&ioprogress.ProgressReader{
+				ReadCloser: readCloser,
+				Tracker: &ioprogress.ProgressTracker{
+					Length: contentLength,
+					Handler: func(percent int64, speed int64) {
+
+						if logger.Config.GetLogging().PushProgressBar {
+							e.Emitter.InfoLog(true,
+								logger.Aurora.Italic(
+									logger.Aurora.BrightMagenta(
+										fmt.Sprintf("%d%% (%s/s)", percent,
+											lxd_units.GetByteSizeString(speed, 2)))))
+						}
+
+						progress.UpdateProgress(ioprogress.ProgressData{
+							Text: fmt.Sprintf("%d%% (%s/s)", percent,
+								lxd_units.GetByteSizeString(speed, 2))})
+					},
+				},
+			}, args.Content)
+		}
+
+		if logger.Config.GetLogging().PushProgressBar {
+			e.Emitter.InfoLog(true,
+				logger.Aurora.Italic(
+					logger.Aurora.BrightMagenta(
+						fmt.Sprintf(">>> [%s] Pushing %s -> %s (%s)",
+							nameContainer, p, targetPath, args.Type))))
+		}
+
+		err = e.LxdClient.CreateInstanceFile(nameContainer, targetPath, args)
+		if err != nil {
+			if args.Type != "directory" {
+				progress.Done("")
+			}
+			return err
+		}
+		if args.Type != "directory" {
+			progress.Done("")
+		}
+		return nil
+	}
+
+	if e.LegacyApi {
+		return filepath.Walk(source, sendFile)
+	} else {
+		return filepath.Walk(source, sendFileInstance)
+	}
 }
 
 // Based on code of lxc client tool https://github.com/canonical/lxd/blob/master/lxc/file.go
 func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, localPath string, localAsTarget bool) error {
+	var ftype string
+	var mode int
+	var entries []string
+	var buf io.ReadCloser
+	var err error
 
-	buf, resp, err := l.LxdClient.GetContainerFile(nameContainer, destPath)
-	if err != nil {
-		return err
+	if l.LegacyApi {
+		var resp *lxd.ContainerFileResponse
+		buf, resp, err = l.LxdClient.GetContainerFile(nameContainer, destPath)
+		if err != nil {
+			return err
+		}
+
+		ftype = resp.Type
+		mode = resp.Mode
+		entries = resp.Entries
+	} else {
+		var resp *lxd.InstanceFileResponse
+		buf, resp, err = l.LxdClient.GetInstanceFile(nameContainer, destPath)
+		if err != nil {
+			return err
+		}
+
+		ftype = resp.Type
+		mode = resp.Mode
+		entries = resp.Entries
 	}
 
 	var target string
@@ -266,15 +423,15 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 		target = filepath.Join(localPath, filepath.Base(destPath))
 	}
 	//target := localPath
-	l.Emitter.DebugLog(false, fmt.Sprintf("Pulling %s from %s (%s)\n", target, destPath, resp.Type))
+	l.Emitter.DebugLog(false, fmt.Sprintf("Pulling %s from %s (%s)\n", target, destPath, ftype))
 
-	if resp.Type == "directory" {
-		err := os.MkdirAll(target, os.FileMode(resp.Mode))
+	if ftype == "directory" {
+		err := os.MkdirAll(target, os.FileMode(mode))
 		if err != nil {
 			l.Emitter.InfoLog(false, fmt.Sprintf("directory %s is already present. Nothing to do.\n", target))
 		}
 
-		for _, ent := range resp.Entries {
+		for _, ent := range entries {
 			nextP := path.Join(destPath, ent)
 
 			err = l.RecursivePullFile(nameContainer, nextP, target, false)
@@ -282,7 +439,7 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 				return err
 			}
 		}
-	} else if resp.Type == "file" {
+	} else if ftype == "file" {
 		f, err := os.Create(target)
 		if err != nil {
 			return err
@@ -290,7 +447,7 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 
 		defer f.Close()
 
-		err = os.Chmod(target, os.FileMode(resp.Mode))
+		err = os.Chmod(target, os.FileMode(mode))
 		if err != nil {
 			return err
 		}
@@ -324,7 +481,7 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 			return err
 		}
 
-	} else if resp.Type == "symlink" {
+	} else if ftype == "symlink" {
 		linkTarget, err := io.ReadAll(buf)
 		if err != nil {
 			return err
@@ -335,24 +492,44 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 			return err
 		}
 	} else {
-		return fmt.Errorf("Unknown file type '%s'", resp.Type)
+		return fmt.Errorf("Unknown file type '%s'", ftype)
 	}
 
 	return nil
 }
 
 func (e *LxdCExecutor) recursiveListFile(nameContainer string, targetPath string, list *list.List) error {
-	buf, resp, err := e.LxdClient.GetContainerFile(nameContainer, targetPath)
-	if err != nil {
-		return err
+	var ftype string
+	var entries []string
+	var buf io.ReadCloser
+	var err error
+
+	if e.LegacyApi {
+		var resp *lxd.ContainerFileResponse
+		buf, resp, err = e.LxdClient.GetContainerFile(nameContainer, targetPath)
+		if err != nil {
+			return err
+		}
+		ftype = resp.Type
+		entries = resp.Entries
+
+	} else {
+		var resp *lxd.InstanceFileResponse
+		buf, resp, err = e.LxdClient.GetInstanceFile(nameContainer, targetPath)
+		if err != nil {
+			return err
+		}
+		ftype = resp.Type
+		entries = resp.Entries
 	}
+
 	if buf != nil {
 		// Needed to avoid: dial unix /var/lib/lxd/unix.socket: socket: too many open files
 		buf.Close()
 	}
 
-	if resp.Type == "directory" {
-		for _, ent := range resp.Entries {
+	if ftype == "directory" {
+		for _, ent := range entries {
 			nextP := path.Join(targetPath, ent)
 			err = e.recursiveListFile(nameContainer, nextP, list)
 			if err != nil {
@@ -360,11 +537,11 @@ func (e *LxdCExecutor) recursiveListFile(nameContainer string, targetPath string
 			}
 		}
 		list.PushBack(targetPath)
-	} else if resp.Type == "file" || resp.Type == "symlink" {
+	} else if ftype == "file" || ftype == "symlink" {
 		list.PushFront(targetPath)
 
 	} else {
-		e.Emitter.WarnLog(false, "Find unsupported file type "+resp.Type+". Skipped.")
+		e.Emitter.WarnLog(false, "Find unsupported file type "+ftype+". Skipped.")
 	}
 
 	return nil
@@ -382,7 +559,11 @@ func (e *LxdCExecutor) DeleteContainerDir(name, dir string) error {
 
 	for f := list.Front(); f != nil; f = f.Next() {
 		e.Emitter.DebugLog(false, fmt.Sprintf("Removing file %s...", f.Value.(string)))
-		err = e.LxdClient.DeleteContainerFile(name, f.Value.(string))
+		if e.LegacyApi {
+			err = e.LxdClient.DeleteContainerFile(name, f.Value.(string))
+		} else {
+			err = e.LxdClient.DeleteInstanceFile(name, f.Value.(string))
+		}
 		if err != nil {
 			e.Emitter.ErrorLog(false, fmt.Sprintf("ERROR: Error on removing %s: %s",
 				f.Value, err.Error()))

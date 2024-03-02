@@ -48,6 +48,7 @@ type LxdCGeneral struct {
 	LxdConfDir      string `mapstructure:"lxd_confdir,omitempty" json:"lxd_confdir,omitempty" yaml:"lxd_confdir,omitempty"`
 	LxdLocalDisable bool   `mapstructure:"lxd_local_disable,omitempty" json:"lxd_local_disable,omitempty" yaml:"lxd_local_disable,omitempty"`
 	P2PMode         bool   `mapstructure:"p2pmode,omitempty" json:"p2pmode,omitempty" yaml:"p2pmode,omitempty"`
+	LegacyApi       bool   `mapstructure:"legacyapi,omitempty" json:"legacyapi,omitempty" yaml:"legacyapi,omitempty"`
 }
 
 type LxdCLogging struct {
@@ -90,6 +91,7 @@ func (c *LxdComposeConfig) Clone() *LxdComposeConfig {
 	ans.RenderTemplatesDirs = c.RenderTemplatesDirs
 
 	ans.General.Debug = c.General.Debug
+	ans.General.LegacyApi = c.General.LegacyApi
 	ans.General.LxdConfDir = c.General.LxdConfDir
 	ans.General.LxdLocalDisable = c.General.LxdLocalDisable
 	ans.General.P2PMode = c.General.P2PMode
@@ -169,6 +171,7 @@ func (c *LxdComposeConfig) SetRenderEnvs(envs []string) error {
 func GenDefault(viper *v.Viper) {
 	viper.SetDefault("general.debug", false)
 	viper.SetDefault("general.p2pmode", false)
+	viper.SetDefault("general.legacyapi", false)
 	viper.SetDefault("general.lxd_local_disable", false)
 	viper.SetDefault("general.lxd_confdir", "")
 	viper.SetDefault("render_default_file", "")

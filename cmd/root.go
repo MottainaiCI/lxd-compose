@@ -87,12 +87,15 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		"Show sync files progress bar.")
 	pflags.Bool("p2p-mode", config.Viper.GetBool("general.p2pmode"),
 		"Enable/Disable p2p mode.")
+	pflags.Bool("legacy-api", config.Viper.GetBool("general.legacyapi"),
+		"Uses legacy API for Containers.")
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
 	config.Viper.BindPFlag("render_default_file", pflags.Lookup("render-default"))
 	config.Viper.BindPFlag("render_values_file", pflags.Lookup("render-values"))
 	config.Viper.BindPFlag("general.debug", pflags.Lookup("debug"))
 	config.Viper.BindPFlag("general.p2pmode", pflags.Lookup("p2p-mode"))
+	config.Viper.BindPFlag("general.legacyapi", pflags.Lookup("legacy-api"))
 	config.Viper.BindPFlag("general.lxd_confdir", pflags.Lookup("lxd-config-dir"))
 	config.Viper.BindPFlag("logging.cmds_output", pflags.Lookup("cmds-output"))
 	config.Viper.BindPFlag("logging.push_progressbar", pflags.Lookup("push-progress"))

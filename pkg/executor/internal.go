@@ -1,21 +1,6 @@
 /*
-Copyright (C) 2020-2022  Daniele Rondina <geaaru@sabayonlinux.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
+See AUTHORS and LICENSE for the license details and contributors.
 */
 package executor
 
@@ -52,25 +37,44 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 	//       as profile. Same for different storage.
 	devicesMap := map[string]map[string]string{}
 
-	// Setup container creation request
-	req := lxd_api.ContainersPost{
-		Name: name,
-	}
-	req.Config = configMap
-	req.Devices = devicesMap
-	req.Profiles = profiles
-	req.Ephemeral = ephemeral
-
 	// Retrieve image info
 	image, _, err = e.LxdClient.GetImage(fingerprint)
 	if err != nil {
 		return err
 	}
 
-	// Create the container
-	remoteOperation, err = e.LxdClient.CreateContainerFromImage(e.LxdClient, *image, req)
-	if err != nil {
-		return err
+	if e.LegacyApi {
+		// Setup container creation request
+		req := lxd_api.ContainersPost{
+			Name: name,
+		}
+		req.Config = configMap
+		req.Devices = devicesMap
+		req.Profiles = profiles
+		req.Ephemeral = ephemeral
+
+		// Create the container
+		remoteOperation, err = e.LxdClient.CreateContainerFromImage(e.LxdClient, *image, req)
+		if err != nil {
+			return err
+		}
+	} else {
+
+		// Setup container creation request
+		req := lxd_api.InstancesPost{
+			Name: name,
+			Type: lxd_api.InstanceTypeContainer,
+		}
+		req.Config = configMap
+		req.Devices = devicesMap
+		req.Profiles = profiles
+		req.Ephemeral = ephemeral
+
+		// Create the container
+		remoteOperation, err = e.LxdClient.CreateInstanceFromImage(e.LxdClient, *image, req)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Watch the background operation
@@ -140,32 +144,57 @@ func (e *LxdCExecutor) WaitOperation(rawOp interface{}, p *lxd_cli.ProgressRende
 
 func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 	var err error
-	var container *lxd_api.Container
+	var ephemeral bool
+	var containerStatus string
 	var operation lxd.Operation
 
-	container, _, err = e.LxdClient.GetContainer(name)
-	if err != nil {
-		if action == "stop" {
-			e.Emitter.WarnLog(false,
-				fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
-			return nil
+	if e.LegacyApi {
+		container, _, err := e.LxdClient.GetContainer(name)
+		if err != nil {
+			if action == "stop" {
+				e.Emitter.WarnLog(false,
+					fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
+				return nil
+			}
+			return err
 		}
-		return err
+		ephemeral = container.Ephemeral
+		containerStatus = container.Status
+	} else {
+
+		instance, _, err := e.LxdClient.GetInstance(name)
+		if err != nil {
+			if action == "stop" {
+				e.Emitter.WarnLog(false,
+					fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
+				return nil
+			}
+			return err
+		}
+		ephemeral = instance.Ephemeral
+		containerStatus = instance.Status
 	}
 
-	if action == "start" && container.Status == "Started" {
+	if action == "start" && containerStatus == "Started" {
 		e.Emitter.WarnLog(false,
 			fmt.Sprintf("Container %s is already started!", name))
 		return nil
-	} else if action == "stop" && container.Status == "Stopped" {
+	} else if action == "stop" && containerStatus == "Stopped" {
 
-		if container.Ephemeral {
+		if ephemeral {
 			// POST: the container is stopped and/or in a weird status. I delete it.
 			e.Emitter.WarnLog(false,
 				fmt.Sprintf("Container %s is already stopped but ephemeral. Forcing delete.", name))
 
+			var currOper lxd.Operation
+
 			// Delete container
-			currOper, err := e.LxdClient.DeleteContainer(name)
+			if e.LegacyApi {
+				currOper, err = e.LxdClient.DeleteContainer(name)
+			} else {
+				currOper, err = e.LxdClient.DeleteInstance(name)
+			}
+
 			if err != nil {
 				e.Emitter.ErrorLog(false, "Error on delete container: "+err.Error())
 				return err
@@ -179,14 +208,26 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 		return nil
 	}
 
-	req := lxd_api.ContainerStatePut{
-		Action:   action,
-		Timeout:  120,
-		Force:    false,
-		Stateful: false,
+	if e.LegacyApi {
+		req := lxd_api.ContainerStatePut{
+			Action:   action,
+			Timeout:  120,
+			Force:    false,
+			Stateful: false,
+		}
+
+		operation, err = e.LxdClient.UpdateContainerState(name, req, "")
+	} else {
+		req := lxd_api.InstanceStatePut{
+			Action:   action,
+			Timeout:  120,
+			Force:    false,
+			Stateful: false,
+		}
+
+		operation, err = e.LxdClient.UpdateInstanceState(name, req, "")
 	}
 
-	operation, err = e.LxdClient.UpdateContainerState(name, req, "")
 	if err != nil {
 		e.Emitter.ErrorLog(false, "Error on update container state: "+err.Error())
 		return err

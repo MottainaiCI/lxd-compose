@@ -56,25 +56,6 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 	width, height, err := termios.GetSize(unix.Stdout)
 
 	cmdList := append(entrypoint, command)
-	// Prepare the command
-	req := lxd_api.ContainerExecPost{
-		Command:     cmdList,
-		WaitForWS:   true,
-		Interactive: false,
-		Environment: envs,
-		Width:       width,
-		Height:      height,
-	}
-
-	execArgs := lxd.ContainerExecArgs{
-		// Disable stdin
-		Stdin:   io.NopCloser(bytes.NewReader(nil)),
-		Stdout:  outBuffer,
-		Stderr:  errBuffer,
-		Control: nil,
-		//Control:  handler,
-		DataDone: make(chan bool),
-	}
 
 	logger := log.GetDefaultLogger()
 
@@ -85,11 +66,68 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 		logger.Aurora.BrightCyan(
 			fmt.Sprintf(">>> [%s] - %s - :coffee:", containerName, command))))
 
-	// Run the command in the container
-	currOper, err := e.LxdClient.ExecContainer(containerName, req, &execArgs)
-	if err != nil {
-		logger.Error("Error on exec command: " + err.Error())
-		return 1, err
+	var currOper lxd.Operation
+	var dataChan chan bool
+
+	if e.LegacyApi {
+		// Prepare the command
+		req := lxd_api.ContainerExecPost{
+			Command:     cmdList,
+			WaitForWS:   true,
+			Interactive: false,
+			Environment: envs,
+			Width:       width,
+			Height:      height,
+		}
+
+		execArgs := lxd.ContainerExecArgs{
+			// Disable stdin
+			Stdin:   io.NopCloser(bytes.NewReader(nil)),
+			Stdout:  outBuffer,
+			Stderr:  errBuffer,
+			Control: nil,
+			//Control:  handler,
+			DataDone: make(chan bool),
+		}
+
+		// Run the command in the container
+		currOper, err = e.LxdClient.ExecContainer(containerName, req, &execArgs)
+		if err != nil {
+			logger.Error("Error on exec command: " + err.Error())
+			return 1, err
+		}
+
+		dataChan = execArgs.DataDone
+
+	} else {
+		// Prepare the command
+		req := lxd_api.InstanceExecPost{
+			Command:     cmdList,
+			WaitForWS:   true,
+			Interactive: false,
+			Environment: envs,
+			Width:       width,
+			Height:      height,
+		}
+
+		execArgs := lxd.InstanceExecArgs{
+			// Disable stdin
+			Stdin:   io.NopCloser(bytes.NewReader(nil)),
+			Stdout:  outBuffer,
+			Stderr:  errBuffer,
+			Control: nil,
+			//Control:  handler,
+			DataDone: make(chan bool),
+		}
+
+		// Run the command in the container
+		currOper, err = e.LxdClient.ExecInstance(containerName, req, &execArgs)
+		if err != nil {
+			logger.Error("Error on exec command: " + err.Error())
+			return 1, err
+		}
+
+		dataChan = execArgs.DataDone
 	}
 
 	// Wait for the operation to complete
@@ -99,10 +137,10 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 		return 1, err
 	}
 
-	opAPI := currOper.Get()
-
 	// Wait for any remaining I/O to be flushed
-	<-execArgs.DataDone
+	<-dataChan
+
+	opAPI := currOper.Get()
 
 	var ans int
 	// NOTE: If I stop a running container for interrupt execution
