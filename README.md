@@ -17,8 +17,9 @@ All configuration files could be created at runtime through two different templa
 To keep API changes fast we haven't yet release a major released but we consider
 the tool pretty stable.
 
-At the moment, it uses the Container API and doesn't support VMs but we will migrate to Instance API soon to support
-both VMs and Incus project too.
+From release `v0.33.0` lxd-compose uses by default the Instance API to works with `Incus`.
+
+At the moment, we doesn't support VMs but we will add support to virtual-machine soon.
 
 ## Installation
 
