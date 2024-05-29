@@ -167,6 +167,14 @@ func (s *SpecFile) GetRename(file string) string {
 			}
 		}
 	}
+
+	if len(s.RenamePath) > 0 {
+		for _, r := range s.RenamePath {
+			if strings.HasPrefix(file, r.Source) {
+				return strings.Replace(file, r.Source, r.Dest, 1)
+			}
+		}
+	}
 	return file
 }
 

@@ -31,9 +31,7 @@ import (
 )
 
 func (t *TarFormers) CreateFile(dir, name string, mode os.FileMode, reader io.Reader, header *tar.Header) error {
-
-	file := t.Task.GetRename("/" + name)
-	file = filepath.Join(dir, file)
+	file := filepath.Join(dir, name)
 
 	_, err := t.CreateDir(filepath.Dir(file), mode|os.ModeDir|100)
 	if err != nil {

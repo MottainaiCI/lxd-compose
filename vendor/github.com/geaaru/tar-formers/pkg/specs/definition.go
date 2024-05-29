@@ -41,7 +41,8 @@ type SpecFile struct {
 	TriggeredFiles         []string `yaml:"triggered_files,omitempty" json:"triggered_files,omitempty"`
 	TriggeredMatchesPrefix []string `yaml:"triggered_matches_prefix,omitempty" json:"triggered_matches_prefix,omitempty"`
 
-	Rename []RenameRule `yaml:"rename,omitempty" json:"rename,omitempty"`
+	Rename     []RenameRule `yaml:"rename,omitempty" json:"rename,omitempty"`
+	RenamePath []RenameRule `yaml:"rename_paths,omitempty" json:"rename_paths,omitempty"`
 
 	RemapUids   map[string]string `yaml:"remap_uids,omitempty" json:"remap_uids,omitempty"`
 	RemapGids   map[string]string `yaml:"remap_gids,omitempty" json:"remap_gids,omitempty"`

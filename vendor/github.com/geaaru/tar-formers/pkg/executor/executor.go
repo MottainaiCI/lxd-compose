@@ -429,7 +429,7 @@ func (t *TarFormers) HandleTarFlow(tarReader *tar.Reader, dir string) error {
 
 		absPath := "/" + header.Name
 		targetPath := filepath.Join(dir, header.Name)
-		name := header.Name
+		var name string
 
 		// Call file handler also for file that could be skipped and permit
 		// to notify this to users.
@@ -459,7 +459,17 @@ func (t *TarFormers) HandleTarFlow(tarReader *tar.Reader, dir string) error {
 				}
 
 				targetPath = filepath.Join(dir, name)
+			} else {
+				name = header.Name
 			}
+		} else {
+			rename := t.Task.GetRename(absPath)
+			if rename != absPath {
+				absPath = rename
+				targetPath = filepath.Join(dir, rename)
+			}
+			// Drop initial / for header name
+			name = rename[1:]
 		}
 
 		if t.Task.IsPath2Skip(absPath) {
@@ -471,8 +481,8 @@ func (t *TarFormers) HandleTarFlow(tarReader *tar.Reader, dir string) error {
 
 		if t.Config.GetLogging().Level == "debug" {
 			t.Logger.Debug(fmt.Sprintf(
-				"Parsing file %s [%s - %d, %s - %d] %s (%s).",
-				name, header.Uname, header.Uid, header.Gname,
+				"Parsing file %s [%s (%s) - %d, %s - %d] %s (%s).",
+				header.Name, name, header.Uname, header.Uid, header.Gname,
 				header.Gid, info.Mode(), header.Linkname))
 		}
 
