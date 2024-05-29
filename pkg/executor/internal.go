@@ -102,9 +102,13 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 		return err
 	}
 
-	containers, ok := opInfo.Resources["containers"]
-	if !ok || len(containers) == 0 {
-		return fmt.Errorf("didn't get any affected image, container or snapshot from server")
+	instances, ok := opInfo.Resources["instances"]
+	if !ok || len(instances) == 0 {
+		// Try using the older "containers" field
+		instances, ok = opInfo.Resources["containers"]
+		if !ok || len(instances) == 0 {
+			return fmt.Errorf("didn't get any affected image, container or snapshot from server")
+		}
 	}
 
 	e.Emitter.Emits(LxdContainerCreated, map[string]interface{}{
