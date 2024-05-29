@@ -416,7 +416,7 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 	}
 
 	var target string
-	// Default loging is to append tree to target directory
+	// Default logic is to append tree to target directory
 	if localAsTarget {
 		target = localPath
 	} else {
