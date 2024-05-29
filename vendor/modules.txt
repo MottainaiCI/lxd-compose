@@ -398,8 +398,6 @@ github.com/zitadel/oidc/v2/pkg/http
 github.com/zitadel/oidc/v2/pkg/oidc
 github.com/zitadel/oidc/v2/pkg/oidc/grants/tokenexchange
 github.com/zitadel/oidc/v2/pkg/strings
-# go.uber.org/atomic v1.11.0
-## explicit; go 1.18
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
