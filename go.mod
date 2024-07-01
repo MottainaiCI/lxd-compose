@@ -55,7 +55,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/google/uuid v1.4.0 // indirect
-	github.com/gorilla/schema v1.2.1 // indirect
+	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/gosexy/gettext v0.0.0-20160830220431-74466a0a0c4a // indirect
