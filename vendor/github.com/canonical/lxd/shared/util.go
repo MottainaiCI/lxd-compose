@@ -257,55 +257,44 @@ func LogPath(path ...string) string {
 	return filepath.Join(items...)
 }
 
-// ParseFileHeaders extracts the file ownership, type, mode and operation type from HTTP headers.
-func ParseFileHeaders(headers http.Header) (int64, int64, int, string, string) {
-	getHeader := func(key string) string {
-		value := headers.Get(fmt.Sprintf("X-Incus-%s", key))
-		if value == "" {
-			// Legacy support.
-			value = headers.Get(fmt.Sprintf("X-LXD-%s", key))
-		}
-
-		return value
-	}
-
-	uid, err := strconv.ParseInt(getHeader("uid"), 10, 64)
+func ParseLXDFileHeaders(headers http.Header) (uid int64, gid int64, mode int, type_ string, write string) {
+	uid, err := strconv.ParseInt(headers.Get("X-LXD-uid"), 10, 64)
 	if err != nil {
 		uid = -1
 	}
 
-	gid, err := strconv.ParseInt(getHeader("gid"), 10, 64)
+	gid, err = strconv.ParseInt(headers.Get("X-LXD-gid"), 10, 64)
 	if err != nil {
 		gid = -1
 	}
 
-	mode, err := strconv.Atoi(getHeader("mode"))
+	mode, err = strconv.Atoi(headers.Get("X-LXD-mode"))
 	if err != nil {
 		mode = -1
 	} else {
-		rawMode, err := strconv.ParseInt(getHeader("mode"), 0, 0)
+		rawMode, err := strconv.ParseInt(headers.Get("X-LXD-mode"), 0, 0)
 		if err == nil {
 			mode = int(os.FileMode(rawMode) & os.ModePerm)
 		}
 	}
 
-	fileType := getHeader("type")
-	if fileType == "" {
-		// Default is standard file.
-		fileType = "file"
+	type_ = headers.Get("X-LXD-type")
+	/* backwards compat: before "type" was introduced, we could only
+	 * manipulate files
+	 */
+	if type_ == "" {
+		type_ = "file"
 	}
 
-	writeMode := getHeader("write")
-	if writeMode == "" {
-		// Default is to override the content.
-		writeMode = "overwrite"
+	write = headers.Get("X-LXD-write")
+	/* backwards compat: before "write" was introduced, we could only
+	 * overwrite files
+	 */
+	if write == "" {
+		write = "overwrite"
 	}
 
-	return uid, gid, mode, fileType, writeMode
-}
-
-func ParseLXDFileHeaders(headers http.Header) (uid int64, gid int64, mode int, type_ string, write string) {
-	return ParseFileHeaders(headers)
+	return uid, gid, mode, type_, write
 }
 
 func ReaderToChannel(r io.Reader, bufferSize int) <-chan []byte {
