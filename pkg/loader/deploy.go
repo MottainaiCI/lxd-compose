@@ -236,7 +236,9 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 			if h.Node == "host" {
 				if storeVar {
-					res, err = executor.RunHostCommandWithOutput4Var(cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint)
+					res, err = executor.RunHostCommandWithOutput4Var(
+						cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint,
+					)
 				} else {
 					if i.Config.GetLogging().RuntimeCmdsOutput {
 						emitter := executor.GetEmitter()
@@ -253,7 +255,10 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 			} else {
 
 				if storeVar {
-					res, err = executor.RunCommandWithOutput4Var(node, cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint)
+					res, err = executor.RunCommandWithOutput4Var(
+						node, cmds, h.Out2Var, h.Err2Var, &envs, h.Entrypoint,
+						h.Uid, h.Gid, h.Cwd,
+					)
 				} else {
 					if i.Config.GetLogging().RuntimeCmdsOutput {
 						emitter := executor.GetEmitter()
@@ -261,10 +266,12 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 							node, cmds, envs,
 							(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStdout(),
 							(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStderr(),
-							h.Entrypoint)
+							h.Entrypoint, h.Uid, h.Gid, h.Cwd,
+						)
 					} else {
 						res, err = executor.RunCommand(
 							node, cmds, envs, h.Entrypoint,
+							h.Uid, h.Gid, h.Cwd,
 						)
 					}
 				}

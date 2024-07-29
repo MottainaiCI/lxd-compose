@@ -318,6 +318,10 @@ projects:
                   - curl https://raw.githubusercontent.com/geaaru/luet/geaaru/contrib/config/get_luet_root.sh | sh
                   - luet install utils/jq
                   - echo "${node}" | jq
+                  # Creating user and group for
+                  - >-
+                    addgroup test -g 1000 &&
+                    adduser -s /bin/sh -u 1000 -G test -S test
 
               - event: pre-node-sync
                 node: "host"
@@ -401,6 +405,16 @@ projects:
                 disable: true
                 commands:
                   - echo "Command DISABLED!"
+
+              - event: post-node-sync
+                flags:
+                  - user_hook
+                commands:
+                  - whoami
+                  - pwd
+                uid: 1000
+                gid: 1000
+                cwd: /home/test
 
             # List of templates files to compiles before push the
             # result inside container.

@@ -111,7 +111,7 @@ func NewExecCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				node, strings.Join(commands, " "), envs,
 				(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStdout(),
 				(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStderr(),
-				[]string{},
+				[]string{}, nil, nil, "",
 			)
 
 			os.Exit(res)

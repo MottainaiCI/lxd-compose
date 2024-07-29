@@ -181,6 +181,9 @@ type LxdCHook struct {
 	Entrypoint []string `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
 	Flags      []string `json:"flags,omitempty" yaml:"flags,omitempty"`
 	Disable    bool     `json:"disable,omitempty" yaml:"disable,omitempty"`
+	Uid        *uint32  `json:"uid,omitempty" yaml:"uid,omitempty"`
+	Gid        *uint32  `json:"gid,omitempty" yaml:"gid,omitempty"`
+	Cwd        string   `json:"cwd,omitempty" yaml:"cwd,omitempty"`
 }
 
 type LxdCHooks struct {

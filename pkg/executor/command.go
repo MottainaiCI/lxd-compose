@@ -35,7 +35,10 @@ import (
 	"github.com/canonical/lxd/shared/termios"
 )
 
-func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error) {
+func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string,
+	envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string,
+	uid, gid *uint32, cwd string) (int, error) {
+
 	entrypoint := []string{"/bin/bash", "-c"}
 
 	if len(e.Entrypoint) > 0 {
@@ -80,6 +83,15 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 			Height:      height,
 		}
 
+		if uid != nil && gid != nil {
+			req.User = *uid
+			req.Group = *gid
+		}
+
+		if cwd != "" {
+			req.Cwd = cwd
+		}
+
 		execArgs := lxd.ContainerExecArgs{
 			// Disable stdin
 			Stdin:   io.NopCloser(bytes.NewReader(nil)),
@@ -108,6 +120,15 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 			Environment: envs,
 			Width:       width,
 			Height:      height,
+		}
+
+		if uid != nil && gid != nil {
+			req.User = *uid
+			req.Group = *gid
+		}
+
+		if cwd != "" {
+			req.Cwd = cwd
 		}
 
 		execArgs := lxd.InstanceExecArgs{
@@ -165,13 +186,14 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string, envs 
 	return ans, nil
 }
 
-func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string]string, entryPoint []string) (int, error) {
+func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string]string,
+	entryPoint []string, uid, gid *uint32, cwd string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 
 	res, err := e.RunCommandWithOutput(containerName, command, envs,
 		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer),
-		entryPoint)
+		entryPoint, uid, gid, cwd)
 
 	if err == nil {
 
@@ -193,13 +215,14 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 	return res, err
 }
 
-func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar, errVar string, envs *map[string]string, entryPoint []string) (int, error) {
+func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar,
+	errVar string, envs *map[string]string, entryPoint []string, uid, gid *uint32, cwd string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 
 	res, err := e.RunCommandWithOutput(containerName, command, *envs,
 		helpers.NewNopCloseWriter(&outBuffer), helpers.NewNopCloseWriter(&errBuffer),
-		entryPoint)
+		entryPoint, uid, gid, cwd)
 
 	if err == nil {
 
