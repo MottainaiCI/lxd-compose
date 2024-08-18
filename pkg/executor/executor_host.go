@@ -57,6 +57,7 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 
 	if e.ConfigDir != "" {
 		elist = append(elist, fmt.Sprintf("LXD_CONF=%s", e.ConfigDir))
+		elist = append(elist, fmt.Sprintf("INCUS_CONF=%s", e.ConfigDir))
 	}
 
 	hostCommand.Stdout = outBuffer

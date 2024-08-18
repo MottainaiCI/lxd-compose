@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 
+	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	lxd "github.com/canonical/lxd/client"
 	lxd_config "github.com/canonical/lxd/lxc/config"
 )
@@ -21,15 +22,30 @@ func getLxcDefaultConfDir() (string, error) {
 
 	if os.Getenv("LXD_CONF") != "" {
 		configDir = os.Getenv("LXD_CONF")
+	} else if os.Getenv("INCUS_CONF") != "" {
+		configDir = os.Getenv("INCUS_CONF")
 	} else if os.Getenv("HOME") != "" {
-		configDir = path.Join(os.Getenv("HOME"), ".config", "lxc")
+		incusConfigDir := path.Join(
+			os.Getenv("HOME"), ".config", "incus")
+
+		if helpers.Exists(incusConfigDir) {
+			configDir = incusConfigDir
+		} else {
+			configDir = path.Join(os.Getenv("HOME"), ".config", "lxc")
+		}
 	} else {
 		user, err := user.Current()
 		if err != nil {
 			return "", err
 		}
 
-		configDir = path.Join(user.HomeDir, ".config", "lxc")
+		incusConfigDir := path.Join(user.HomeDir, ".config", "incus")
+
+		if helpers.Exists(incusConfigDir) {
+			configDir = incusConfigDir
+		} else {
+			configDir = path.Join(user.HomeDir, ".config", "lxc")
+		}
 	}
 
 	return configDir, nil
@@ -40,18 +56,18 @@ func (e *LxdCExecutor) Setup() error {
 
 	configDir, err := getLxcDefaultConfDir()
 	if err != nil {
-		return errors.New("Error on retrieve default LXD config directory: " + err.Error())
+		return errors.New("Error on retrieve default LXD/Incus config directory: " + err.Error())
 	}
 
 	if e.ConfigDir == "" {
 		e.ConfigDir = configDir
 	}
 	configPath := path.Join(e.ConfigDir, "/config.yml")
-	e.Emitter.DebugLog(false, "Using LXD config file", configPath)
+	e.Emitter.DebugLog(false, "Using LXD/Incus config file", configPath)
 
 	e.LxdConfig, err = lxd_config.LoadConfig(configPath)
 	if err != nil {
-		return errors.New("Error on load LXD config: " + err.Error())
+		return errors.New("Error on load LXD/Incus config: " + err.Error())
 	}
 
 	if len(e.Endpoint) > 0 {
