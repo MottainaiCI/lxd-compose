@@ -22,7 +22,7 @@ require (
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/sys v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.15.0
+	helm.sh/helm/v3 v3.15.4
 )
 
 require github.com/canonical/lxd v0.0.0-20231212113931-6b2c9592e968
@@ -124,10 +124,10 @@ require (
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.30.0 // indirect
-	k8s.io/apiextensions-apiserver v0.30.0 // indirect
-	k8s.io/apimachinery v0.30.0 // indirect
-	k8s.io/client-go v0.30.0 // indirect
+	k8s.io/api v0.30.3 // indirect
+	k8s.io/apiextensions-apiserver v0.30.3 // indirect
+	k8s.io/apimachinery v0.30.3 // indirect
+	k8s.io/client-go v0.30.3 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661 // indirect
