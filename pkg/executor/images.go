@@ -84,7 +84,7 @@ func (e *LxdCExecutor) PurgeImages(opts *PurgeOpts) error {
 				nextImg:
 				}
 
-				for fingerprint, _ := range matchedFingerprints {
+				for fingerprint := range matchedFingerprints {
 					err = e.DeleteImageByFingerprint(fingerprint)
 					if err != nil {
 						inErr = true
