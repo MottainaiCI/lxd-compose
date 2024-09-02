@@ -39,6 +39,7 @@ type Profile struct {
 	Location          []*Location
 	Function          []*Function
 	Comments          []string
+	DocURL            string
 
 	DropFrames string
 	KeepFrames string
@@ -53,6 +54,7 @@ type Profile struct {
 	encodeMu sync.Mutex
 
 	commentX           []int64
+	docURLX            int64
 	dropFramesX        int64
 	keepFramesX        int64
 	stringTable        []string
@@ -555,6 +557,9 @@ func (p *Profile) String() string {
 	for _, c := range p.Comments {
 		ss = append(ss, "Comment: "+c)
 	}
+	if url := p.DocURL; url != "" {
+		ss = append(ss, fmt.Sprintf("Doc: %s", url))
+	}
 	if pt := p.PeriodType; pt != nil {
 		ss = append(ss, fmt.Sprintf("PeriodType: %s %s", pt.Type, pt.Unit))
 	}
@@ -847,7 +852,7 @@ func (p *Profile) HasFileLines() bool {
 // "[vdso]", [vsyscall]" and some others, see the code.
 func (m *Mapping) Unsymbolizable() bool {
 	name := filepath.Base(m.File)
-	return strings.HasPrefix(name, "[") || strings.HasPrefix(name, "linux-vdso") || strings.HasPrefix(m.File, "/dev/dri/")
+	return strings.HasPrefix(name, "[") || strings.HasPrefix(name, "linux-vdso") || strings.HasPrefix(m.File, "/dev/dri/") || m.File == "//anon"
 }
 
 // Copy makes a fully independent copy of a profile.
