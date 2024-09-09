@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
 	loader "github.com/MottainaiCI/lxd-compose/pkg/loader"
@@ -67,6 +68,7 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			prefix, _ := cmd.Flags().GetString("nodes-prefix")
 			testImages, _ := cmd.Flags().GetBool("test-images")
+			sleep, _ := cmd.Flags().GetUint("sleep")
 			ret := 0
 
 			composer.SetGroupsDisabled(disabledGroups)
@@ -151,6 +153,13 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 									imageData[1], key, err.Error()))
 						}
 
+						composer.Logger.Info(fmt.Sprintf(
+							"[%s] Sleeping for %d seconds...",
+							imageData[0], sleep,
+						))
+						duration, _ := time.ParseDuration(fmt.Sprintf("%ds", sleep))
+						time.Sleep(duration)
+
 						err = executor.DeleteContainer("test-image")
 						if err != nil {
 							composer.Logger.Error(
@@ -187,6 +196,8 @@ func newFetchCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	flags.StringSliceVar(&testProfiles, "test-profile", []string{},
 		"Define the list of LXD profile to use on testing container. Used with --test-images")
 	flags.Bool("test-images", false, "Testing fetched images.")
+	flags.Uint("sleep", 3,
+		"Number of seconds sleep before delete the testing container. Used with --test-images.")
 
 	return cmd
 }
