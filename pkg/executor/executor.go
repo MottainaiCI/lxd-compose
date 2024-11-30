@@ -31,6 +31,8 @@ type LxdCExecutor struct {
 	LocalDisable      bool
 	LegacyApi         bool
 
+	ExcludedRemotes []string
+
 	Emitter LxdCExecutorEmitter
 }
 
@@ -56,6 +58,7 @@ func NewLxdCExecutorWithEmitter(endpoint, configdir string,
 		P2PMode:           false,
 		LocalDisable:      false,
 		LegacyApi:         false,
+		ExcludedRemotes:   []string{},
 	}
 }
 
@@ -67,6 +70,20 @@ func (e *LxdCExecutor) SetLocalDisable(v bool)                 { e.LocalDisable 
 func (e *LxdCExecutor) GetLocalDisable() bool                  { return e.LocalDisable }
 func (e *LxdCExecutor) SetLegacyApi(a bool)                    { e.LegacyApi = a }
 func (e *LxdCExecutor) GetLegacyApi() bool                     { return e.LegacyApi }
+
+func (e *LxdCExecutor) IsRemoteExcluded(remote string) bool {
+	if len(e.ExcludedRemotes) == 0 {
+		return false
+	}
+
+	for _, r := range e.ExcludedRemotes {
+		if r == remote {
+			return true
+		}
+	}
+
+	return false
+}
 
 func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, profiles []string) error {
 	return e.CreateContainerWithConfig(name, fingerprint, imageServer, profiles, map[string]string{})

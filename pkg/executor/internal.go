@@ -496,6 +496,12 @@ func (e *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.I
 			continue
 		}
 
+		if e.IsRemoteExcluded(remote) {
+			e.Emitter.DebugLog(false, fmt.Sprintf(
+				"Skipping remote %s. Remote excluded.", remote))
+			continue
+		}
+
 		e.Emitter.DebugLog(false, fmt.Sprintf(
 			"Found remote %s. I will search the image %s",
 			remote, image))
