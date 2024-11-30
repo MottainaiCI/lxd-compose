@@ -71,6 +71,28 @@ func (e *LxdCExecutor) GetLocalDisable() bool                  { return e.LocalD
 func (e *LxdCExecutor) SetLegacyApi(a bool)                    { e.LegacyApi = a }
 func (e *LxdCExecutor) GetLegacyApi() bool                     { return e.LegacyApi }
 
+func (e *LxdCExecutor) AddRemote2Exclude(remote string) {
+	isPresent := false
+	for _, r := range e.ExcludedRemotes {
+		if r == remote {
+			isPresent = true
+			break
+		}
+	}
+
+	if !isPresent {
+		e.ExcludedRemotes = append(e.ExcludedRemotes, remote)
+	}
+}
+
+func (e *LxdCExecutor) SetExcludedRemotes(remotes []string) {
+	e.ExcludedRemotes = remotes
+}
+
+func (e *LxdCExecutor) GetExcludedRemotes() []string {
+	return e.ExcludedRemotes
+}
+
 func (e *LxdCExecutor) IsRemoteExcluded(remote string) bool {
 	if len(e.ExcludedRemotes) == 0 {
 		return false
