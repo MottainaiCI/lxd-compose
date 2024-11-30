@@ -20,7 +20,7 @@ const (
 
 Mottainai - LXD Compose Integrator`
 
-	LXD_COMPOSE_VERSION = `0.35.1`
+	LXD_COMPOSE_VERSION = `0.35.2`
 )
 
 var (
