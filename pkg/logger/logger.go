@@ -215,6 +215,6 @@ func (l *LxdCLogger) Error(mess ...interface{}) {
 }
 
 func (l *LxdCLogger) Fatal(mess ...interface{}) {
-	l.Error(mess)
+	l.Error(mess...)
 	os.Exit(1)
 }
