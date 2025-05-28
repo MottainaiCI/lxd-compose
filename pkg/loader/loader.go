@@ -771,6 +771,19 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 	err = i.loadIncludeHooks(env)
 
+	// Set paths of the certificates
+	if len(env.Certificates) > 0 {
+		for idx := range env.Certificates {
+			if env.Certificates[idx].CertificatePath != "" {
+				if !path.IsAbs(env.Certificates[idx].CertificatePath) {
+					env.Certificates[idx].CertificatePath = path.Join(
+						envBaseDir, env.Certificates[idx].CertificatePath,
+					)
+				}
+			}
+		}
+	}
+
 	return err
 }
 

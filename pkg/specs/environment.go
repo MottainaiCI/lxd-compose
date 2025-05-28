@@ -65,6 +65,10 @@ func (e *LxdCEnvironment) GetProfiles() *[]LxdCProfile {
 	return &e.Profiles
 }
 
+func (e *LxdCEnvironment) GetCertificates() *[]LxdCCertificate {
+	return &e.Certificates
+}
+
 func (e *LxdCEnvironment) GetCommands() *[]LxdCCommand {
 	return &e.Commands
 }
@@ -93,6 +97,18 @@ func (e *LxdCEnvironment) GetProfile(name string) (LxdCProfile, error) {
 	}
 
 	return ans, errors.New("Profile " + name + " not available.")
+}
+
+func (e *LxdCEnvironment) GetCertificate(name string) (LxdCCertificate, error) {
+	ans := LxdCCertificate{}
+
+	for _, cert := range e.Certificates {
+		if cert.Name == name {
+			return cert, nil
+		}
+	}
+
+	return ans, errors.New("Certificate " + name + " not available.")
 }
 
 func (e *LxdCEnvironment) GetNetworks() *[]LxdCNetwork {
@@ -153,6 +169,10 @@ func (e *LxdCEnvironment) AddStorage(storage *LxdCStorage) {
 
 func (e *LxdCEnvironment) AddProfile(profile *LxdCProfile) {
 	e.Profiles = append(e.Profiles, *profile)
+}
+
+func (e *LxdCEnvironment) AddCertificate(cert *LxdCCertificate) {
+	e.Certificates = append(e.Certificates, *cert)
 }
 
 func (e *LxdCEnvironment) AddACL(acl *LxdCAcl) {

@@ -36,6 +36,12 @@ profiles:
   description: Autostart container on boot
 
 
+certificates:
+- name: metrics
+  type: metrics
+  certificate_path: /tmp/metrics.crt
+
+
 # Include network files
 # include_profiles_files:
 # - profiles/file1.yml

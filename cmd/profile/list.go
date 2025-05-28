@@ -125,7 +125,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
 	pflags.Bool("json", false, "JSON output")
-	pflags.StringP("search", "s", "", "Regex filter to use with network name.")
+	pflags.StringP("search", "s", "", "Regex filter to use with profile name.")
 
 	return cmd
 }
