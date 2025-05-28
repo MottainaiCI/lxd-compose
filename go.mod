@@ -1,6 +1,8 @@
 module github.com/MottainaiCI/lxd-compose
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.23.1
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -19,8 +21,8 @@ require (
 	github.com/spf13/viper v1.19.0
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/sys v0.27.0
+	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/sys v0.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.15.4
 )
@@ -108,9 +110,9 @@ require (
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
-	golang.org/x/sync v0.9.0 // indirect
-	golang.org/x/term v0.26.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.27.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
