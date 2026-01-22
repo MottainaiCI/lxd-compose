@@ -20,6 +20,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package loader
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -429,6 +430,12 @@ func (i *LxdCInstance) LoadEnvironments() error {
 			}
 
 			i.AddEnvironment(*env)
+
+			// Check for encrypted vars and decrypt it if possible
+			err = i.decodeEncryptedEnvVars(env)
+			if err != nil {
+				return err
+			}
 
 			i.Logger.Debug("Loaded environment file " + env.File)
 
@@ -949,4 +956,82 @@ func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCPro
 	}
 
 	return evars, nil
+}
+
+func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment) error {
+
+	var err error
+	keyBytes := []byte{}
+
+	if i.Config.GetSecurity().Key != "" {
+		keyBytes, err = base64.StdEncoding.DecodeString(i.Config.GetSecurity().Key)
+		if err != nil {
+			return fmt.Errorf("error on decode base64 key: %s", err.Error())
+		}
+	}
+
+	for idx := range env.Projects {
+		for eidx := range env.Projects[idx].Environments {
+
+			if env.Projects[idx].Environments[eidx].Encrypted {
+
+				if i.Config.GetSecurity().Key == "" {
+					i.Logger.Warning("Found variables encrypted but no key available. Ignoring vars.")
+					goto skipDecode
+				}
+
+				// Decode encrypted content.
+				encryptedContent, err := base64.StdEncoding.DecodeString(
+					env.Projects[idx].Environments[eidx].EncryptedContent,
+				)
+				if err != nil {
+					i.Logger.Warning("ignoring error on decode base64 for %s: %s",
+						env.Projects[idx].Environments[eidx].EncryptedContent,
+						err.Error())
+					continue
+				}
+
+				// TODO: Add DKA Options in config
+				dkaOpts := helpers.NewDKAOptsDefault()
+				decodedBytes, err := helpers.Decrypt(encryptedContent, keyBytes, dkaOpts)
+				if err != nil {
+					i.Logger.Warning("ignoring error on decrypt content %s: %s",
+						env.Projects[idx].Environments[eidx].EncryptedContent,
+						err.Error())
+					continue
+				}
+				// Render the decrypt content
+				renderOut, err := helpers.RenderContentWithTemplates(string(decodedBytes),
+					i.Config.RenderValuesFile,
+					i.Config.RenderDefaultFile,
+					"-",
+					i.Config.RenderEnvsVars,
+					i.Config.RenderTemplatesDirs,
+				)
+				if err != nil {
+					i.Logger.Error("Error on render encrypted vars",
+						string(decodedBytes),
+					)
+					return err
+				}
+
+				evars, err := specs.EnvVarsFromYaml([]byte(renderOut))
+				if err != nil {
+					i.Logger.Debug(fmt.Sprintf(
+						"On parse decrypted vars content %s:\n%s",
+						renderOut, err.Error()))
+					continue
+				}
+
+				env.Projects[idx].Environments[eidx].EnvVars = evars.EnvVars
+
+			}
+
+		}
+
+	}
+
+skipDecode:
+
+	return nil
 }

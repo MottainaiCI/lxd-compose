@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	cliName = `Copyright (c) 2020-2025 Mottainai - Daniele Rondina
+	cliName = `Copyright (c) 2020-2026 Mottainai - Daniele Rondina
 
 Mottainai - LXD Compose Integrator`
 
@@ -46,7 +46,6 @@ func initConfig(config *specs.LxdComposeConfig) {
 	config.Viper.SetConfigName(specs.LXD_COMPOSE_CONFIGNAME)
 
 	config.Viper.SetTypeByDefaultValue(true)
-
 }
 
 func cmdNeedConfig(cmd string) bool {
@@ -74,6 +73,8 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		"Enable/Disable p2p mode.")
 	pflags.Bool("legacy-api", config.Viper.GetBool("general.legacyapi"),
 		"Uses legacy API for Containers.")
+	pflags.String("keyfile", "", "Overrife keyfile path for decryption.")
+	pflags.String("key", "", "Overrife key for decryption.")
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
 	config.Viper.BindPFlag("render_default_file", pflags.Lookup("render-default"))
@@ -84,6 +85,8 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	config.Viper.BindPFlag("general.lxd_confdir", pflags.Lookup("lxd-config-dir"))
 	config.Viper.BindPFlag("logging.cmds_output", pflags.Lookup("cmds-output"))
 	config.Viper.BindPFlag("logging.push_progressbar", pflags.Lookup("push-progress"))
+	config.Viper.BindPFlag("security.keyfile", pflags.Lookup("keyfile"))
+	config.Viper.BindPFlag("security.key", pflags.Lookup("key"))
 
 	rootCmd.AddCommand(
 		newAclCommand(config),
@@ -97,7 +100,6 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newImagesCommand(config),
 		newNodeCommand(config),
 		newNetworkCommand(config),
-		newStorageCommand(config),
 		newPackCommand(config),
 		newUnpackCommand(config),
 		newProfileCommand(config),
@@ -105,7 +107,9 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		newProjectCommand(config),
 		newCommandCommand(config),
 		newFetchCommand(config),
+		newSecurityCommand(config),
 		newStopCommand(config),
+		newStorageCommand(config),
 		newTrustCommand(config),
 	)
 }
@@ -152,6 +156,19 @@ func Execute() {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
+
+			// Load key decryption key if available keyfile
+			if config.GetSecurity().Keyfile != "" && config.GetSecurity().Key == "" {
+				// NOTE: if the Key is present it wins.
+				content, err := os.ReadFile(config.GetSecurity().Keyfile)
+				if err != nil {
+					fmt.Println(fmt.Sprintf("error on read keyfile %s: %s",
+						config.GetSecurity().Keyfile, err.Error()))
+					os.Exit(1)
+				}
+				config.GetSecurity().Key = string(content)
+			}
+
 		},
 	}
 

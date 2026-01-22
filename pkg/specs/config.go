@@ -33,9 +33,10 @@ const (
 type LxdComposeConfig struct {
 	Viper *v.Viper `yaml:"-" json:"-"`
 
-	General         LxdCGeneral `mapstructure:"general" json:"general,omitempty" yaml:"general,omitempty"`
-	Logging         LxdCLogging `mapstructure:"logging" json:"logging,omitempty" yaml:"logging,omitempty"`
-	EnvironmentDirs []string    `mapstructure:"env_dirs,omitempty" json:"env_dirs,omitempty" yaml:"env_dirs,omitempty"`
+	General         LxdCGeneral  `mapstructure:"general" json:"general,omitempty" yaml:"general,omitempty"`
+	Logging         LxdCLogging  `mapstructure:"logging" json:"logging,omitempty" yaml:"logging,omitempty"`
+	Security        LxdCSecurity `mapstructure:"security" json:"security,omitempty" yaml:"security,omitempty"`
+	EnvironmentDirs []string     `mapstructure:"env_dirs,omitempty" json:"env_dirs,omitempty" yaml:"env_dirs,omitempty"`
 
 	RenderDefaultFile   string                 `mapstructure:"render_default_file,omitempty" json:"render_default_file,omitempty" yaml:"render_default_file,omitempty"`
 	RenderValuesFile    string                 `mapstructure:"render_values_file,omitempty" json:"render_values_file,omitempty" yaml:"render_values_file,omitempty"`
@@ -49,6 +50,11 @@ type LxdCGeneral struct {
 	LxdLocalDisable bool   `mapstructure:"lxd_local_disable,omitempty" json:"lxd_local_disable,omitempty" yaml:"lxd_local_disable,omitempty"`
 	P2PMode         bool   `mapstructure:"p2pmode,omitempty" json:"p2pmode,omitempty" yaml:"p2pmode,omitempty"`
 	LegacyApi       bool   `mapstructure:"legacyapi,omitempty" json:"legacyapi,omitempty" yaml:"legacyapi,omitempty"`
+}
+
+type LxdCSecurity struct {
+	Keyfile string `mapstructure:"keyfile" json:"keyfile,omitempty" yaml:"keyfile,omitempty"`
+	Key     string `mapstructure:"key" json:"key,omitempty" yaml:"key,omitempty"`
 }
 
 type LxdCLogging struct {
@@ -119,6 +125,10 @@ func (c *LxdComposeConfig) GetEnvironmentDirs() []string {
 
 func (c *LxdComposeConfig) GetLogging() *LxdCLogging {
 	return &c.Logging
+}
+
+func (c *LxdComposeConfig) GetSecurity() *LxdCSecurity {
+	return &c.Security
 }
 
 func (c *LxdComposeConfig) IsEnableRenderEngine() bool {

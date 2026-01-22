@@ -284,7 +284,9 @@ type LxdCGroup struct {
 }
 
 type LxdCEnvVars struct {
-	EnvVars map[string]interface{} `json:"envs,omitempty" yaml:"envs,omitempty"`
+	EnvVars          map[string]interface{} `json:"envs,omitempty" yaml:"envs,omitempty"`
+	Encrypted        bool                   `json:"encrypted,omitempty" yaml:"encrypted,omitempty"`
+	EncryptedContent string                 `json:"enc_content,omitempty" yaml:"enc_content,omitempty"`
 }
 
 type LxdCNode struct {
