@@ -52,6 +52,20 @@ func NewEncryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			dkaOpts := helpers.NewDKAOptsDefault()
+			if config.GetSecurity().DKAOpts != nil {
+				if config.GetSecurity().DKAOpts.TimeIterations != nil {
+					dkaOpts.TimeIterations = *config.GetSecurity().DKAOpts.TimeIterations
+				}
+				if config.GetSecurity().DKAOpts.MemoryUsage != nil {
+					dkaOpts.MemoryUsage = *config.GetSecurity().DKAOpts.MemoryUsage
+				}
+				if config.GetSecurity().DKAOpts.KeyLength != nil {
+					dkaOpts.KeyLength = *config.GetSecurity().DKAOpts.KeyLength
+				}
+				if config.GetSecurity().DKAOpts.Parallelism != nil {
+					dkaOpts.Parallelism = *config.GetSecurity().DKAOpts.Parallelism
+				}
+			}
 			encryptedFile, err := helpers.Encrypt(content, keyBytes, dkaOpts)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("Error on encrypt content of the file %s: %s",

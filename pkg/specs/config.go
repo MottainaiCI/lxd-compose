@@ -55,6 +55,15 @@ type LxdCGeneral struct {
 type LxdCSecurity struct {
 	Keyfile string `mapstructure:"keyfile" json:"keyfile,omitempty" yaml:"keyfile,omitempty"`
 	Key     string `mapstructure:"key" json:"key,omitempty" yaml:"key,omitempty"`
+
+	DKAOpts *LxdCDKAOpts `mapstructure:"dka_opts" json:"dka_opts,omitempty" yaml:"dka_opts,omitempty"`
+}
+
+type LxdCDKAOpts struct {
+	TimeIterations *uint32 `mapstructure:"time_iterations" json:"time_iterations,omitempty" yaml:"time_iterations,omitempty"`
+	MemoryUsage    *uint32 `mapstructure:"memory_usage" json:"memory_usage,omitempty" yaml:"memory_usage,omitempty"`
+	KeyLength      *uint32 `mapstructure:"key_length" json:"key_length,omitempty" yaml:"key_length,omitempty"`
+	Parallelism    *uint8  `mapstructure:"parallelism" json:"parallelism,omitempty" yaml:"parallelism,omitempty"`
 }
 
 type LxdCLogging struct {

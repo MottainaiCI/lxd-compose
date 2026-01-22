@@ -993,6 +993,20 @@ func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment) error 
 
 				// TODO: Add DKA Options in config
 				dkaOpts := helpers.NewDKAOptsDefault()
+				if i.Config.GetSecurity().DKAOpts != nil {
+					if i.Config.GetSecurity().DKAOpts.TimeIterations != nil {
+						dkaOpts.TimeIterations = *i.Config.GetSecurity().DKAOpts.TimeIterations
+					}
+					if i.Config.GetSecurity().DKAOpts.MemoryUsage != nil {
+						dkaOpts.MemoryUsage = *i.Config.GetSecurity().DKAOpts.MemoryUsage
+					}
+					if i.Config.GetSecurity().DKAOpts.KeyLength != nil {
+						dkaOpts.KeyLength = *i.Config.GetSecurity().DKAOpts.KeyLength
+					}
+					if i.Config.GetSecurity().DKAOpts.Parallelism != nil {
+						dkaOpts.Parallelism = *i.Config.GetSecurity().DKAOpts.Parallelism
+					}
+				}
 				decodedBytes, err := helpers.Decrypt(encryptedContent, keyBytes, dkaOpts)
 				if err != nil {
 					i.Logger.Warning("ignoring error on decrypt content %s: %s",
