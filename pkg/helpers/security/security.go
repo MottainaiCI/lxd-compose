@@ -35,7 +35,7 @@ func NewDKAOptsDefault() *DKA_Opts {
 	return NewDKAOpts(
 		3,       // Number of cycles
 		64*1024, // 64 MB of RAM
-		32,      // Lenght of the key
+		32,      // Length of the key
 		4,       // Number of threads/core to use
 	)
 }
