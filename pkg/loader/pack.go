@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
+	helpers_render "github.com/MottainaiCI/lxd-compose/pkg/helpers/render"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
 	tarf "github.com/geaaru/tar-formers/pkg/executor"
@@ -221,7 +221,7 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 
 					if i.Config.IsEnableRenderEngine() {
 						// Render file
-						renderOut, err := helpers.RenderContent(string(content),
+						renderOut, err := helpers_render.RenderContent(string(content),
 							i.Config.RenderValuesFile,
 							i.Config.RenderDefaultFile,
 							cfile,
@@ -383,7 +383,7 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContent(string(content),
+				renderOut, err := helpers_render.RenderContent(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					gfile,

@@ -17,7 +17,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
-package helpers
+package helpers_render
 
 import (
 	"fmt"
@@ -85,8 +85,18 @@ func RenderContentWithTemplates(
 	values := make(map[string]interface{}, 0)
 	d := make(map[string]interface{}, 0)
 
+	// Avoid dep cycles
+	exists := func(name string) bool {
+		if _, err := os.Stat(name); err != nil {
+			if os.IsNotExist(err) {
+				return false
+			}
+		}
+		return true
+	}
+
 	if valuesFile != "" {
-		if !Exists(valuesFile) {
+		if !exists(valuesFile) {
 			return "", errors.New(fmt.Sprintf(
 				"Render value file %s not existing ", valuesFile))
 		}
@@ -103,7 +113,7 @@ func RenderContentWithTemplates(
 	}
 
 	if defaultFile != "" {
-		if !Exists(defaultFile) {
+		if !exists(defaultFile) {
 			return "", errors.New(fmt.Sprintf(
 				"Render value file %s not existing ", defaultFile))
 		}

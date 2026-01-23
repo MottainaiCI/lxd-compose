@@ -85,7 +85,7 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 						pObj := env.GetProjectByName(proj)
 
 						for _, varFile := range varsFiles {
-							err := pObj.LoadEnvVarsFile(varFile)
+							err := pObj.LoadEnvVarsFile(varFile, config)
 							if err != nil {
 								fmt.Println(fmt.Sprintf(
 									"Error on load additional envs var file %s: %s",

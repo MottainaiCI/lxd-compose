@@ -1,4 +1,4 @@
-package helpers
+package helpers_render_test
 
 import (
 	"helm.sh/helm/v3/pkg/chart"

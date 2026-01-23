@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MottainaiCI/lxd-compose/pkg/helpers"
+	helpers_sec "github.com/MottainaiCI/lxd-compose/pkg/helpers/security"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
 	"github.com/spf13/cobra"
@@ -72,7 +72,7 @@ func NewDecryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			dkaOpts := helpers.NewDKAOptsDefault()
+			dkaOpts := helpers_sec.NewDKAOptsDefault()
 			if config.GetSecurity().DKAOpts != nil {
 				if config.GetSecurity().DKAOpts.TimeIterations != nil {
 					dkaOpts.TimeIterations = *config.GetSecurity().DKAOpts.TimeIterations
@@ -87,7 +87,7 @@ func NewDecryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					dkaOpts.Parallelism = *config.GetSecurity().DKAOpts.Parallelism
 				}
 			}
-			decodedBytes, err := helpers.Decrypt(encryptedContent, keyBytes, dkaOpts)
+			decodedBytes, err := helpers_sec.Decrypt(encryptedContent, keyBytes, dkaOpts)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("Error on decrypt content of the file %s: %s",
 					file, err.Error()))

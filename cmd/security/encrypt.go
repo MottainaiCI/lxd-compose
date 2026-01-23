@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MottainaiCI/lxd-compose/pkg/helpers"
+	helpers_sec "github.com/MottainaiCI/lxd-compose/pkg/helpers/security"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 	"github.com/ghodss/yaml"
 
@@ -51,7 +51,7 @@ func NewEncryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			dkaOpts := helpers.NewDKAOptsDefault()
+			dkaOpts := helpers_sec.NewDKAOptsDefault()
 			if config.GetSecurity().DKAOpts != nil {
 				if config.GetSecurity().DKAOpts.TimeIterations != nil {
 					dkaOpts.TimeIterations = *config.GetSecurity().DKAOpts.TimeIterations
@@ -66,7 +66,7 @@ func NewEncryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 					dkaOpts.Parallelism = *config.GetSecurity().DKAOpts.Parallelism
 				}
 			}
-			encryptedFile, err := helpers.Encrypt(content, keyBytes, dkaOpts)
+			encryptedFile, err := helpers_sec.Encrypt(content, keyBytes, dkaOpts)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("Error on encrypt content of the file %s: %s",
 					file, err.Error()))

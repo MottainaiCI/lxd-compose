@@ -20,9 +20,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package specs
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
+
+	helpers_render "github.com/MottainaiCI/lxd-compose/pkg/helpers/render"
+	helpers_sec "github.com/MottainaiCI/lxd-compose/pkg/helpers/security"
 
 	"github.com/ghodss/yaml"
 	"github.com/icza/dyno"
@@ -156,7 +160,8 @@ func (p *LxdCProject) SetNodesPrefix(prefix string) {
 	}
 }
 
-func (p *LxdCProject) LoadEnvVarsFile(file string) error {
+func (p *LxdCProject) LoadEnvVarsFile(file string, config *LxdComposeConfig) error {
+
 	content, err := os.ReadFile(file)
 	if err != nil {
 		return err
@@ -165,6 +170,66 @@ func (p *LxdCProject) LoadEnvVarsFile(file string) error {
 	evars, err := EnvVarsFromYaml(content)
 	if err != nil {
 		return err
+	}
+
+	if evars.Encrypted {
+		if config.GetSecurity().Key == "" {
+			return fmt.Errorf("Found variables encrypted but no key defined!")
+		}
+		keyBytes, err := base64.StdEncoding.DecodeString(config.GetSecurity().Key)
+		if err != nil {
+			return fmt.Errorf("error on decode base64 key: %s", err.Error())
+		}
+
+		// Decode encrypted content.
+		encryptedContent, err := base64.StdEncoding.DecodeString(
+			evars.EncryptedContent,
+		)
+		if err != nil {
+			return fmt.Errorf("error on decode base64 for file %s:\n%s",
+				file, err.Error())
+		}
+
+		dkaOpts := helpers_sec.NewDKAOptsDefault()
+		if config.GetSecurity().DKAOpts != nil {
+			if config.GetSecurity().DKAOpts.TimeIterations != nil {
+				dkaOpts.TimeIterations = *config.GetSecurity().DKAOpts.TimeIterations
+			}
+			if config.GetSecurity().DKAOpts.MemoryUsage != nil {
+				dkaOpts.MemoryUsage = *config.GetSecurity().DKAOpts.MemoryUsage
+			}
+			if config.GetSecurity().DKAOpts.KeyLength != nil {
+				dkaOpts.KeyLength = *config.GetSecurity().DKAOpts.KeyLength
+			}
+			if config.GetSecurity().DKAOpts.Parallelism != nil {
+				dkaOpts.Parallelism = *config.GetSecurity().DKAOpts.Parallelism
+			}
+		}
+		decodedBytes, err := helpers_sec.Decrypt(encryptedContent, keyBytes, dkaOpts)
+		if err != nil {
+			return fmt.Errorf("ignoring error on decrypt content of the file: %s",
+				file, err.Error())
+		}
+		// Render the decrypt content
+		renderOut, err := helpers_render.RenderContentWithTemplates(string(decodedBytes),
+			config.RenderValuesFile,
+			config.RenderDefaultFile,
+			"-",
+			config.RenderEnvsVars,
+			config.RenderTemplatesDirs,
+		)
+		if err != nil {
+			return fmt.Errorf("error on render encrypted vars of the file %s: %s",
+				file, err.Error())
+		}
+
+		evarsDecoded, err := EnvVarsFromYaml([]byte(renderOut))
+		if err != nil {
+			return fmt.Errorf("error on parse decrypted vars content for file %s:\n%s",
+				file, err.Error())
+		}
+
+		evars = evarsDecoded
 	}
 
 	p.AddEnvironment(evars)

@@ -29,6 +29,8 @@ import (
 	"regexp"
 
 	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
+	helpers_render "github.com/MottainaiCI/lxd-compose/pkg/helpers/render"
+	helpers_sec "github.com/MottainaiCI/lxd-compose/pkg/helpers/security"
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 )
@@ -402,7 +404,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContentWithTemplates(string(content),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					file.Name(),
@@ -476,7 +478,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContentWithTemplates(string(content),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					nfile,
@@ -527,7 +529,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContentWithTemplates(string(content),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					pfile,
@@ -578,7 +580,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContentWithTemplates(string(content),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					sfile,
@@ -629,7 +631,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContentWithTemplates(string(content),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					afile,
@@ -680,7 +682,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers.RenderContentWithTemplates(string(content),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					cfile,
@@ -731,7 +733,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 				if i.Config.IsEnableRenderEngine() {
 					// Render file
-					renderOut, err := helpers.RenderContentWithTemplates(string(content),
+					renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 						i.Config.RenderValuesFile,
 						i.Config.RenderDefaultFile,
 						gfile,
@@ -881,7 +883,7 @@ func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject)
 
 	if i.Config.IsEnableRenderEngine() {
 		// Render file
-		renderOut, err := helpers.RenderContentWithTemplates(string(content),
+		renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 			i.Config.RenderValuesFile,
 			i.Config.RenderDefaultFile,
 			hfile,
@@ -934,7 +936,7 @@ func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCPro
 
 	if i.Config.IsEnableRenderEngine() {
 		// Render file
-		renderOut, err := helpers.RenderContentWithTemplates(string(content),
+		renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 			i.Config.RenderValuesFile,
 			i.Config.RenderDefaultFile,
 			efile,
@@ -991,8 +993,7 @@ func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment) error 
 					continue
 				}
 
-				// TODO: Add DKA Options in config
-				dkaOpts := helpers.NewDKAOptsDefault()
+				dkaOpts := helpers_sec.NewDKAOptsDefault()
 				if i.Config.GetSecurity().DKAOpts != nil {
 					if i.Config.GetSecurity().DKAOpts.TimeIterations != nil {
 						dkaOpts.TimeIterations = *i.Config.GetSecurity().DKAOpts.TimeIterations
@@ -1007,7 +1008,7 @@ func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment) error 
 						dkaOpts.Parallelism = *i.Config.GetSecurity().DKAOpts.Parallelism
 					}
 				}
-				decodedBytes, err := helpers.Decrypt(encryptedContent, keyBytes, dkaOpts)
+				decodedBytes, err := helpers_sec.Decrypt(encryptedContent, keyBytes, dkaOpts)
 				if err != nil {
 					i.Logger.Warning("ignoring error on decrypt content %s: %s",
 						env.Projects[idx].Environments[eidx].EncryptedContent,
@@ -1015,7 +1016,7 @@ func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment) error 
 					continue
 				}
 				// Render the decrypt content
-				renderOut, err := helpers.RenderContentWithTemplates(string(decodedBytes),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(decodedBytes),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					"-",
