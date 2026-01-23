@@ -220,7 +220,7 @@ func (p *LxdCProject) LoadEnvVarsFile(file string, config *LxdComposeConfig) err
 		}
 		decodedBytes, err := helpers_sec.Decrypt(encryptedContent, keyBytes, dkaOpts)
 		if err != nil {
-			return fmt.Errorf("ignoring error on decrypt content of the file: %s",
+			return fmt.Errorf("ignoring error on decrypt content of the file %s: %s",
 				file, err.Error())
 		}
 		// Render the decrypt content
