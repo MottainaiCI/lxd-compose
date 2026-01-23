@@ -167,7 +167,20 @@ func (p *LxdCProject) LoadEnvVarsFile(file string, config *LxdComposeConfig) err
 		return err
 	}
 
-	evars, err := EnvVarsFromYaml(content)
+	// Render the decrypt content
+	renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
+		config.RenderValuesFile,
+		config.RenderDefaultFile,
+		"-",
+		config.RenderEnvsVars,
+		config.RenderTemplatesDirs,
+	)
+	if err != nil {
+		return fmt.Errorf("error on render vars of the file %s: %s",
+			file, err.Error())
+	}
+
+	evars, err := EnvVarsFromYaml([]byte(renderOut))
 	if err != nil {
 		return err
 	}
@@ -211,7 +224,7 @@ func (p *LxdCProject) LoadEnvVarsFile(file string, config *LxdComposeConfig) err
 				file, err.Error())
 		}
 		// Render the decrypt content
-		renderOut, err := helpers_render.RenderContentWithTemplates(string(decodedBytes),
+		renderOut, err = helpers_render.RenderContentWithTemplates(string(decodedBytes),
 			config.RenderValuesFile,
 			config.RenderDefaultFile,
 			"-",
