@@ -36,6 +36,7 @@ import (
 func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var renderEnvs []string
 	var envs []string
+	var varsFiles []string
 
 	var cmd = &cobra.Command{
 		Use:   "vars [project]",
@@ -76,6 +77,16 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			proj := env.GetProjectByName(pName)
+
+			for _, varFile := range varsFiles {
+				err := proj.LoadEnvVarsFile(varFile, config)
+				if err != nil {
+					fmt.Println(fmt.Sprintf(
+						"Error on load additional envs var file %s: %s",
+						varFile, err.Error()))
+					os.Exit(1)
+				}
+			}
 
 			if len(envs) > 0 {
 				evars := specs.NewEnvVars()
@@ -142,6 +153,8 @@ func NewVarsCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		"Append render engine environments in the format key=value.")
 	flags.StringArrayVar(&envs, "env", []string{},
 		"Append project environments in the format key=value.")
+	flags.StringSliceVar(&varsFiles, "vars-file", []string{},
+		"Add additional environments vars file.")
 
 	return cmd
 }
