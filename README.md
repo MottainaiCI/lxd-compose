@@ -26,7 +26,7 @@ At the moment, we doesn't support VMs but we will add support to virtual-machine
 distro through [luet](https://www.macaronios.org/docs/pms/#luet) tool with these steps:
 
 ```bash
-$> curl https://raw.githubusercontent.com/geaaru/luet/geaaru/contrib/config/get_luet_root.sh | sudo sh
+$> curl https://raw.githubusercontent.com/macaroni-os/anise/macaroni/contrib/config/get_luet_root.sh | sudo sh
 $> sudo luet install app-emulation/lxd-compose
 ```
 
