@@ -17,9 +17,9 @@ import (
 
 func NewDecryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:     "dencrypt",
+		Use:     "decrypt",
 		Aliases: []string{"d", "de"},
-		Short:   "Dencrypt variables file.",
+		Short:   "Decrypt variables file.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			file, _ := cmd.Flags().GetString("vars-file")
 			if file == "" {
