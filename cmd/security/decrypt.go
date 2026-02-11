@@ -22,8 +22,14 @@ func NewDecryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Short:   "Decrypt variables file.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			file, _ := cmd.Flags().GetString("vars-file")
-			if file == "" {
-				fmt.Println("Missed mandatory --vars-file flag")
+			secretsFile, _ := cmd.Flags().GetString("secrets-file")
+			if file == "" && secretsFile == "" {
+				fmt.Println("Missed mandatory --vars-file or --secrets-file flag")
+				os.Exit(1)
+			}
+
+			if file != "" && secretsFile != "" {
+				fmt.Println("--vars-file and --secrets-file could not be used together")
 				os.Exit(1)
 			}
 
@@ -34,13 +40,21 @@ func NewDecryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
-			file, _ := cmd.Flags().GetString("vars-file")
+			varsfile, _ := cmd.Flags().GetString("vars-file")
+			secretsFile, _ := cmd.Flags().GetString("secrets-file")
 			to, _ := cmd.Flags().GetString("to")
 
 			keyBytes, err := base64.StdEncoding.DecodeString(config.GetSecurity().Key)
 			if err != nil {
 				fmt.Println("error on decode key: %s", err.Error())
 				os.Exit(1)
+			}
+
+			isforVarfile := true
+			file := varsfile
+			if secretsFile != "" {
+				isforVarfile = false
+				file = secretsFile
 			}
 
 			content, err := os.ReadFile(file)
@@ -50,22 +64,34 @@ func NewDecryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			// Create EnvVars object
-			evars, err := specs.EnvVarsFromYaml(content)
-			if err != nil {
-				fmt.Println(fmt.Sprintf("Error on parse file %s: %s",
-					file, err.Error()))
-				os.Exit(1)
+			var encryptedContent []byte
+
+			if isforVarfile {
+				// Create EnvVars object
+				evars, err := specs.EnvVarsFromYaml(content)
+				if err != nil {
+					fmt.Println(fmt.Sprintf("Error on parse file %s: %s",
+						file, err.Error()))
+					os.Exit(1)
+				}
+
+				if !evars.Encrypted {
+					fmt.Println(fmt.Sprintf("Var file %s not encrypted.", file))
+					os.Exit(1)
+				}
+
+				encryptedContent, err = base64.StdEncoding.DecodeString(
+					evars.EncryptedContent,
+				)
+
+			} else {
+
+				encryptedContent, err = base64.StdEncoding.DecodeString(
+					string(content),
+				)
+
 			}
 
-			if !evars.Encrypted {
-				fmt.Println(fmt.Sprintf("Var file %s not encrypted.", file))
-				os.Exit(1)
-			}
-
-			encryptedContent, err := base64.StdEncoding.DecodeString(
-				evars.EncryptedContent,
-			)
 			if err != nil {
 				fmt.Println(fmt.Sprintf("error on decode base64 encrypted content: %s",
 					err.Error()))
@@ -109,6 +135,7 @@ func NewDecryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	pflags := cmd.Flags()
 	pflags.String("vars-file", "", "Path of the vars file to encrypt.")
+	pflags.String("secrets-file", "", "Path of the secrets file to encrypt.")
 	pflags.String("to", "", "Path of the vars file to generate (stdout if not defined).")
 
 	return cmd
