@@ -60,6 +60,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 
 	pflags.StringP("config", "c", "", "LXD Compose configuration file")
 	pflags.String("lxd-config-dir", "", "Override LXD config directory.")
+	pflags.String("render-secrets", "", "Override render secrets file.")
 	pflags.String("render-values", "", "Override render values file.")
 	pflags.String("render-default", "", "Override render default file.")
 	pflags.Bool("cmds-output", config.Viper.GetBool("logging.cmds_output"),
@@ -73,12 +74,15 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		"Enable/Disable p2p mode.")
 	pflags.Bool("legacy-api", config.Viper.GetBool("general.legacyapi"),
 		"Uses legacy API for Containers.")
+	pflags.Bool("encrypted-secrets", config.Viper.GetBool("security.encrypted_secrets"),
+		"Override the security.encrypted_secrets option.")
 	pflags.String("keyfile", "", "Overrife keyfile path for decryption.")
 	pflags.String("key", "", "Overrife key for decryption.")
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
 	config.Viper.BindPFlag("render_default_file", pflags.Lookup("render-default"))
 	config.Viper.BindPFlag("render_values_file", pflags.Lookup("render-values"))
+	config.Viper.BindPFlag("render_secrets_file", pflags.Lookup("render-secrets"))
 	config.Viper.BindPFlag("general.debug", pflags.Lookup("debug"))
 	config.Viper.BindPFlag("general.p2pmode", pflags.Lookup("p2p-mode"))
 	config.Viper.BindPFlag("general.legacyapi", pflags.Lookup("legacy-api"))
@@ -87,6 +91,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	config.Viper.BindPFlag("logging.push_progressbar", pflags.Lookup("push-progress"))
 	config.Viper.BindPFlag("security.keyfile", pflags.Lookup("keyfile"))
 	config.Viper.BindPFlag("security.key", pflags.Lookup("key"))
+	config.Viper.BindPFlag("security.encrypted_secrets", pflags.Lookup("encrypted-secrets"))
 
 	rootCmd.AddCommand(
 		newAclCommand(config),
