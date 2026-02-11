@@ -745,11 +745,16 @@ func (i *LxdCInstance) ApplyCommand(c *specs.LxdCCommand, proj *specs.LxdCProjec
 		return err
 	}
 
+	secrets, err := i.Config.GetSecrets()
+	if err != nil {
+		return err
+	}
+
 	// Load envs from commands.
 	if len(c.VarFiles) > 0 {
 		for _, varFile := range c.VarFiles {
 
-			envs, err := i.loadEnvFile(envBaseDir, varFile, proj)
+			envs, err := i.loadEnvFile(envBaseDir, varFile, proj, secrets)
 			if err != nil {
 				return errors.New(
 					fmt.Sprintf(
@@ -773,7 +778,7 @@ func (i *LxdCInstance) ApplyCommand(c *specs.LxdCCommand, proj *specs.LxdCProjec
 
 			// Load project included hooks
 			hf := path.Join(envBaseDir, hfile)
-			hooks, err := i.getHooks(hfile, hf, proj)
+			hooks, err := i.getHooks(hfile, hf, proj, secrets)
 			if err != nil {
 				return err
 			}

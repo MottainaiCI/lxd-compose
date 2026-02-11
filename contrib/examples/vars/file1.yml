@@ -1,3 +1,7 @@
 envs:
 
   key_from_file1: "xx"
+
+  database:
+    user: {{ .Values.secrets.database.user }}
+    pwd: {{ .Values.secrets.database.pwd }}

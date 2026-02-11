@@ -374,6 +374,12 @@ func (i *LxdCInstance) LoadEnvironments() error {
 		return errors.New("No environment directories configured.")
 	}
 
+	// Retrieve secrets if present
+	secrets, err := i.Config.GetSecrets()
+	if err != nil {
+		return fmt.Errorf("error on retrieve secrets: %s", err.Error())
+	}
+
 	for _, edir := range i.Config.GetEnvironmentDirs() {
 		i.Logger.Debug("Checking directory", edir, "...")
 
@@ -409,6 +415,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 					i.Config.RenderDefaultFile,
 					file.Name(),
 					i.Config.RenderEnvsVars,
+					*secrets,
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
@@ -426,7 +433,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 				continue
 			}
 
-			err = i.loadExtraFiles(env)
+			err = i.loadExtraFiles(env, secrets)
 			if err != nil {
 				return err
 			}
@@ -434,7 +441,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 			i.AddEnvironment(*env)
 
 			// Check for encrypted vars and decrypt it if possible
-			err = i.decodeEncryptedEnvVars(env)
+			err = i.decodeEncryptedEnvVars(env, secrets)
 			if err != nil {
 				return err
 			}
@@ -448,7 +455,7 @@ func (i *LxdCInstance) LoadEnvironments() error {
 	return nil
 }
 
-func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
+func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment, secrets *map[string]interface{}) error {
 	envBaseDir, err := filepath.Abs(path.Dir(env.File))
 	if err != nil {
 		return err
@@ -483,6 +490,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					i.Config.RenderDefaultFile,
 					nfile,
 					i.Config.RenderEnvsVars,
+					*secrets,
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
@@ -534,6 +542,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					i.Config.RenderDefaultFile,
 					pfile,
 					i.Config.RenderEnvsVars,
+					*secrets,
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
@@ -585,6 +594,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					i.Config.RenderDefaultFile,
 					sfile,
 					i.Config.RenderEnvsVars,
+					*secrets,
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
@@ -636,6 +646,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					i.Config.RenderDefaultFile,
 					afile,
 					i.Config.RenderEnvsVars,
+					*secrets,
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
@@ -687,6 +698,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 					i.Config.RenderDefaultFile,
 					cfile,
 					i.Config.RenderEnvsVars,
+					*secrets,
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
@@ -738,6 +750,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 						i.Config.RenderDefaultFile,
 						gfile,
 						i.Config.RenderEnvsVars,
+						*secrets,
 						i.Config.RenderTemplatesDirs,
 					)
 					if err != nil {
@@ -766,7 +779,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 		if len(proj.IncludeEnvFiles) > 0 {
 			// Load external env vars files
 			for _, efile := range proj.IncludeEnvFiles {
-				evars, err := i.loadEnvFile(envBaseDir, efile, &env.Projects[idx])
+				evars, err := i.loadEnvFile(envBaseDir, efile, &env.Projects[idx], secrets)
 				if err != nil {
 					return err
 				} else if evars != nil {
@@ -778,7 +791,7 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 
 	}
 
-	err = i.loadIncludeHooks(env)
+	err = i.loadIncludeHooks(env, secrets)
 
 	// Set paths of the certificates
 	if len(env.Certificates) > 0 {
@@ -796,7 +809,9 @@ func (i *LxdCInstance) loadExtraFiles(env *specs.LxdCEnvironment) error {
 	return err
 }
 
-func (i *LxdCInstance) loadIncludeHooks(env *specs.LxdCEnvironment) error {
+func (i *LxdCInstance) loadIncludeHooks(env *specs.LxdCEnvironment,
+	secrets *map[string]interface{}) error {
+
 	envBaseDir, err := filepath.Abs(path.Dir(env.File))
 	if err != nil {
 		return err
@@ -810,7 +825,7 @@ func (i *LxdCInstance) loadIncludeHooks(env *specs.LxdCEnvironment) error {
 
 				// Load project included hooks
 				hf := path.Join(envBaseDir, hfile)
-				hooks, err := i.getHooks(hfile, hf, &proj)
+				hooks, err := i.getHooks(hfile, hf, &proj, secrets)
 				if err != nil {
 					return err
 				}
@@ -830,7 +845,7 @@ func (i *LxdCInstance) loadIncludeHooks(env *specs.LxdCEnvironment) error {
 
 				for _, hfile := range g.IncludeHooksFiles {
 					hf := path.Join(envBaseDir, hfile)
-					hooks, err := i.getHooks(hfile, hf, &proj)
+					hooks, err := i.getHooks(hfile, hf, &proj, secrets)
 					if err != nil {
 						return err
 					}
@@ -846,7 +861,7 @@ func (i *LxdCInstance) loadIncludeHooks(env *specs.LxdCEnvironment) error {
 				if len(n.IncludeHooksFiles) > 0 {
 					for _, hfile := range n.IncludeHooksFiles {
 						hf := path.Join(envBaseDir, hfile)
-						hooks, err := i.getHooks(hfile, hf, &proj)
+						hooks, err := i.getHooks(hfile, hf, &proj, secrets)
 						if err != nil {
 							return err
 						}
@@ -863,7 +878,8 @@ func (i *LxdCInstance) loadIncludeHooks(env *specs.LxdCEnvironment) error {
 	return nil
 }
 
-func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject) (*specs.LxdCHooks, error) {
+func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject,
+	secrets *map[string]interface{}) (*specs.LxdCHooks, error) {
 
 	ans := &specs.LxdCHooks{}
 
@@ -888,6 +904,7 @@ func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject)
 			i.Config.RenderDefaultFile,
 			hfile,
 			i.Config.RenderEnvsVars,
+			*secrets,
 			i.Config.RenderTemplatesDirs,
 		)
 		if err != nil {
@@ -912,7 +929,9 @@ func (i *LxdCInstance) getHooks(hfile, hfileAbs string, proj *specs.LxdCProject)
 	return ans, nil
 }
 
-func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCProject) (*specs.LxdCEnvVars, error) {
+func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string,
+	proj *specs.LxdCProject, secrets *map[string]interface{}) (*specs.LxdCEnvVars, error) {
+
 	if !helpers.Exists(path.Join(envBaseDir, efile)) {
 		i.Logger.Warning("For project", proj.Name, "included env file", efile,
 			"is not present.")
@@ -941,6 +960,7 @@ func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCPro
 			i.Config.RenderDefaultFile,
 			efile,
 			i.Config.RenderEnvsVars,
+			*secrets,
 			i.Config.RenderTemplatesDirs,
 		)
 		if err != nil {
@@ -960,7 +980,8 @@ func (i *LxdCInstance) loadEnvFile(envBaseDir, efile string, proj *specs.LxdCPro
 	return evars, nil
 }
 
-func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment) error {
+func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment,
+	secrets *map[string]interface{}) error {
 
 	var err error
 	keyBytes := []byte{}
@@ -1021,6 +1042,7 @@ func (i *LxdCInstance) decodeEncryptedEnvVars(env *specs.LxdCEnvironment) error 
 					i.Config.RenderDefaultFile,
 					"-",
 					i.Config.RenderEnvsVars,
+					*secrets,
 					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {

@@ -191,6 +191,11 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 
 	}
 
+	secrets, err := i.Config.GetSecrets()
+	if err != nil {
+		return fmt.Errorf("error on retrieve secrets: %s", err.Error())
+	}
+
 	// Check if the environment is already been added
 	if !job.HasEnv(e) {
 
@@ -221,11 +226,13 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 
 					if i.Config.IsEnableRenderEngine() {
 						// Render file
-						renderOut, err := helpers_render.RenderContent(string(content),
+						renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 							i.Config.RenderValuesFile,
 							i.Config.RenderDefaultFile,
 							cfile,
 							i.Config.RenderEnvsVars,
+							*secrets,
+							i.Config.RenderTemplatesDirs,
 						)
 						if err != nil {
 							return err
@@ -383,11 +390,13 @@ func (i *LxdCInstance) preparePackSpec4Project(job *PackJob, project string) err
 
 			if i.Config.IsEnableRenderEngine() {
 				// Render file
-				renderOut, err := helpers_render.RenderContent(string(content),
+				renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 					i.Config.RenderValuesFile,
 					i.Config.RenderDefaultFile,
 					gfile,
 					i.Config.RenderEnvsVars,
+					*secrets,
+					i.Config.RenderTemplatesDirs,
 				)
 				if err != nil {
 					return err

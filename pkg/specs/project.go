@@ -167,12 +167,18 @@ func (p *LxdCProject) LoadEnvVarsFile(file string, config *LxdComposeConfig) err
 		return err
 	}
 
+	secrets, err := config.GetSecrets()
+	if err != nil {
+		return err
+	}
+
 	// Render the decrypt content
 	renderOut, err := helpers_render.RenderContentWithTemplates(string(content),
 		config.RenderValuesFile,
 		config.RenderDefaultFile,
 		"-",
 		config.RenderEnvsVars,
+		*secrets,
 		config.RenderTemplatesDirs,
 	)
 	if err != nil {
@@ -229,6 +235,7 @@ func (p *LxdCProject) LoadEnvVarsFile(file string, config *LxdComposeConfig) err
 			config.RenderDefaultFile,
 			"-",
 			config.RenderEnvsVars,
+			*secrets,
 			config.RenderTemplatesDirs,
 		)
 		if err != nil {
