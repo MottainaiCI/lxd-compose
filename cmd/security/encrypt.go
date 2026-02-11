@@ -23,8 +23,14 @@ func NewEncryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		Short:   "Encrypt variables file.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			file, _ := cmd.Flags().GetString("vars-file")
-			if file == "" {
-				fmt.Println("Missed mandatory --vars-file flag")
+			secretsFile, _ := cmd.Flags().GetString("secrets-file")
+			if file == "" && secretsFile == "" {
+				fmt.Println("Missed mandatory --vars-file or --secrets-file flag")
+				os.Exit(1)
+			}
+
+			if file != "" && secretsFile != "" {
+				fmt.Println("--vars-file and --secrets-file could not be used together")
 				os.Exit(1)
 			}
 
@@ -35,13 +41,21 @@ func NewEncryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
-			file, _ := cmd.Flags().GetString("vars-file")
+			varsfile, _ := cmd.Flags().GetString("vars-file")
+			secretsFile, _ := cmd.Flags().GetString("secrets-file")
 			to, _ := cmd.Flags().GetString("to")
 
 			keyBytes, err := base64.StdEncoding.DecodeString(config.GetSecurity().Key)
 			if err != nil {
 				fmt.Println("error on decode key: %s", err.Error())
 				os.Exit(1)
+			}
+
+			isforVarfile := true
+			file := varsfile
+			if secretsFile != "" {
+				isforVarfile = false
+				file = secretsFile
 			}
 
 			content, err := os.ReadFile(file)
@@ -73,14 +87,20 @@ func NewEncryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				os.Exit(1)
 			}
 
-			evars := specs.NewEnvVars()
-			evars.Encrypted = true
-			evars.EncryptedContent = base64.StdEncoding.EncodeToString(encryptedFile)
+			var data []byte
+			if isforVarfile {
+				evars := specs.NewEnvVars()
+				evars.Encrypted = true
+				evars.EncryptedContent = base64.StdEncoding.EncodeToString(encryptedFile)
 
-			data, err := yaml.Marshal(evars)
-			if err != nil {
-				fmt.Println("Error on marshalling generated EnvVars: ", err.Error())
-				os.Exit(1)
+				data, err = yaml.Marshal(evars)
+				if err != nil {
+					fmt.Println("Error on marshalling generated EnvVars: ", err.Error())
+					os.Exit(1)
+				}
+
+			} else {
+				data = []byte(base64.StdEncoding.EncodeToString(encryptedFile))
 			}
 
 			if to == "" {
@@ -98,6 +118,7 @@ func NewEncryptCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	pflags := cmd.Flags()
 	pflags.String("vars-file", "", "Path of the vars file to encrypt.")
+	pflags.String("secrets-file", "", "Path of the secrets file to encrypt.")
 	pflags.String("to", "", "Path of the vars file to generate (stdout if not defined).")
 
 	return cmd
