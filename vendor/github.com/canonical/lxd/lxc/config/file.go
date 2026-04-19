@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v2"
 
 	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
@@ -73,17 +73,6 @@ func LoadConfig(path string) (*Config, error) {
 		c.DefaultRemote = envDefaultRemote
 	} else if c.DefaultRemote == "" {
 		c.DefaultRemote = DefaultConfig().DefaultRemote
-	}
-
-	// NOTE: Remove this once we only see a small fraction of non-simplestreams users
-	// Upgrade users to the "simplestreams" protocol
-	images, ok := c.Remotes["images"]
-	if ok && images.Protocol != ImagesRemote.Protocol && images.Addr == ImagesRemote.Addr {
-		c.Remotes["images"] = ImagesRemote
-		err = c.SaveConfig(path)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return c, nil

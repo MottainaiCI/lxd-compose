@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -28,13 +27,13 @@ func (c *Config) GenerateClientCertificate() error {
 	certf := c.ConfigPath("client.crt")
 	keyf := c.ConfigPath("client.key")
 
-	return shared.FindOrGenCert(certf, keyf, true, false)
+	return shared.FindOrGenCert(certf, keyf, true, shared.CertOptions{})
 }
 
 // CopyGlobalCert will copy global (system-wide) certificate to the user config path.
 func (c *Config) CopyGlobalCert(src string, dst string) error {
-	oldPath := c.GlobalConfigPath("servercerts", fmt.Sprintf("%s.crt", src))
-	newPath := c.ConfigPath("servercerts", fmt.Sprintf("%s.crt", dst))
+	oldPath := c.GlobalConfigPath("servercerts", src+".crt")
+	newPath := c.ConfigPath("servercerts", dst+".crt")
 	sourceFile, err := os.Open(oldPath)
 	if err != nil {
 		return err

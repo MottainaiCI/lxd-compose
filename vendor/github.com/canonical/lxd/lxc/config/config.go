@@ -2,13 +2,12 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/juju/persistent-cookiejar"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 
+	"github.com/canonical/lxd/lxc/cookiejar"
 	"github.com/canonical/lxd/shared"
 )
 
@@ -31,9 +30,6 @@ type Config struct {
 	// The UserAgent to pass for all queries
 	UserAgent string `yaml:"-"`
 
-	// PromptPassword is a helper function used when encountering an encrypted key
-	PromptPassword func(filename string) (string, error) `yaml:"-"`
-
 	// ProjectOverride allows overriding the default project
 	ProjectOverride string `yaml:"-"`
 
@@ -46,12 +42,13 @@ type Config struct {
 
 // GlobalConfigPath returns a joined path of the global configuration directory and passed arguments.
 func (c *Config) GlobalConfigPath(paths ...string) string {
-	configDir := "/etc/lxd"
-	if os.Getenv("LXD_GLOBAL_CONF") != "" {
-		configDir = os.Getenv("LXD_GLOBAL_CONF")
+	configDir := os.Getenv("LXD_GLOBAL_CONF")
+	if configDir == "" {
+		configDir = "/etc/lxd"
 	}
 
-	path := []string{configDir}
+	path := make([]string, 0, 1+len(paths))
+	path = append(path, configDir)
 	path = append(path, paths...)
 
 	return filepath.Join(path...)
@@ -59,7 +56,8 @@ func (c *Config) GlobalConfigPath(paths ...string) string {
 
 // ConfigPath returns a joined path of the configuration directory and passed arguments.
 func (c *Config) ConfigPath(paths ...string) string {
-	path := []string{c.ConfigDir}
+	path := make([]string, 0, 1+len(paths))
+	path = append(path, c.ConfigDir)
 	path = append(path, paths...)
 
 	return filepath.Join(path...)
@@ -73,15 +71,15 @@ func (c *Config) CookiesPath(remote string) string {
 // ServerCertPath returns the path for the remote's server certificate.
 func (c *Config) ServerCertPath(remote string) string {
 	if c.Remotes[remote].Global {
-		return c.GlobalConfigPath("servercerts", fmt.Sprintf("%s.crt", remote))
+		return c.GlobalConfigPath("servercerts", remote+".crt")
 	}
 
-	return c.ConfigPath("servercerts", fmt.Sprintf("%s.crt", remote))
+	return c.ConfigPath("servercerts", remote+".crt")
 }
 
 // OIDCTokenPath returns the path for the remote's OIDC tokens.
 func (c *Config) OIDCTokenPath(remote string) string {
-	return c.ConfigPath("oidctokens", fmt.Sprintf("%s.json", remote))
+	return c.ConfigPath("oidctokens", remote+".json")
 }
 
 // SaveCookies saves cookies to file.
@@ -93,10 +91,14 @@ func (c *Config) SaveCookies() {
 
 // SaveOIDCTokens saves OIDC tokens to disk.
 func (c *Config) SaveOIDCTokens() {
+	if len(c.oidcTokens) == 0 {
+		return
+	}
+
 	tokenParentPath := c.ConfigPath("oidctokens")
 
 	if !shared.PathExists(tokenParentPath) {
-		_ = os.MkdirAll(tokenParentPath, 0755)
+		_ = os.MkdirAll(tokenParentPath, 0750)
 	}
 
 	for remote, tokens := range c.oidcTokens {

@@ -45,7 +45,8 @@ type Event struct {
 
 // ToLogging creates log record for the event.
 func (event *Event) ToLogging() (EventLogRecord, error) {
-	if event.Type == EventTypeLogging || event.Type == EventTypeOVN {
+	switch event.Type {
+	case EventTypeLogging, EventTypeOVN:
 		e := &EventLogging{}
 		err := json.Unmarshal(event.Metadata, &e)
 		if err != nil {
@@ -66,7 +67,7 @@ func (event *Event) ToLogging() (EventLogRecord, error) {
 		}
 
 		return record, nil
-	} else if event.Type == EventTypeLifecycle {
+	case EventTypeLifecycle:
 		e := &EventLifecycle{}
 		err := json.Unmarshal(event.Metadata, &e)
 		if err != nil {
@@ -86,14 +87,14 @@ func (event *Event) ToLogging() (EventLogRecord, error) {
 		}
 
 		if e.Requestor != nil {
-			requestor := fmt.Sprintf("%s/%s (%s)", e.Requestor.Protocol, e.Requestor.Username, e.Requestor.Address)
-			record.Msg = fmt.Sprintf("Action: %s, Source: %s, Requestor: %s", e.Action, e.Source, requestor)
+			requestor := e.Requestor.Protocol + "/" + e.Requestor.Username + " (" + e.Requestor.Address + ")"
+			record.Msg = "Action: " + e.Action + ", Source: " + e.Source + ", Requestor: " + requestor
 		} else {
-			record.Msg = fmt.Sprintf("Action: %s, Source: %s", e.Action, e.Source)
+			record.Msg = "Action: " + e.Action + ", Source: " + e.Source
 		}
 
 		return record, nil
-	} else if event.Type == EventTypeOperation {
+	case EventTypeOperation:
 		e := &Operation{}
 		err := json.Unmarshal(event.Metadata, &e)
 		if err != nil {
@@ -103,7 +104,7 @@ func (event *Event) ToLogging() (EventLogRecord, error) {
 		record := EventLogRecord{
 			Time: event.Timestamp,
 			Lvl:  "info",
-			Msg:  fmt.Sprintf("ID: %s, Class: %s, Description: %s", e.ID, e.Class, e.Description),
+			Msg:  "ID: " + e.ID + ", Class: " + e.Class + ", Description: " + e.Description,
 			Ctx: []any{
 				"CreatedAt", e.CreatedAt,
 				"UpdatedAt", e.UpdatedAt,

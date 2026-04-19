@@ -26,6 +26,10 @@ type InitLocalPreseed struct {
 	// Example: local dir storage pool
 	StoragePools []StoragePoolsPost `json:"storage_pools" yaml:"storage_pools"`
 
+	// Storage Volumes to add to LXD
+	// Example: local dir storage volume
+	StorageVolumes []InitStorageVolumesProjectPost `json:"storage_volumes" yaml:"storage_volumes"`
+
 	// Profiles to add to LXD
 	// Example: "default" profile with a root disk device
 	Profiles []ProfilesPost `json:"profiles" yaml:"profiles"`
@@ -41,9 +45,24 @@ type InitLocalPreseed struct {
 //
 // API extension: preseed.
 type InitNetworksProjectPost struct {
-	NetworksPost `yaml:",inline"`
+	NetworksPost `yaml:",inline"` //nolint:musttag
 
 	// Project in which the network will reside
+	// Example: "default"
+	Project string `json:"Project" yaml:"project"`
+}
+
+// InitStorageVolumesProjectPost represents the fields of a new LXD storage volume along with its associated pool.
+//
+// swagger:model
+//
+// API extension: init_preseed_storage_volumes.
+type InitStorageVolumesProjectPost struct {
+	StorageVolumesPost `yaml:",inline"`
+	// Storage pool in which the volume will reside
+	// Example: "default"
+	Pool string
+	// Project in which the volume will reside
 	// Example: "default"
 	Project string
 }
@@ -59,8 +78,4 @@ type InitClusterPreseed struct {
 	// The path to the cluster certificate
 	// Example: /tmp/cluster.crt
 	ClusterCertificatePath string `json:"cluster_certificate_path" yaml:"cluster_certificate_path"`
-
-	// A cluster join token
-	// Example: BASE64-TOKEN
-	ClusterToken string `json:"cluster_token" yaml:"cluster_token"`
 }

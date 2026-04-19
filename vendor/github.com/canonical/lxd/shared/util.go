@@ -9,37 +9,47 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
+	"io/fs"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/flosch/pongo2"
 
-	"github.com/canonical/lxd/lxd/revert"
 	"github.com/canonical/lxd/shared/api"
 	"github.com/canonical/lxd/shared/cancel"
 	"github.com/canonical/lxd/shared/ioprogress"
+	"github.com/canonical/lxd/shared/revert"
 	"github.com/canonical/lxd/shared/units"
 )
 
+// SnapshotDelimiter is the character used to delimit instance and snapshot names.
 const SnapshotDelimiter = "/"
+
+// HTTPSDefaultPort is the default port for the LXD HTTPS listener.
 const HTTPSDefaultPort = 8443
+
+// HTTPDefaultPort is the default port for the LXD HTTP listener.
 const HTTPDefaultPort = 8080
+
+// HTTPSMetricsDefaultPort is the default port for LXD metrics.
 const HTTPSMetricsDefaultPort = 9100
 
-// HTTPSStorageBucketsDefaultPort the default port for the storage buckets listener.
+// HTTPSStorageBucketsDefaultPort is the default port for the storage buckets listener.
 const HTTPSStorageBucketsDefaultPort = 9000
 
 // URLEncode encodes a path and query parameters to a URL.
@@ -69,6 +79,7 @@ func AddSlash(path string) string {
 	return path
 }
 
+// PathExists checks if the given path exists in the filesystem.
 func PathExists(name string) bool {
 	_, err := os.Lstat(name)
 	if err != nil && os.IsNotExist(err) {
@@ -122,41 +133,16 @@ func IsUnixSocket(path string) bool {
 // HostPathFollow takes a valid path (from HostPath) and resolves it
 // all the way to its target or to the last which can be resolved.
 func HostPathFollow(path string) string {
-	// Ignore empty paths
-	if len(path) == 0 {
+	var ok bool
+	path, ok = resolveSnapPath(path)
+	if !ok {
 		return path
-	}
-
-	// Don't prefix stdin/stdout
-	if path == "-" {
-		return path
-	}
-
-	// Check if we're running in a snap package.
-	if !InSnap() {
-		return path
-	}
-
-	// Handle relative paths
-	if path[0] != os.PathSeparator {
-		// Use the cwd of the parent as snap-confine alters our own cwd on launch
-		ppid := os.Getppid()
-		if ppid < 1 {
-			return path
-		}
-
-		pwd, err := os.Readlink(fmt.Sprintf("/proc/%d/cwd", ppid))
-		if err != nil {
-			return path
-		}
-
-		path = filepath.Clean(strings.Join([]string{pwd, path}, string(os.PathSeparator)))
 	}
 
 	// Rely on "readlink -m" to do the right thing.
 	path = HostPath(path)
 	for {
-		target, err := RunCommand("readlink", "-m", path)
+		target, err := RunCommand(context.Background(), "readlink", "-m", path)
 		if err != nil {
 			return path
 		}
@@ -175,19 +161,41 @@ func HostPathFollow(path string) string {
 // On a normal system, this does nothing
 // When inside of a snap environment, returns the real path.
 func HostPath(path string) string {
+	var ok bool
+	path, ok = resolveSnapPath(path)
+	if !ok {
+		return path
+	}
+
+	// Check if the path is already snap-aware
+	for _, prefix := range []string{"/dev", "/snap", "/var/snap", "/var/lib/snapd"} {
+		if path == prefix || strings.HasPrefix(path, prefix+"/") {
+			return path
+		}
+	}
+
+	return "/var/lib/snapd/hostfs" + path
+}
+
+// resolveSnapPath normalizes snap-related path handling.
+// It takes an input path, handling empty and special values, resolving relative
+// paths against the parent process' working directory when running under snap,
+// and returns the resolved path along with a boolean indicating whether further
+// snap-aware processing should continue.
+func resolveSnapPath(path string) (string, bool) {
 	// Ignore empty paths
 	if len(path) == 0 {
-		return path
+		return path, false
 	}
 
 	// Don't prefix stdin/stdout
 	if path == "-" {
-		return path
+		return path, false
 	}
 
-	// Check if we're running in a snap package
+	// Check if we're running in a snap package.
 	if !InSnap() {
-		return path
+		return path, false
 	}
 
 	// Handle relative paths
@@ -195,25 +203,18 @@ func HostPath(path string) string {
 		// Use the cwd of the parent as snap-confine alters our own cwd on launch
 		ppid := os.Getppid()
 		if ppid < 1 {
-			return path
+			return path, false
 		}
 
-		pwd, err := os.Readlink(fmt.Sprintf("/proc/%d/cwd", ppid))
+		pwd, err := os.Readlink("/proc/" + strconv.Itoa(ppid) + "/cwd")
 		if err != nil {
-			return path
+			return path, false
 		}
 
-		path = filepath.Clean(strings.Join([]string{pwd, path}, string(os.PathSeparator)))
+		path = filepath.Join(pwd, path)
 	}
 
-	// Check if the path is already snap-aware
-	for _, prefix := range []string{"/dev", "/snap", "/var/snap", "/var/lib/snapd"} {
-		if path == prefix || strings.HasPrefix(path, fmt.Sprintf("%s/", prefix)) {
-			return path
-		}
-	}
-
-	return fmt.Sprintf("/var/lib/snapd/hostfs%s", path)
+	return path, true
 }
 
 // VarPath returns the provided path elements joined by a slash and
@@ -224,6 +225,7 @@ func VarPath(path ...string) string {
 		varDir = "/var/lib/lxd"
 	}
 
+	//nolint:prealloc
 	items := []string{varDir}
 	items = append(items, path...)
 	return filepath.Join(items...)
@@ -233,12 +235,13 @@ func VarPath(path ...string) string {
 // set, this path is $LXD_DIR/cache, otherwise it is /var/cache/lxd.
 func CachePath(path ...string) string {
 	varDir := os.Getenv("LXD_DIR")
-	logDir := "/var/cache/lxd"
+	cacheDir := "/var/cache/lxd"
 	if varDir != "" {
-		logDir = filepath.Join(varDir, "cache")
+		cacheDir = filepath.Join(varDir, "cache")
 	}
 
-	items := []string{logDir}
+	items := make([]string, 0, 1+len(path))
+	items = append(items, cacheDir)
 	items = append(items, path...)
 	return filepath.Join(items...)
 }
@@ -252,62 +255,131 @@ func LogPath(path ...string) string {
 		logDir = filepath.Join(varDir, "logs")
 	}
 
-	items := []string{logDir}
+	items := make([]string, 0, 1+len(path))
+	items = append(items, logDir)
 	items = append(items, path...)
 	return filepath.Join(items...)
 }
 
-// ParseFileHeaders extracts the file ownership, type, mode and operation type from HTTP headers.
-func ParseFileHeaders(headers http.Header) (int64, int64, int, string, string) {
-	getHeader := func(key string) string {
-		value := headers.Get(fmt.Sprintf("X-Incus-%s", key))
-		if value == "" {
-			// Legacy support.
-			value = headers.Get(fmt.Sprintf("X-LXD-%s", key))
-		}
+// LXDFileHeaders is extracted from the `X-LXD-*` family of file permissions
+// headers.
+type LXDFileHeaders struct {
+	UID  int64
+	GID  int64
+	Mode int
 
-		return value
-	}
+	GIDModifyExisting  bool
+	UIDModifyExisting  bool
+	ModeModifyExisting bool
 
-	uid, err := strconv.ParseInt(getHeader("uid"), 10, 64)
-	if err != nil {
-		uid = -1
-	}
-
-	gid, err := strconv.ParseInt(getHeader("gid"), 10, 64)
-	if err != nil {
-		gid = -1
-	}
-
-	mode, err := strconv.Atoi(getHeader("mode"))
-	if err != nil {
-		mode = -1
-	} else {
-		rawMode, err := strconv.ParseInt(getHeader("mode"), 0, 0)
-		if err == nil {
-			mode = int(os.FileMode(rawMode) & os.ModePerm)
-		}
-	}
-
-	fileType := getHeader("type")
-	if fileType == "" {
-		// Default is standard file.
-		fileType = "file"
-	}
-
-	writeMode := getHeader("write")
-	if writeMode == "" {
-		// Default is to override the content.
-		writeMode = "overwrite"
-	}
-
-	return uid, gid, mode, fileType, writeMode
+	Type  string
+	Write string
 }
 
-func ParseLXDFileHeaders(headers http.Header) (uid int64, gid int64, mode int, type_ string, write string) {
-	return ParseFileHeaders(headers)
+// ParseLXDFileHeaders parses and validates the `X-LXD-*` family of file
+// permissions headers.
+//   - `X-LXD-uid`, `X-LXD-gid`
+//     Base 10 integer
+//   - `X-LXD-mode`
+//     Base 10 integer (no leading `0`) or base 8 integer (leading `0`) for the
+//     unix permissions bits
+//   - `X-LXD-type`
+//     One of `file`, `symlink`, `directory`
+//   - `X-LXD-write`
+//     One of `overwrite`, `append`
+//   - `X-LXD-modify-perm`
+//     Comma separated list; 0 or more of `mode`, `uid`, `gid`
+func ParseLXDFileHeaders(headers http.Header) (*LXDFileHeaders, error) {
+	var uid, gid int64 = -1, -1
+	var mode = -1
+	var err error
+
+	rawUID := headers.Get("X-LXD-uid")
+	if rawUID != "" {
+		uid, err = strconv.ParseInt(rawUID, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid UID: %w", err)
+		}
+	}
+
+	rawGID := headers.Get("X-LXD-gid")
+	if rawGID != "" {
+		gid, err = strconv.ParseInt(rawGID, 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid GID: %w", err)
+		}
+	}
+
+	rawMode := headers.Get("X-LXD-mode")
+	if rawMode != "" {
+		mode64, err := strconv.ParseInt(rawMode, 0, 0)
+		if err != nil || mode64 < 0 {
+			return nil, fmt.Errorf("Invalid Mode: %w", err)
+		}
+
+		mode = int(mode64 & int64(os.ModePerm))
+	}
+
+	filetype := headers.Get("X-LXD-type")
+	/* backwards compat: before "type" was introduced, we could only
+	 * manipulate files
+	 */
+	if filetype == "" {
+		filetype = "file"
+	}
+
+	if !slices.Contains([]string{"file", "symlink", "directory"}, filetype) {
+		return nil, fmt.Errorf("Invalid file type: %q", filetype)
+	}
+
+	write := headers.Get("X-LXD-write")
+	/* backwards compat: before "write" was introduced, we could only
+	 * overwrite files
+	 */
+	if write == "" {
+		write = "overwrite"
+	}
+
+	if !slices.Contains([]string{"overwrite", "append"}, write) {
+		return nil, fmt.Errorf("Invalid file write mode: %q", write)
+	}
+
+	UIDModifyExisting := false
+	GIDModifyExisting := false
+	modeModifyExisting := false
+
+	modifyPermHeader := headers.Get("X-LXD-modify-perm")
+
+	modifyPermFields := []string{"uid", "gid", "mode"}
+	if modifyPermHeader != "" {
+		for perm := range strings.SplitSeq(modifyPermHeader, ",") {
+			UIDModifyExisting = UIDModifyExisting || perm == "uid"
+			GIDModifyExisting = GIDModifyExisting || perm == "gid"
+			modeModifyExisting = modeModifyExisting || perm == "mode"
+
+			if !slices.Contains(modifyPermFields, perm) {
+				return nil, fmt.Errorf("Invalid modify-perm field: %q", perm)
+			}
+		}
+	}
+
+	return &LXDFileHeaders{
+		UID:  uid,
+		GID:  gid,
+		Mode: mode,
+
+		UIDModifyExisting:  UIDModifyExisting,
+		GIDModifyExisting:  GIDModifyExisting,
+		ModeModifyExisting: modeModifyExisting,
+
+		Type:  filetype,
+		Write: write,
+	}, nil
 }
 
+// ReaderToChannel reads data from an io.Reader and sends it to a returned channel
+// in chunks. The function also takes the buffer size, which defaults to 128 KiB
+// if the provided value is smaller.
 func ReaderToChannel(r io.Reader, bufferSize int) <-chan []byte {
 	if bufferSize <= 128*1024 {
 		bufferSize = 128 * 1024
@@ -340,7 +412,7 @@ func ReaderToChannel(r io.Reader, bufferSize int) <-chan []byte {
 	return ch
 }
 
-// Returns a random hex encoded string from crypto/rand.
+// RandomCryptoString generates 32 bytes long cryptographically secure random string.
 func RandomCryptoString() (string, error) {
 	buf := make([]byte, 32)
 	n, err := rand.Read(buf)
@@ -349,12 +421,14 @@ func RandomCryptoString() (string, error) {
 	}
 
 	if n != len(buf) {
-		return "", fmt.Errorf("not enough random bytes read")
+		return "", errors.New("not enough random bytes read")
 	}
 
 	return hex.EncodeToString(buf), nil
 }
 
+// AtoiEmptyDefault returns the default value if the string is empty, otherwise converts
+// it to an integer.
 func AtoiEmptyDefault(s string, def int) (int, error) {
 	if s == "" {
 		return def, nil
@@ -363,6 +437,7 @@ func AtoiEmptyDefault(s string, def int) (int, error) {
 	return strconv.Atoi(s)
 }
 
+// ReadStdin reads a line of input from stdin and returns it as a byte slice.
 func ReadStdin() ([]byte, error) {
 	buf := bufio.NewReader(os.Stdin)
 	line, _, err := buf.ReadLine()
@@ -373,6 +448,7 @@ func ReadStdin() ([]byte, error) {
 	return line, nil
 }
 
+// WriteAll writes all data from the byte slice to the given writer.
 func WriteAll(w io.Writer, data []byte) error {
 	buf := bytes.NewBuffer(data)
 
@@ -479,12 +555,12 @@ func FileCopy(source string, dest string) error {
 
 	d, err := os.Create(dest)
 	if err != nil {
-		if os.IsExist(err) {
-			d, err = os.OpenFile(dest, os.O_WRONLY, fi.Mode())
-			if err != nil {
-				return err
-			}
-		} else {
+		if !errors.Is(err, fs.ErrExist) {
+			return err
+		}
+
+		d, err = os.OpenFile(dest, os.O_WRONLY, fi.Mode())
+		if err != nil {
 			return err
 		}
 	}
@@ -514,7 +590,7 @@ func DirCopy(source string, dest string) error {
 	}
 
 	if !info.IsDir() {
-		return fmt.Errorf("source is not a directory")
+		return errors.New("source is not a directory")
 	}
 
 	// Remove dest if it already exists.
@@ -557,23 +633,28 @@ func DirCopy(source string, dest string) error {
 	return nil
 }
 
+// BytesReadCloser wraps a bytes.Buffer to implement io.ReadCloser.
 type BytesReadCloser struct {
 	Buf *bytes.Buffer
 }
 
+// Read reads data from the buffer into b.
 func (r BytesReadCloser) Read(b []byte) (n int, err error) {
 	return r.Buf.Read(b)
 }
 
+// Close is a no-op as the data is in memory.
 func (r BytesReadCloser) Close() error {
-	/* no-op since we're in memory */
 	return nil
 }
 
+// IsSnapshot returns true if a given name contains the snapshot delimiter.
 func IsSnapshot(name string) bool {
 	return strings.Contains(name, SnapshotDelimiter)
 }
 
+// MkdirAllOwner creates a directory named path, along with any necessary parents, and with specified
+// permissions. It sets the ownership of the created directories to the provided uid and gid.
 func MkdirAllOwner(path string, perm os.FileMode, uid int, gid int) error {
 	// This function is a slightly modified version of MkdirAll from the Go standard library.
 	// https://golang.org/src/os/path.go?s=488:535#L9
@@ -585,7 +666,7 @@ func MkdirAllOwner(path string, perm os.FileMode, uid int, gid int) error {
 			return nil
 		}
 
-		return fmt.Errorf("path exists but isn't a directory")
+		return errors.New("path exists but isn't a directory")
 	}
 
 	// Slow path: make sure parent exists and then call Mkdir for path.
@@ -610,9 +691,9 @@ func MkdirAllOwner(path string, perm os.FileMode, uid int, gid int) error {
 	// Parent now exists; invoke Mkdir and use its result.
 	err = os.Mkdir(path, perm)
 
-	err_chown := os.Chown(path, uid, gid)
-	if err_chown != nil {
-		return err_chown
+	errChown := os.Chown(path, uid, gid)
+	if errChown != nil {
+		return errChown
 	}
 
 	if err != nil {
@@ -636,17 +717,6 @@ func HasKey[K comparable, V any](key K, m map[K]V) bool {
 	return found
 }
 
-// ValueInSlice returns true if key is in list.
-func ValueInSlice[T comparable](key T, list []T) bool {
-	for _, entry := range list {
-		if entry == key {
-			return true
-		}
-	}
-
-	return false
-}
-
 // StringPrefixInSlice returns true if any element in the list has the given prefix.
 func StringPrefixInSlice(key string, list []string) bool {
 	for _, entry := range list {
@@ -660,20 +730,22 @@ func StringPrefixInSlice(key string, list []string) bool {
 
 // RemoveElementsFromSlice returns a slice equivalent to removing the given elements from the given list.
 // Elements not present in the list are ignored.
+// The input slice is cloned to avoid modifying the original slice.
 func RemoveElementsFromSlice[T comparable](list []T, elements ...T) []T {
+	list = slices.Clone(list)
 	for i := len(elements) - 1; i >= 0; i-- {
 		element := elements[i]
 		match := false
 		for j := len(list) - 1; j >= 0; j-- {
 			if element == list[j] {
 				match = true
-				list = append(list[:j], list[j+1:]...)
+				list = slices.Delete(list, j, j+1)
 				break
 			}
 		}
 
 		if match {
-			elements = append(elements[:i], elements[i+1:]...)
+			elements = slices.Delete(elements, i, i+1)
 		}
 	}
 
@@ -690,9 +762,13 @@ func StringHasPrefix(value string, prefixes ...string) bool {
 	return false
 }
 
-// IsTrue returns true if value is "true", "1", "yes" or "on" (case insensitive).
+// IsTrue returns true if value is "1", "true", "yes" or "on" (case insensitive).
 func IsTrue(value string) bool {
-	return ValueInSlice(strings.ToLower(value), []string{"true", "1", "yes", "on"})
+	if value == "1" {
+		return true
+	}
+
+	return slices.Contains([]string{"true", "yes", "on"}, strings.ToLower(value))
 }
 
 // IsTrueOrEmpty returns true if value is empty or if IsTrue() returns true.
@@ -700,18 +776,18 @@ func IsTrueOrEmpty(value string) bool {
 	return value == "" || IsTrue(value)
 }
 
-// IsFalse returns true if value is "false", "0", "no" or "off" (case insensitive).
+// IsFalse returns true if value is "0", "false", "no" or "off" (case insensitive).
 func IsFalse(value string) bool {
-	return ValueInSlice(strings.ToLower(value), []string{"false", "0", "no", "off"})
+	if value == "0" {
+		return true
+	}
+
+	return slices.Contains([]string{"false", "no", "off"}, strings.ToLower(value))
 }
 
 // IsFalseOrEmpty returns true if value is empty or if IsFalse() returns true.
 func IsFalseOrEmpty(value string) bool {
 	return value == "" || IsFalse(value)
-}
-
-func IsUserConfig(key string) bool {
-	return strings.HasPrefix(key, "user.")
 }
 
 // StringMapHasStringKey returns true if any of the supplied keys are present in the map.
@@ -726,10 +802,13 @@ func StringMapHasStringKey(m map[string]string, keys ...string) bool {
 	return false
 }
 
+// IsBlockdev determines if a given file mode represents a block device. It returns true
+// if the mode has the os.ModeDevice bit set and the os.ModeCharDevice bit not set.
 func IsBlockdev(fm os.FileMode) bool {
 	return ((fm&os.ModeDevice != 0) && (fm&os.ModeCharDevice == 0))
 }
 
+// IsBlockdevPath checks if the given path corresponds to a block device.
 func IsBlockdevPath(pathName string) bool {
 	sb, err := os.Stat(pathName)
 	if err != nil {
@@ -738,6 +817,11 @@ func IsBlockdevPath(pathName string) bool {
 
 	fm := sb.Mode()
 	return ((fm&os.ModeDevice != 0) && (fm&os.ModeCharDevice == 0))
+}
+
+// IsFileName checks if the given string is a valid file name (no "/", ".." or "\\").
+func IsFileName(name string) bool {
+	return !strings.Contains(name, "/") && !strings.Contains(name, "\\") && !strings.Contains(name, "..")
 }
 
 // DeepCopy copies src to dest by using encoding/gob so its not that fast.
@@ -758,6 +842,7 @@ func DeepCopy(src, dest any) error {
 	return nil
 }
 
+// RunningInUserNS checks if the current process is running inside a user namespace.
 func RunningInUserNS() bool {
 	file, err := os.Open("/proc/self/uid_map")
 	if err != nil {
@@ -782,7 +867,7 @@ func RunningInUserNS() bool {
 	return true
 }
 
-// Spawn the editor with a temporary YAML file for editing configs.
+// TextEditor opens a text editor with a temporary YAML file for editing configs.
 func TextEditor(inPath string, inContent []byte) ([]byte, error) {
 	var f *os.File
 	var err error
@@ -801,14 +886,14 @@ func TextEditor(inPath string, inContent []byte) ([]byte, error) {
 				}
 			}
 			if editor == "" {
-				return []byte{}, fmt.Errorf("No text editor found, please set the EDITOR environment variable")
+				return []byte{}, errors.New("No text editor found, please set the EDITOR environment variable")
 			}
 		}
 	}
 
 	if inPath == "" {
 		// If provided input, create a new file
-		f, err = os.CreateTemp("", "lxd_editor_")
+		f, err = os.CreateTemp("", "lxd_editor_*.yaml")
 		if err != nil {
 			return []byte{}, err
 		}
@@ -820,11 +905,6 @@ func TextEditor(inPath string, inContent []byte) ([]byte, error) {
 			_ = os.Remove(f.Name())
 		})
 
-		err = os.Chmod(f.Name(), 0600)
-		if err != nil {
-			return []byte{}, err
-		}
-
 		_, err = f.Write(inContent)
 		if err != nil {
 			return []byte{}, err
@@ -835,11 +915,7 @@ func TextEditor(inPath string, inContent []byte) ([]byte, error) {
 			return []byte{}, err
 		}
 
-		path = fmt.Sprintf("%s.yaml", f.Name())
-		err = os.Rename(f.Name(), path)
-		if err != nil {
-			return []byte{}, err
-		}
+		path = f.Name()
 
 		revert.Success()
 		revert.Add(func() { _ = os.Remove(path) })
@@ -865,38 +941,19 @@ func TextEditor(inPath string, inContent []byte) ([]byte, error) {
 	return content, nil
 }
 
-func ParseMetadata(metadata any) (map[string]any, error) {
-	newMetadata := make(map[string]any)
-	s := reflect.ValueOf(metadata)
-	if !s.IsValid() {
-		return nil, nil
-	}
-
-	if s.Kind() == reflect.Map {
-		for _, k := range s.MapKeys() {
-			if k.Kind() != reflect.String {
-				return nil, fmt.Errorf("Invalid metadata provided (key isn't a string)")
-			}
-
-			newMetadata[k.String()] = s.MapIndex(k).Interface()
-		}
-	} else if s.Kind() == reflect.Ptr && !s.Elem().IsValid() {
-		return nil, nil
-	} else {
-		return nil, fmt.Errorf("Invalid metadata provided (type isn't a map)")
-	}
-
-	return newMetadata, nil
-}
-
 // RemoveDuplicatesFromString removes all duplicates of the string 'sep'
-// from the specified string 's'.  Leading and trailing occurrences of sep
-// are NOT removed (duplicate leading/trailing are).  Performs poorly if
+// from the specified string 's'. Leading and trailing occurrences of sep
+// are NOT removed (duplicate leading/trailing are). Performs poorly if
 // there are multiple consecutive redundant separators.
 func RemoveDuplicatesFromString(s string, sep string) string {
-	dup := sep + sep
-	for s = strings.Replace(s, dup, sep, -1); strings.Contains(s, dup); s = strings.Replace(s, dup, sep, -1) {
+	if sep == "" {
+		// Return the original string as it cannot have duplicates.
+		return s
+	}
 
+	dup := sep + sep
+	for strings.Contains(s, dup) {
+		s = strings.ReplaceAll(s, dup, sep)
 	}
 
 	return s
@@ -948,7 +1005,7 @@ func NewRunError(cmd string, args []string, err error, stdout *bytes.Buffer, std
 // resulting stdout and stderr output as separate variables. If the supplied environment is nil then
 // the default environment is used. If the command fails to start or returns a non-zero exit code
 // then an error is returned containing the output of stderr too.
-func RunCommandSplit(ctx context.Context, env []string, filesInherit []*os.File, name string, arg ...string) (string, string, error) {
+func RunCommandSplit(ctx context.Context, env []string, filesInherit []*os.File, name string, arg ...string) (stdOutput string, stdError string, err error) {
 	cmd := exec.CommandContext(ctx, name, arg...)
 
 	if env != nil {
@@ -964,7 +1021,7 @@ func RunCommandSplit(ctx context.Context, env []string, filesInherit []*os.File,
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return stdout.String(), stderr.String(), NewRunError(name, arg, err, &stdout, &stderr)
 	}
@@ -972,18 +1029,10 @@ func RunCommandSplit(ctx context.Context, env []string, filesInherit []*os.File,
 	return stdout.String(), stderr.String(), nil
 }
 
-// RunCommandContext runs a command with optional arguments and returns stdout. If the command fails to
-// start or returns a non-zero exit code then an error is returned containing the output of stderr.
-func RunCommandContext(ctx context.Context, name string, arg ...string) (string, error) {
-	stdout, _, err := RunCommandSplit(ctx, nil, nil, name, arg...)
-	return stdout, err
-}
-
 // RunCommand runs a command with optional arguments and returns stdout. If the command fails to
 // start or returns a non-zero exit code then an error is returned containing the output of stderr.
-// Deprecated: Use RunCommandContext.
-func RunCommand(name string, arg ...string) (string, error) {
-	stdout, _, err := RunCommandSplit(context.TODO(), nil, nil, name, arg...)
+func RunCommand(ctx context.Context, name string, arg ...string) (string, error) {
+	stdout, _, err := RunCommandSplit(ctx, nil, nil, name, arg...)
 	return stdout, err
 }
 
@@ -1027,24 +1076,71 @@ func RunCommandWithFds(ctx context.Context, stdin io.Reader, stdout io.Writer, n
 	return nil
 }
 
-// TryRunCommand runs the specified command up to 20 times with a 500ms delay between each call
-// until it runs without an error. If after 20 times it is still failing then returns the error.
-func TryRunCommand(name string, arg ...string) (string, error) {
-	var err error
-	var output string
+// RunCommandRetryOpts contains options for running commands.
+type RunCommandRetryOpts struct {
+	// RetryFunc must return true to instruct RunCommandRetry to perform another attempt.
+	// It is called after each command failure until the context is cancelled or times out.
+	// The lastErr argument is a [RunError], which can be used to inspect stdout and stderr if necessary.
+	RetryFunc func(attempt uint, lastErr error) bool
 
-	for i := 0; i < 20; i++ {
-		output, err = RunCommand(name, arg...)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	return output, err
+	// NoKill instructs RunCommandRetry to use a background context instead of the
+	// input context when running the command. This prevents sending a kill signal to the
+	// command when the deadline is exceeded or the context is cancelled.
+	NoKill bool
 }
 
+var defaultCommandRetryOpts = RunCommandRetryOpts{
+	RetryFunc: func(attempt uint, lastErr error) bool {
+		time.Sleep(500 * time.Millisecond)
+		return true
+	},
+}
+
+// RunCommandRetry repeatedly runs a command according to the given options and context.
+// It returns the contents of stdout or an error.
+// If the input context has a deadline, then commands are run until that deadline is exceeded.
+// If the input context does not have a deadline, a 10 second timeout is applied.
+func RunCommandRetry(ctx context.Context, opts *RunCommandRetryOpts, cmd string, args ...string) (string, error) {
+	runOpts := defaultCommandRetryOpts
+	if opts != nil {
+		runOpts.NoKill = opts.NoKill
+		if opts.RetryFunc != nil {
+			runOpts.RetryFunc = opts.RetryFunc
+		}
+	}
+
+	_, ok := ctx.Deadline()
+	if !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+	}
+
+	runCtx := ctx
+	if runOpts.NoKill {
+		runCtx = context.Background()
+	}
+
+	var attempt uint
+	for {
+		stdout, err := RunCommand(runCtx, cmd, args...)
+		if err == nil {
+			return stdout, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return "", err
+		default:
+			if !runOpts.RetryFunc(attempt, err) {
+				return "", err
+			}
+		}
+	}
+}
+
+// TimeIsSet checks if the provided time is set to a valid timestamp. It returns false if the
+// timestamp is zero or negative, and true otherwise.
 func TimeIsSet(ts time.Time) bool {
 	if ts.Unix() <= 0 {
 		return false
@@ -1069,31 +1165,10 @@ func EscapePathFstab(path string) string {
 	return r.Replace(path)
 }
 
-func SetProgressMetadata(metadata map[string]any, stage, displayPrefix string, percent, processed, speed int64) {
-	progress := make(map[string]string)
-	// stage, percent, speed sent for API callers.
-	progress["stage"] = stage
-	if processed > 0 {
-		progress["processed"] = strconv.FormatInt(processed, 10)
-	}
-
-	if percent > 0 {
-		progress["percent"] = strconv.FormatInt(percent, 10)
-	}
-
-	progress["speed"] = strconv.FormatInt(speed, 10)
-	metadata["progress"] = progress
-
-	// <stage>_progress with formatted text sent for lxc cli.
-	if percent > 0 {
-		metadata[stage+"_progress"] = fmt.Sprintf("%s: %d%% (%s/s)", displayPrefix, percent, units.GetByteSizeString(speed, 2))
-	} else if processed > 0 {
-		metadata[stage+"_progress"] = fmt.Sprintf("%s: %s (%s/s)", displayPrefix, units.GetByteSizeString(processed, 2), units.GetByteSizeString(speed, 2))
-	} else {
-		metadata[stage+"_progress"] = fmt.Sprintf("%s: %s/s", displayPrefix, units.GetByteSizeString(speed, 2))
-	}
-}
-
+// DownloadFileHash downloads a file from the specified URL and writes it to the target,
+// optionally verifying the file's hash using the provided hash function. The function
+// either returns the number of bytes written or an error if the download fails or the
+// hash does not match.
 func DownloadFileHash(ctx context.Context, httpClient *http.Client, useragent string, progress func(progress ioprogress.ProgressData), canceler *cancel.HTTPRequestCanceller, filename string, url string, hash string, hashFunc hash.Hash, target io.WriteSeeker) (int64, error) {
 	// Always seek to the beginning
 	_, _ = target.Seek(0, io.SeekStart)
@@ -1105,7 +1180,7 @@ func DownloadFileHash(ctx context.Context, httpClient *http.Client, useragent st
 	if ctx != nil {
 		req, err = http.NewRequestWithContext(ctx, "GET", url, nil)
 	} else {
-		req, err = http.NewRequest("GET", url, nil)
+		req, err = http.NewRequest(http.MethodGet, url, nil)
 	}
 
 	if err != nil {
@@ -1155,7 +1230,7 @@ func DownloadFileHash(ctx context.Context, httpClient *http.Client, useragent st
 			return -1, err
 		}
 
-		result := fmt.Sprintf("%x", hashFunc.Sum(nil))
+		result := hex.EncodeToString(hashFunc.Sum(nil))
 		if result != hash {
 			return -1, fmt.Errorf("Hash mismatch for %s: %s != %s", url, result, hash)
 		}
@@ -1169,6 +1244,7 @@ func DownloadFileHash(ctx context.Context, httpClient *http.Client, useragent st
 	return size, nil
 }
 
+// ParseNumberFromFile reads a file content and tries to extract a number as int64 from it.
 func ParseNumberFromFile(file string) (int64, error) {
 	f, err := os.Open(file)
 	if err != nil {
@@ -1192,43 +1268,75 @@ func ParseNumberFromFile(file string) (int64, error) {
 	return int64(nr), nil
 }
 
+// ReadSeeker is a composite type that embeds both io.Reader and io.Seeker.
 type ReadSeeker struct {
 	io.Reader
 	io.Seeker
 }
 
+// NewReadSeeker creates a new ReadSeeker from the provided io.Reader and io.Seeker.
 func NewReadSeeker(reader io.Reader, seeker io.Seeker) *ReadSeeker {
 	return &ReadSeeker{Reader: reader, Seeker: seeker}
 }
 
+// Read reads from the embedded io.Reader into the provided slice of bytes.
 func (r *ReadSeeker) Read(p []byte) (n int, err error) {
 	return r.Reader.Read(p)
 }
 
+// Seek sets the offset for the next Read or Write operation, based on the reference point
+// specified by whence.
 func (r *ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	return r.Seeker.Seek(offset, whence)
 }
 
 // RenderTemplate renders a pongo2 template.
-func RenderTemplate(template string, ctx pongo2.Context) (string, error) {
-	// Load template from string
-	tpl, err := pongo2.FromString("{% autoescape off %}" + template + "{% endautoescape %}")
-	if err != nil {
-		return "", err
+func RenderTemplate(template string, ctx pongo2.Context) (output string, err error) {
+	defer func() {
+		// Capture panics in the pongo2 template rendering.
+		// This is to prevent the server from crashing due to a template error.
+		r := recover()
+		if r != nil {
+			err = fmt.Errorf("Panic while rendering template: %v", r)
+		}
+	}()
+
+	// Create custom TemplateSet
+	set := pongo2.NewSet("restricted", pongo2.DefaultLoader)
+
+	// Ban tags that could be used to access the host's filesystem.
+	for _, tag := range []string{"extends", "import", "include", "ssi"} {
+		err := set.BanTag(tag)
+		if err != nil {
+			return "", fmt.Errorf("Failed to ban tag %q: %w", tag, err)
+		}
 	}
 
-	// Get rendered template
-	ret, err := tpl.Execute(ctx)
-	if err != nil {
-		return ret, err
+	// Prevent unbounded recursion while rendering templates. Normal use should not
+	// require more than 1 or 2 levels of recursion.
+	for range 3 {
+		// Load template from string
+		tpl, err := set.FromString("{% autoescape off %}" + template + "{% endautoescape %}")
+		if err != nil {
+			return "", err
+		}
+
+		// Get rendered template
+		ret, err := tpl.Execute(ctx)
+		if err != nil {
+			return "", err
+		}
+
+		// Check if another pass is needed.
+		if !strings.Contains(ret, "{{") && !strings.Contains(ret, "{%") {
+			return ret, nil
+		}
+
+		// Prepare for another pass.
+		template = ret
 	}
 
-	// Looks like we're nesting templates so run pongo again
-	if strings.Contains(ret, "{{") || strings.Contains(ret, "{%") {
-		return RenderTemplate(ret, ctx)
-	}
-
-	return ret, err
+	return "", errors.New("Recursion limit reached while rendering template")
 }
 
 // GetExpiry returns the expiry date based on the reference date and a length of time.
@@ -1265,12 +1373,12 @@ func GetExpiry(refDate time.Time, s string) (time.Time, error) {
 	for _, value := range values {
 		fields := re.FindStringSubmatch(value)
 		if fields == nil {
-			return time.Time{}, fmt.Errorf("Invalid expiry expression")
+			return time.Time{}, errors.New("Invalid expiry expression")
 		}
 
 		if expiry[fields[2]] > 0 {
 			// We don't allow fields to be set multiple times
-			return time.Time{}, fmt.Errorf("Invalid expiry expression")
+			return time.Time{}, errors.New("Invalid expiry expression")
 		}
 
 		val, err := strconv.Atoi(fields[1])
@@ -1299,9 +1407,9 @@ func InSnap() bool {
 	return false
 }
 
-// JoinUrlPath return the join of the input urls/paths sanitized.
-func JoinUrls(baseUrl, p string) (string, error) {
-	u, err := url.Parse(baseUrl)
+// JoinUrls returns the join of the input urls/paths sanitized.
+func JoinUrls(baseURL string, p string) (string, error) {
+	u, err := url.Parse(baseURL)
 	if err != nil {
 		return "", err
 	}
@@ -1340,32 +1448,70 @@ func JoinTokenDecode(input string) (*api.ClusterMemberJoinToken, error) {
 	}
 
 	if j.ServerName == "" {
-		return nil, fmt.Errorf("No server name in join token")
+		return nil, errors.New("No server name in join token")
 	}
 
 	if len(j.Addresses) < 1 {
-		return nil, fmt.Errorf("No cluster member addresses in join token")
+		return nil, errors.New("No cluster member addresses in join token")
 	}
 
 	if j.Secret == "" {
-		return nil, fmt.Errorf("No secret in join token")
+		return nil, errors.New("No secret in join token")
 	}
 
 	if j.Fingerprint == "" {
-		return nil, fmt.Errorf("No certificate fingerprint in join token")
+		return nil, errors.New("No certificate fingerprint in join token")
 	}
 
 	return &j, nil
 }
 
-// TargetDetect returns either target node or group based on the provided prefix:
-// An invocation with `target=h1` returns "h1", "" and `target=@g1` returns "", "g1".
-func TargetDetect(target string) (targetNode string, targetGroup string) {
-	if strings.HasPrefix(target, "@") {
-		targetGroup = strings.TrimPrefix(target, "@")
-	} else {
-		targetNode = target
+// ApplyDeviceOverrides handles the logic for applying device overrides.
+// Receives the profile and local devices and the device overrides.
+// Returns the resulting list of devices.
+func ApplyDeviceOverrides(localDevices map[string]map[string]string, profileDevices map[string]map[string]string, deviceOverrides map[string]map[string]string) (map[string]map[string]string, error) {
+	// Allow setting device overrides.
+	for deviceName := range deviceOverrides {
+		_, isLocalDevice := localDevices[deviceName]
+		if isLocalDevice {
+			// Apply overrides to local device.
+			maps.Copy(localDevices[deviceName], deviceOverrides[deviceName])
+		} else {
+			// Check device exists in expanded profile devices.
+			profileDeviceConfig, found := profileDevices[deviceName]
+			if !found {
+				return nil, fmt.Errorf("Cannot override config for device %q: Device not found in profile devices", deviceName)
+			}
+
+			maps.Copy(profileDeviceConfig, deviceOverrides[deviceName])
+
+			localDevices[deviceName] = profileDeviceConfig
+		}
 	}
 
-	return
+	return localDevices, nil
+}
+
+// IsMicroOVNUsed returns whether the current LXD deployment is using a built-in openvswitch
+// or is connected to MicroOVN, which in this case, would make `/run/openvswitch` a symlink to
+// `/var/snap/lxd/common/microovn/chassis/switch`.
+func IsMicroOVNUsed() bool {
+	targetPath, err := os.Readlink("/run/openvswitch")
+	if err == nil && strings.HasSuffix(targetPath, "/microovn/chassis/switch") {
+		return true
+	}
+
+	return false
+}
+
+// ShellQuote escapes the input string for use in shell command arguments.
+// It is equivalent to strconv.Quote but using a single-quote instead.
+func ShellQuote(in string) string {
+	in = strconv.Quote(in)
+	in = in[1 : len(in)-1]                    // Remove the surrounding double quotes added by strconv.Quote.
+	in = strings.ReplaceAll(in, "\\\"", "\"") // Unescape any escaped double quotes from strconv.Quote.
+
+	// Replace ' with '\'' which translates to:
+	// [End literal string] + [Escaped single quote] + [Start new literal string]
+	return `'` + strings.ReplaceAll(in, `'`, `'\''`) + `'`
 }

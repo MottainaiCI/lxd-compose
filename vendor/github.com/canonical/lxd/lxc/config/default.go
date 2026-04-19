@@ -1,5 +1,9 @@
 package config
 
+import (
+	"maps"
+)
+
 // LocalRemote is the default local remote (over the LXD unix socket).
 var LocalRemote = Remote{
 	Addr:   "unix://",
@@ -7,16 +11,17 @@ var LocalRemote = Remote{
 	Public: false,
 }
 
-// ImagesRemote is the community image server (over simplestreams).
+// ImagesRemote is the main image server (over simplestreams).
 var ImagesRemote = Remote{
-	Addr:     "https://images.linuxcontainers.org",
+	Addr:     "https://images.lxd.canonical.com",
+	Static:   true,
 	Public:   true,
 	Protocol: "simplestreams",
 }
 
 // UbuntuRemote is the Ubuntu image server (over simplestreams).
 var UbuntuRemote = Remote{
-	Addr:     "https://cloud-images.ubuntu.com/releases",
+	Addr:     "https://cloud-images.ubuntu.com/releases/",
 	Static:   true,
 	Public:   true,
 	Protocol: "simplestreams",
@@ -24,7 +29,7 @@ var UbuntuRemote = Remote{
 
 // UbuntuDailyRemote is the Ubuntu daily image server (over simplestreams).
 var UbuntuDailyRemote = Remote{
-	Addr:     "https://cloud-images.ubuntu.com/daily",
+	Addr:     "https://cloud-images.ubuntu.com/daily/",
 	Static:   true,
 	Public:   true,
 	Protocol: "simplestreams",
@@ -49,6 +54,7 @@ var UbuntuMinimalDailyRemote = Remote{
 // StaticRemotes is the list of remotes which can't be removed.
 var StaticRemotes = map[string]Remote{
 	"local":                LocalRemote,
+	"images":               ImagesRemote,
 	"ubuntu":               UbuntuRemote,
 	"ubuntu-daily":         UbuntuDailyRemote,
 	"ubuntu-minimal":       UbuntuMinimalRemote,
@@ -57,8 +63,8 @@ var StaticRemotes = map[string]Remote{
 
 // DefaultRemotes is the list of default remotes.
 var DefaultRemotes = map[string]Remote{
-	"images":               ImagesRemote,
 	"local":                LocalRemote,
+	"images":               ImagesRemote,
 	"ubuntu":               UbuntuRemote,
 	"ubuntu-daily":         UbuntuDailyRemote,
 	"ubuntu-minimal":       UbuntuMinimalRemote,
@@ -69,9 +75,7 @@ var DefaultRemotes = map[string]Remote{
 func DefaultConfig() *Config {
 	// Duplicate remotes from DefaultRemotes.
 	defaultRoutes := make(map[string]Remote, len(DefaultRemotes))
-	for k, v := range DefaultRemotes {
-		defaultRoutes[k] = v
-	}
+	maps.Copy(defaultRoutes, DefaultRemotes)
 
 	return &Config{
 		Remotes:       defaultRoutes,

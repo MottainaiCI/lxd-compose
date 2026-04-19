@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -62,11 +63,33 @@ type Operation struct {
 	// Example: Some error message
 	Err string `json:"err" yaml:"err"`
 
-	// What cluster member this record was found on
+	// Which cluster member this record was found on
 	// Example: lxd01
 	//
 	// API extension: operation_location
 	Location string `json:"location" yaml:"location"`
+
+	// Requestor is a record of the original operation requestor.
+	//
+	// API extension: operation_requestor
+	Requestor *OperationRequestor `json:"requestor,omitempty" yaml:"requestor,omitempty"`
+}
+
+// OperationRequestor represents the initial requestor of an operation
+//
+// API extension: operation_requestor.
+type OperationRequestor struct {
+	// Username is the username of the requestor. This is the identifier of the identity, or the username if using the unix socket.
+	// Example: jane.doe@example.com
+	Username string `yaml:"username" json:"username"`
+
+	// Protocol represents the method used to authenticate the requestor.
+	// Example: oidc
+	Protocol string `yaml:"protocol" json:"protocol"`
+
+	// Address is the origin address of the request.
+	// Example: 10.0.2.15
+	Address string `yaml:"address" json:"address"`
 }
 
 // ToCertificateAddToken creates a certificate add token from the operation metadata.
@@ -78,29 +101,19 @@ func (op *Operation) ToCertificateAddToken() (*CertificateAddToken, error) {
 
 	clientName, ok := req["name"].(string)
 	if !ok {
-		return nil, fmt.Errorf("Failed to get client name")
+		return nil, errors.New("Failed to get client name")
 	}
 
-	secret, ok := op.Metadata["secret"].(string)
-	if !ok {
-		return nil, fmt.Errorf("Operation secret is type %T not string", op.Metadata["secret"])
-	}
-
-	fingerprint, ok := op.Metadata["fingerprint"].(string)
-	if !ok {
-		return nil, fmt.Errorf("Operation fingerprint is type %T not string", op.Metadata["fingerprint"])
-	}
-
-	addresses, ok := op.Metadata["addresses"].([]any)
-	if !ok {
-		return nil, fmt.Errorf("Operation addresses is type %T not []any", op.Metadata["addresses"])
+	secret, fingerprint, addresses, err := op.parseCommonTokenFields()
+	if err != nil {
+		return nil, err
 	}
 
 	joinToken := CertificateAddToken{
 		ClientName:  clientName,
 		Secret:      secret,
 		Fingerprint: fingerprint,
-		Addresses:   make([]string, 0, len(addresses)),
+		Addresses:   addresses,
 	}
 
 	expiresAtStr, ok := op.Metadata["expiresAt"].(string)
@@ -113,15 +126,6 @@ func (op *Operation) ToCertificateAddToken() (*CertificateAddToken, error) {
 		joinToken.ExpiresAt = expiresAt
 	}
 
-	for i, address := range addresses {
-		addressString, ok := address.(string)
-		if !ok {
-			return nil, fmt.Errorf("Operation address index %d is type %T not string", i, address)
-		}
-
-		joinToken.Addresses = append(joinToken.Addresses, addressString)
-	}
-
 	return &joinToken, nil
 }
 
@@ -132,19 +136,9 @@ func (op *Operation) ToClusterJoinToken() (*ClusterMemberJoinToken, error) {
 		return nil, fmt.Errorf("Operation serverName is type %T not string", op.Metadata["serverName"])
 	}
 
-	secret, ok := op.Metadata["secret"].(string)
-	if !ok {
-		return nil, fmt.Errorf("Operation secret is type %T not string", op.Metadata["secret"])
-	}
-
-	fingerprint, ok := op.Metadata["fingerprint"].(string)
-	if !ok {
-		return nil, fmt.Errorf("Operation fingerprint is type %T not string", op.Metadata["fingerprint"])
-	}
-
-	addresses, ok := op.Metadata["addresses"].([]any)
-	if !ok {
-		return nil, fmt.Errorf("Operation addresses is type %T not []any", op.Metadata["addresses"])
+	secret, fingerprint, addresses, err := op.parseCommonTokenFields()
+	if err != nil {
+		return nil, err
 	}
 
 	expiresAtStr, ok := op.Metadata["expiresAt"].(string)
@@ -161,18 +155,38 @@ func (op *Operation) ToClusterJoinToken() (*ClusterMemberJoinToken, error) {
 		ServerName:  serverName,
 		Secret:      secret,
 		Fingerprint: fingerprint,
-		Addresses:   make([]string, 0, len(addresses)),
+		Addresses:   addresses,
 		ExpiresAt:   expiresAt,
 	}
 
-	for i, address := range addresses {
-		addressString, ok := address.(string)
-		if !ok {
-			return nil, fmt.Errorf("Operation address index %d is type %T not string", i, address)
-		}
+	return &joinToken, nil
+}
 
-		joinToken.Addresses = append(joinToken.Addresses, addressString)
+func (op *Operation) parseCommonTokenFields() (secret string, fingerprint string, addresses []string, err error) {
+	secret, ok := op.Metadata["secret"].(string)
+	if !ok {
+		return "", "", nil, fmt.Errorf("Operation secret is type %T not string", op.Metadata["secret"])
 	}
 
-	return &joinToken, nil
+	fingerprint, ok = op.Metadata["fingerprint"].(string)
+	if !ok {
+		return "", "", nil, fmt.Errorf("Operation fingerprint is type %T not string", op.Metadata["fingerprint"])
+	}
+
+	addressesRaw, ok := op.Metadata["addresses"].([]any)
+	if !ok {
+		return "", "", nil, fmt.Errorf("Operation addresses is type %T not []any", op.Metadata["addresses"])
+	}
+
+	addresses = make([]string, 0, len(addressesRaw))
+	for i, address := range addressesRaw {
+		addressString, ok := address.(string)
+		if !ok {
+			return "", "", nil, fmt.Errorf("Operation address index %d is type %T not string", i, address)
+		}
+
+		addresses = append(addresses, addressString)
+	}
+
+	return secret, fingerprint, addresses, nil
 }

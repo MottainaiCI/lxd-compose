@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/canonical/lxd/client"
-	"github.com/canonical/lxd/shared/i18n"
 )
 
 // CancelableWait waits for an operation and cancel it on SIGINT/SIGTERM.
@@ -22,7 +22,7 @@ func CancelableWait(rawOp any, progress *ProgressRenderer) error {
 	case lxd.RemoteOperation:
 		rop = v
 	default:
-		return fmt.Errorf("Invalid operation type for CancelableWait")
+		return errors.New("Invalid operation type for CancelableWait")
 	}
 
 	// Signal handling
@@ -56,17 +56,17 @@ func CancelableWait(rawOp any, progress *ProgressRenderer) error {
 			}
 
 			if err == nil {
-				return fmt.Errorf(i18n.G("Remote operation canceled by user"))
+				return errors.New("Remote operation canceled by user")
 			}
 
 			count++
 
 			if count == 3 {
-				return fmt.Errorf(i18n.G("User signaled us three times, exiting. The remote operation will keep running"))
+				return errors.New("User signaled us three times, exiting. The remote operation will keep running")
 			}
 
 			if progress != nil {
-				progress.Warn(fmt.Sprintf(i18n.G("%v (interrupt two more times to force)"), err), time.Second*5)
+				progress.Warn(fmt.Sprintf("%v (interrupt two more times to force)", err), time.Second*5)
 			}
 		}
 	}

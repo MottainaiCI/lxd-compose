@@ -3,6 +3,8 @@ package lxd
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,9 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zitadel/oidc/v2/pkg/client/rp"
-	httphelper "github.com/zitadel/oidc/v2/pkg/http"
-	"github.com/zitadel/oidc/v2/pkg/oidc"
+	"github.com/zitadel/oidc/v3/pkg/client/rp"
+	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"golang.org/x/oauth2"
 )
 
@@ -30,14 +32,15 @@ func (r *ProtocolLXD) setupOIDCClient(token *oidc.Tokens[*oidc.IDTokenClaims]) {
 	r.oidcClient.httpClient = r.http
 }
 
-// Custom transport that modifies requests to inject the audience field.
+// oidcTransport is a custom HTTP transport that injects the audience field into requests directed at the device
+// authorization endpoint.
 type oidcTransport struct {
 	deviceAuthorizationEndpoint string
 	audience                    string
 }
 
-// oidcTransport is a custom HTTP transport that injects the audience field into requests directed at the device authorization endpoint.
-// RoundTrip is a method of oidcTransport that modifies the request, adds the audience parameter if appropriate, and sends it along.
+// RoundTrip the oidcTransport implementation of http.RoundTripper. It modifies the request, adds the audience parameter
+// if appropriate, and sends it along.
 func (o *oidcTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	// Don't modify the request if it's not to the device authorization endpoint, or there are no
 	// URL parameters which need to be set.
@@ -62,8 +65,7 @@ func (o *oidcTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return http.DefaultTransport.RoundTrip(r)
 }
 
-var errRefreshAccessToken = fmt.Errorf("Failed refreshing access token")
-var oidcScopes = []string{oidc.ScopeOpenID, oidc.ScopeOfflineAccess, oidc.ScopeEmail}
+var errRefreshAccessToken = errors.New("Failed refreshing access token")
 
 type oidcClient struct {
 	httpClient    *http.Client
@@ -99,7 +101,8 @@ func (o *oidcClient) getAccessToken() string {
 
 // do function executes an HTTP request using the oidcClient's http client, and manages authorization by refreshing or authenticating as needed.
 // If the request fails with an HTTP Unauthorized status, it attempts to refresh the access token, or perform an OIDC authentication if refresh fails.
-func (o *oidcClient) do(req *http.Request) (*http.Response, error) {
+// The oidcScopesExtensionPresent argument changes the behaviour of this function based on the presence of an API extension.
+func (o *oidcClient) do(req *http.Request, oidcScopesExtensionPresent bool) (*http.Response, error) {
 	resp, err := o.httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -114,16 +117,38 @@ func (o *oidcClient) do(req *http.Request) (*http.Response, error) {
 	clientID := resp.Header.Get("X-LXD-OIDC-clientid")
 	audience := resp.Header.Get("X-LXD-OIDC-audience")
 
-	err = o.refresh(issuer, clientID)
+	var scopes []string
+	if oidcScopesExtensionPresent {
+		// If we have the `oidc_scopes` extension, get the scopes from the header and ignore the groups claim header.
+		scopesJSON := resp.Header.Get("X-LXD-OIDC-scopes")
+		if scopesJSON == "" {
+			return nil, errors.New("LXD server did not return OIDC scopes")
+		}
+
+		err = json.Unmarshal([]byte(scopesJSON), &scopes)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse OIDC scopes: %w", err)
+		}
+	} else {
+		// Otherwise, use the default scopes from before the API extension was added, and append the groups claim header
+		// if set.
+		scopes = []string{oidc.ScopeOpenID, oidc.ScopeEmail, oidc.ScopeOfflineAccess, oidc.ScopeProfile}
+		groupsClaim := resp.Header.Get("X-LXD-OIDC-groups-claim")
+		if groupsClaim != "" {
+			scopes = append(scopes, groupsClaim)
+		}
+	}
+
+	err = o.refresh(issuer, clientID, scopes)
 	if err != nil {
-		err = o.authenticate(issuer, clientID, audience)
+		err = o.authenticate(issuer, clientID, audience, scopes)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Set the new access token in the header.
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", o.tokens.AccessToken))
+	req.Header.Set("Authorization", "Bearer "+o.tokens.AccessToken)
 
 	resp, err = o.httpClient.Do(req)
 	if err != nil {
@@ -135,7 +160,7 @@ func (o *oidcClient) do(req *http.Request) (*http.Response, error) {
 
 // getProvider initializes a new OpenID Connect Relying Party for a given issuer and clientID.
 // The function also creates a secure CookieHandler with random encryption and hash keys, and applies a series of configurations on the Relying Party.
-func (o *oidcClient) getProvider(issuer string, clientID string) (rp.RelyingParty, error) {
+func (o *oidcClient) getProvider(issuer string, clientID string, scopes []string) (rp.RelyingParty, error) {
 	hashKey := make([]byte, 16)
 	encryptKey := make([]byte, 16)
 
@@ -149,7 +174,7 @@ func (o *oidcClient) getProvider(issuer string, clientID string) (rp.RelyingPart
 		return nil, err
 	}
 
-	cookieHandler := httphelper.NewCookieHandler(hashKey, encryptKey, httphelper.WithUnsecure())
+	cookieHandler := httphelper.NewCookieHandler(hashKey, encryptKey)
 	options := []rp.Option{
 		rp.WithCookieHandler(cookieHandler),
 		rp.WithVerifierOpts(rp.WithIssuedAtOffset(5 * time.Second)),
@@ -157,7 +182,10 @@ func (o *oidcClient) getProvider(issuer string, clientID string) (rp.RelyingPart
 		rp.WithHTTPClient(o.httpClient),
 	}
 
-	provider, err := rp.NewRelyingPartyOIDC(issuer, clientID, "", "", oidcScopes, options...)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	provider, err := rp.NewRelyingPartyOIDC(ctx, issuer, clientID, "", "", scopes, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,27 +195,30 @@ func (o *oidcClient) getProvider(issuer string, clientID string) (rp.RelyingPart
 
 // refresh attempts to refresh the OpenID Connect access token for the client using the refresh token.
 // If no token is present or the refresh token is empty, it returns an error. If successful, it updates the access token and other relevant token fields.
-func (o *oidcClient) refresh(issuer string, clientID string) error {
+func (o *oidcClient) refresh(issuer string, clientID string, scopes []string) error {
 	if o.tokens.Token == nil || o.tokens.RefreshToken == "" {
 		return errRefreshAccessToken
 	}
 
-	provider, err := o.getProvider(issuer, clientID)
+	provider, err := o.getProvider(issuer, clientID, scopes)
 	if err != nil {
 		return errRefreshAccessToken
 	}
 
-	oauthTokens, err := rp.RefreshAccessToken(provider, o.tokens.RefreshToken, "", "")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	oauthTokens, err := rp.RefreshTokens[*oidc.IDTokenClaims](ctx, provider, o.tokens.RefreshToken, "", "")
 	if err != nil {
 		return errRefreshAccessToken
 	}
 
-	o.tokens.Token.AccessToken = oauthTokens.AccessToken
+	o.tokens.AccessToken = oauthTokens.AccessToken
 	o.tokens.TokenType = oauthTokens.TokenType
 	o.tokens.Expiry = oauthTokens.Expiry
 
 	if oauthTokens.RefreshToken != "" {
-		o.tokens.Token.RefreshToken = oauthTokens.RefreshToken
+		o.tokens.RefreshToken = oauthTokens.RefreshToken
 	}
 
 	return nil
@@ -196,7 +227,7 @@ func (o *oidcClient) refresh(issuer string, clientID string) error {
 // authenticate initiates the OpenID Connect device flow authentication process for the client.
 // It presents a user code for the end user to input in the device that has web access and waits for them to complete the authentication,
 // subsequently updating the client's tokens upon successful authentication.
-func (o *oidcClient) authenticate(issuer string, clientID string, audience string) error {
+func (o *oidcClient) authenticate(issuer string, clientID string, audience string, scopes []string) error {
 	// Store the old transport and restore it in the end.
 	oldTransport := o.httpClient.Transport
 	o.oidcTransport.audience = audience
@@ -206,27 +237,43 @@ func (o *oidcClient) authenticate(issuer string, clientID string, audience strin
 		o.httpClient.Transport = oldTransport
 	}()
 
-	provider, err := o.getProvider(issuer, clientID)
+	provider, err := o.getProvider(issuer, clientID, scopes)
 	if err != nil {
 		return err
 	}
 
 	o.oidcTransport.deviceAuthorizationEndpoint = provider.GetDeviceAuthorizationEndpoint()
 
-	resp, err := rp.DeviceAuthorization(oidcScopes, provider)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT)
+	defer stop()
+
+	resp, err := rp.DeviceAuthorization(ctx, scopes, provider, nil)
 	if err != nil {
 		return err
 	}
 
-	u, _ := url.Parse(resp.VerificationURIComplete)
+	// Check if `verification_uri_complete` is present (this auto fills the code in the browser but is marked as optional https://www.rfc-editor.org/rfc/rfc8628#section-3.2)
+	var u *url.URL
+	if resp.VerificationURIComplete != "" {
+		u, _ = url.Parse(resp.VerificationURIComplete)
+	}
+
+	// Fall back to `verification_uri` (marked as required in specification).
+	if u == nil {
+		if resp.VerificationURI == "" {
+			return errors.New("Identity provider did not return a verification URI")
+		}
+
+		u, err = url.Parse(resp.VerificationURI)
+		if err != nil {
+			return fmt.Errorf("Identity provider returned an invalid verification URI %q: %w", resp.VerificationURI, err)
+		}
+	}
 
 	fmt.Printf("URL: %s\n", u.String())
 	fmt.Printf("Code: %s\n\n", resp.UserCode)
 
 	_ = openBrowser(u.String())
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT)
-	defer stop()
 
 	token, err := rp.DeviceAccessToken(ctx, resp.DeviceCode, time.Duration(resp.Interval)*time.Second, provider)
 	if err != nil {
@@ -239,11 +286,11 @@ func (o *oidcClient) authenticate(issuer string, clientID string, audience strin
 
 	o.tokens.Expiry = time.Now().Add(time.Duration(token.ExpiresIn))
 	o.tokens.IDToken = token.IDToken
-	o.tokens.Token.AccessToken = token.AccessToken
+	o.tokens.AccessToken = token.AccessToken
 	o.tokens.TokenType = token.TokenType
 
 	if token.RefreshToken != "" {
-		o.tokens.Token.RefreshToken = token.RefreshToken
+		o.tokens.RefreshToken = token.RefreshToken
 	}
 
 	return nil

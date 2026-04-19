@@ -6,29 +6,39 @@ import (
 
 // FormatSection properly indents a text section.
 func FormatSection(header string, content string) string {
-	out := ""
+	var out strings.Builder
 
 	// Add section header
 	if header != "" {
-		out += header + ":\n"
+		out.WriteString(header + ":\n")
 	}
 
 	// Indent the content
-	for _, line := range strings.Split(content, "\n") {
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
 		if line != "" {
-			out += "  "
+			out.WriteString("  ")
 		}
 
-		out += line + "\n"
+		if header == "" && i == len(lines)-1 {
+			// Don't add newline when rendering partial section
+			out.WriteString(line)
+		} else {
+			out.WriteString(line + "\n")
+		}
 	}
 
 	if header != "" {
 		// Section separator (when rendering a full section
-		out += "\n"
-	} else {
-		// Remove last newline when rendering partial section
-		out = strings.TrimSuffix(out, "\n")
+		out.WriteString("\n")
 	}
 
-	return out
+	return out.String()
+}
+
+// FormatStringFlagLabel formats a command flag label to include the “ at the end of
+// the string to signal cobra to not include the type ("string") in the help
+// output.
+func FormatStringFlagLabel(flag string) string {
+	return flag + "``"
 }

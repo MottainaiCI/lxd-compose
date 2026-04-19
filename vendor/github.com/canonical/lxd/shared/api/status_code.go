@@ -67,3 +67,13 @@ func StatusCodeFromString(status string) StatusCode {
 
 	return -1
 }
+
+// GetAllStatusCodeStrings returns a slice of all status code strings.
+func GetAllStatusCodeStrings() (statusStrings []string) {
+	statusStrings = make([]string, 0, len(StatusCodeNames))
+	for _, code := range StatusCodeNames {
+		statusStrings = append(statusStrings, code)
+	}
+
+	return statusStrings
+}

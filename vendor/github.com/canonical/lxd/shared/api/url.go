@@ -45,7 +45,7 @@ func (u *URL) Path(pathParts ...string) *URL {
 	}
 
 	u.URL.Path = path.String()
-	u.URL.RawPath = rawPath.String()
+	u.RawPath = rawPath.String()
 
 	return u
 }
@@ -61,7 +61,7 @@ func (u *URL) Project(projectName string) *URL {
 	return u
 }
 
-// Target sets the "target" query parameter in the URL if the clusterMemberName is not empty or "default".
+// Target sets the "target" query parameter in the URL if the clusterMemberName is not empty or "none".
 func (u *URL) Target(clusterMemberName string) *URL {
 	if clusterMemberName != "" && clusterMemberName != "none" {
 		queryArgs := u.Query()

@@ -2,7 +2,7 @@ package cancel
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
 	"sync"
 )
@@ -24,6 +24,17 @@ func NewHTTPRequestCanceller() *HTTPRequestCanceller {
 	return &c
 }
 
+// NewHTTPRequestCancellerWithContext returns a new HTTPRequestCanceller that automatically cancels when the given context is cancelled.
+func NewHTTPRequestCancellerWithContext(ctx context.Context) *HTTPRequestCanceller {
+	c := NewHTTPRequestCanceller()
+	go func() {
+		<-ctx.Done()
+		_ = c.Cancel()
+	}()
+
+	return c
+}
+
 // Cancelable indicates whether there are operations that support cancellation.
 func (c *HTTPRequestCanceller) Cancelable() bool {
 	c.lock.Lock()
@@ -36,7 +47,7 @@ func (c *HTTPRequestCanceller) Cancelable() bool {
 // Cancel will attempt to cancel all ongoing operations.
 func (c *HTTPRequestCanceller) Cancel() error {
 	if !c.Cancelable() {
-		return fmt.Errorf("This operation can't be canceled at this time")
+		return errors.New("This operation can't be canceled at this time")
 	}
 
 	c.lock.Lock()

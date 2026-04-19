@@ -6,13 +6,8 @@ import (
 )
 
 // GetParentAndSnapshotName returns the parent name, snapshot name, and whether it actually was a snapshot name.
-func GetParentAndSnapshotName(name string) (string, string, bool) {
-	fields := strings.SplitN(name, "/", 2)
-	if len(fields) == 1 {
-		return name, "", false
-	}
-
-	return fields[0], fields[1], true
+func GetParentAndSnapshotName(name string) (parentName string, snapshotName string, isSnapshot bool) {
+	return strings.Cut(name, "/")
 }
 
 // InstanceType represents the type if instance being returned or requested via the API.
@@ -26,6 +21,24 @@ const InstanceTypeContainer = InstanceType("container")
 
 // InstanceTypeVM defines the instance type value for a virtual-machine.
 const InstanceTypeVM = InstanceType("virtual-machine")
+
+// SourceType represents source of the instance creation.
+type SourceType string
+
+// SourceTypeMigration represents instance creation from migration.
+const SourceTypeMigration = SourceType("migration")
+
+// SourceTypeConversion represents instance creation from conversion.
+const SourceTypeConversion = SourceType("conversion")
+
+// SourceTypeImage represents instance creation from an image.
+const SourceTypeImage = SourceType("image")
+
+// SourceTypeCopy represents instance creation from a copy operation.
+const SourceTypeCopy = SourceType("copy")
+
+// SourceTypeNone represents an unknown source type for instance creation.
+const SourceTypeNone = SourceType("none")
 
 // InstancesPost represents the fields available for a new LXD instance.
 //
@@ -49,6 +62,12 @@ type InstancesPost struct {
 	// Type (container or virtual-machine)
 	// Example: container
 	Type InstanceType `json:"type" yaml:"type"`
+
+	// Whether to start the instance after creation
+	// Example: true
+	//
+	// API extension: instance_create_start
+	Start bool `json:"start" yaml:"start"`
 }
 
 // InstancesPut represents the fields available for a mass update.
@@ -85,7 +104,9 @@ type InstancePost struct {
 
 	// Whether snapshots should be discarded (migration only, deprecated, use instance_only)
 	// Example: false
-	ContainerOnly bool `json:"container_only" yaml:"container_only"` // Deprecated, use InstanceOnly.
+	//
+	// Deprecated: use InstanceOnly.
+	ContainerOnly bool `json:"container_only" yaml:"container_only"`
 
 	// Target for the migration, will use pull mode if not set (migration only)
 	Target *InstancePostTarget `json:"target" yaml:"target"`
@@ -112,19 +133,25 @@ type InstancePost struct {
 	// Example: {"security.nesting": "true"}
 	//
 	// API extension: instance_move_config
-	Config map[string]string
+	Config map[string]string `json:"Config" yaml:"config"`
 
 	// Instance devices.
 	// Example: {"root": {"type": "disk", "pool": "default", "path": "/"}}
 	//
 	// API extension: instance_move_config
-	Devices map[string]map[string]string
+	Devices map[string]map[string]string `json:"Devices" yaml:"devices"`
 
 	// List of profiles applied to the instance.
 	// Example: ["default"]
 	//
 	// API extension: instance_move_config
-	Profiles []string
+	Profiles []string `json:"Profiles" yaml:"profiles"`
+
+	// Whether the instances's snapshot should receive target instances profile on copy
+	// Example: true
+	//
+	// API extension: override_snapshot_profiles_on_copy
+	OverrideSnapshotProfiles bool `json:"override_snapshot_profiles" yaml:"override_snapshot_profiles"`
 }
 
 // InstancePostTarget represents the migration target host and operation.
@@ -142,9 +169,19 @@ type InstancePostTarget struct {
 	Operation string `json:"operation,omitempty" yaml:"operation,omitempty"`
 
 	// Migration websockets credentials
-	// Example: {"migration": "random-string", "criu": "random-string"}
+	// Example: {"migration": "random-string"}
 	Websockets map[string]string `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 }
+
+const (
+	// DiskVolumesModeRoot represents the "root" disk volumes mode.
+	// This mode performs an action on the root disk only.
+	DiskVolumesModeRoot = "root"
+
+	// DiskVolumesModeAllExclusive represents the "all-exclusive" disk volumes mode.
+	// This mode performs an action on the root disk and all exclusive (non-shared) disk volumes.
+	DiskVolumesModeAllExclusive = "all-exclusive"
+)
 
 // InstancePut represents the modifiable fields of a LXD instance.
 //
@@ -176,6 +213,12 @@ type InstancePut struct {
 	// Example: snap0
 	Restore string `json:"restore,omitempty" yaml:"restore,omitempty"`
 
+	// Which disk volumes to restore from an instance snapshot. Possible values are "root" or "all-exclusive".
+	// Example: all-exclusive
+	//
+	// API extension: instance_snapshot_multi_volume
+	RestoreDiskVolumesMode string `json:"restore_disk_volumes_mode,omitempty" yaml:"restore_disk_volumes_mode,omitempty"`
+
 	// Whether the instance currently has saved state on disk
 	// Example: false
 	Stateful bool `json:"stateful" yaml:"stateful"`
@@ -201,23 +244,15 @@ type InstanceRebuildPost struct {
 //
 // API extension: instances.
 type Instance struct {
-	InstancePut `yaml:",inline"`
-
-	// Instance creation timestamp
-	// Example: 2021-03-23T20:00:00-04:00
-	CreatedAt time.Time `json:"created_at" yaml:"created_at"`
-
-	// Expanded configuration (all profiles and local config merged)
-	// Example: {"security.nesting": "true"}
-	ExpandedConfig map[string]string `json:"expanded_config,omitempty" yaml:"expanded_config,omitempty"`
-
-	// Expanded devices (all profiles and local devices merged)
-	// Example: {"root": {"type": "disk", "pool": "default", "path": "/"}}
-	ExpandedDevices map[string]map[string]string `json:"expanded_devices,omitempty" yaml:"expanded_devices,omitempty"`
+	WithEntitlements `yaml:",inline"` //nolint:musttag
 
 	// Instance name
 	// Example: foo
 	Name string `json:"name" yaml:"name"`
+
+	// Instance description
+	// Example: My test instance
+	Description string `json:"description" yaml:"description"`
 
 	// Instance status (see instance_state)
 	// Example: Running
@@ -226,6 +261,10 @@ type Instance struct {
 	// Instance status code (see instance_state)
 	// Example: 101
 	StatusCode StatusCode `json:"status_code" yaml:"status_code"`
+
+	// Instance creation timestamp
+	// Example: 2021-03-23T20:00:00-04:00
+	CreatedAt time.Time `json:"created_at" yaml:"created_at"`
 
 	// Last start timestamp
 	// Example: 2021-03-23T20:00:00-04:00
@@ -244,6 +283,38 @@ type Instance struct {
 	//
 	// API extension: instance_all_projects
 	Project string `json:"project" yaml:"project"`
+
+	// Architecture name
+	// Example: x86_64
+	Architecture string `json:"architecture" yaml:"architecture"`
+
+	// Whether the instance is ephemeral (deleted on shutdown)
+	// Example: false
+	Ephemeral bool `json:"ephemeral" yaml:"ephemeral"`
+
+	// Whether the instance currently has saved state on disk
+	// Example: false
+	Stateful bool `json:"stateful" yaml:"stateful"`
+
+	// List of profiles applied to the instance
+	// Example: ["default"]
+	Profiles []string `json:"profiles" yaml:"profiles"`
+
+	// Instance configuration (see doc/instances.md)
+	// Example: {"security.nesting": "true"}
+	Config map[string]string `json:"config" yaml:"config"`
+
+	// Instance devices (see doc/instances.md)
+	// Example: {"root": {"type": "disk", "pool": "default", "path": "/"}}
+	Devices map[string]map[string]string `json:"devices" yaml:"devices"`
+
+	// Expanded configuration (all profiles and local config merged)
+	// Example: {"security.nesting": "true"}
+	ExpandedConfig map[string]string `json:"expanded_config,omitempty" yaml:"expanded_config,omitempty"`
+
+	// Expanded devices (all profiles and local devices merged)
+	// Example: {"root": {"type": "disk", "pool": "default", "path": "/"}}
+	ExpandedDevices map[string]map[string]string `json:"expanded_devices,omitempty" yaml:"expanded_devices,omitempty"`
 }
 
 // InstanceFull is a combination of Instance, InstanceBackup, InstanceState and InstanceSnapshot.
@@ -268,7 +339,26 @@ type InstanceFull struct {
 //
 // API extension: instances.
 func (c *Instance) Writable() InstancePut {
-	return c.InstancePut
+	return InstancePut{
+		Architecture: c.Architecture,
+		Config:       c.Config,
+		Devices:      c.Devices,
+		Ephemeral:    c.Ephemeral,
+		Profiles:     c.Profiles,
+		Stateful:     c.Stateful,
+		Description:  c.Description,
+	}
+}
+
+// SetWritable sets applicable values from InstancePut struct to Instance struct.
+func (c *Instance) SetWritable(put InstancePut) {
+	c.Architecture = put.Architecture
+	c.Config = put.Config
+	c.Devices = put.Devices
+	c.Ephemeral = put.Ephemeral
+	c.Profiles = put.Profiles
+	c.Stateful = put.Stateful
+	c.Description = put.Description
 }
 
 // IsActive checks whether the instance state indicates the instance is active.
@@ -298,14 +388,14 @@ func (c *Instance) URL(apiVersion string, project string) *URL {
 type InstanceSource struct {
 	// Source type
 	// Example: image
-	Type string `json:"type" yaml:"type"`
+	Type SourceType `json:"type" yaml:"type"`
 
 	// Certificate (for remote images or migration)
 	// Example: X509 PEM certificate
 	Certificate string `json:"certificate" yaml:"certificate"`
 
 	// Image alias name (for image source)
-	// Example: ubuntu/22.04
+	// Example: ubuntu/24.04
 	Alias string `json:"alias,omitempty" yaml:"alias,omitempty"`
 
 	// Image fingerprint (for image source)
@@ -317,7 +407,7 @@ type InstanceSource struct {
 	Properties map[string]string `json:"properties,omitempty" yaml:"properties,omitempty"`
 
 	// Remote server URL (for remote images)
-	// Example: https://images.linuxcontainers.org
+	// Example: https://cloud-images.ubuntu.com/releases/
 	Server string `json:"server,omitempty" yaml:"server,omitempty"`
 
 	// Remote server secret (for remote private images)
@@ -358,7 +448,9 @@ type InstanceSource struct {
 
 	// Whether the copy should skip the snapshots (for copy, deprecated, use instance_only)
 	// Example: false
-	ContainerOnly bool `json:"container_only,omitempty" yaml:"container_only,omitempty"` // Deprecated, use InstanceOnly.
+	//
+	// Deprecated: Use InstanceOnly.
+	ContainerOnly bool `json:"container_only,omitempty" yaml:"container_only,omitempty"`
 
 	// Whether this is refreshing an existing instance (for migration and copy)
 	// Example: false
@@ -373,4 +465,56 @@ type InstanceSource struct {
 	//
 	// API extension: instance_allow_inconsistent_copy
 	AllowInconsistent bool `json:"allow_inconsistent" yaml:"allow_inconsistent"`
+
+	// Source disk size in bytes used to set the instance's volume size to accommodate the transferred root
+	// disk. This value is ignored if the root disk device has a size explicitly configured (for conversion).
+	// Example: 12345
+	//
+	// API extension: instance_import_conversion
+	SourceDiskSize int64 `json:"source_disk_size" yaml:"source_disk_size"`
+
+	// Optional list of options that are used during image conversion (for conversion).
+	// Example: ["format"]
+	//
+	// API extension: instance_import_conversion
+	ConversionOptions []string `json:"conversion_options" yaml:"conversion_options"`
+
+	// Whether the instances's snapshot should receive target instances profile on copy
+	// Example: true
+	//
+	// API extension: override_snapshot_profiles_on_copy
+	OverrideSnapshotProfiles bool `json:"override_snapshot_profiles" yaml:"override_snapshot_profiles"`
+}
+
+// InstanceUEFIVars represents the UEFI variables of a LXD virtual machine.
+//
+// swagger:model
+//
+// API extension: instances_uefi_vars.
+type InstanceUEFIVars struct {
+	// UEFI variables map
+	// Hashmap key format is <uefi-variable-name>-<UUID>
+	// Example: { "SecureBootEnable-f0a30bc7-af08-4556-99c4-001009c93a44": { "data": "01", "attr": 3 } }
+	Variables map[string]InstanceUEFIVariable `json:"variables" yaml:"variables"`
+}
+
+// InstanceUEFIVariable represents an EFI variable entry
+//
+// swagger:model
+//
+// API extension: instances_uefi_vars.
+type InstanceUEFIVariable struct {
+	// UEFI variable data (HEX-encoded)
+	// example: 01
+	Data string `json:"data" yaml:"data"`
+
+	// UEFI variable attributes
+	// example: 7
+	Attr uint32 `json:"attr" yaml:"attr"`
+
+	// UEFI variable timestamp (HEX-encoded)
+	Timestamp string `json:"timestamp" yaml:"timestamp"`
+
+	// UEFI variable digest (HEX-encoded)
+	Digest string `json:"digest" yaml:"digest"`
 }

@@ -6,7 +6,7 @@ package api
 //
 // API extension: network.
 type NetworksPost struct {
-	NetworkPut `yaml:",inline"`
+	NetworkPut `yaml:",inline"` //nolint:musttag
 
 	// The name of the new network
 	// Example: lxdbr1
@@ -64,22 +64,23 @@ const NetworkStatusUnavailable = "Unavailable"
 //
 // swagger:model
 type Network struct {
-	NetworkPut `yaml:",inline"`
+	WithEntitlements `yaml:",inline"`
 
 	// The network name
 	// Read only: true
 	// Example: lxdbr0
 	Name string `json:"name" yaml:"name"`
 
+	// Description of the profile
+	// Example: My new LXD bridge
+	//
+	// API extension: entity_description
+	Description string `json:"description" yaml:"description"`
+
 	// The network type
 	// Read only: true
 	// Example: bridge
 	Type string `json:"type" yaml:"type"`
-
-	// List of URLs of objects using this profile
-	// Read only: true
-	// Example: ["/1.0/profiles/default", "/1.0/instances/c1"]
-	UsedBy []string `json:"used_by" yaml:"used_by"`
 
 	// Whether this is a LXD managed network
 	// Read only: true
@@ -95,17 +96,41 @@ type Network struct {
 	// API extension: clustering
 	Status string `json:"status" yaml:"status"`
 
+	// Network configuration map (refer to doc/networks.md)
+	// Example: {"ipv4.address": "10.0.0.1/24", "ipv4.nat": "true", "ipv6.address": "none"}
+	Config map[string]string `json:"config" yaml:"config"`
+
+	// List of URLs of objects using this profile
+	// Read only: true
+	// Example: ["/1.0/profiles/default", "/1.0/instances/c1"]
+	UsedBy []string `json:"used_by" yaml:"used_by"`
+
 	// Cluster members on which the network has been defined
 	// Read only: true
 	// Example: ["lxd01", "lxd02", "lxd03"]
 	//
 	// API extension: clustering
 	Locations []string `json:"locations" yaml:"locations"`
+
+	// Project name
+	// Example: project1
+	//
+	// API extension: networks_all_projects
+	Project string `json:"project" yaml:"project"`
 }
 
 // Writable converts a full Network struct into a NetworkPut struct (filters read-only fields).
 func (network *Network) Writable() NetworkPut {
-	return network.NetworkPut
+	return NetworkPut{
+		Description: network.Description,
+		Config:      network.Config,
+	}
+}
+
+// SetWritable sets applicable values from NetworkPut struct to Network struct.
+func (network *Network) SetWritable(put NetworkPut) {
+	network.Description = put.Description
+	network.Config = put.Config
 }
 
 // NetworkLease represents a DHCP lease
@@ -135,6 +160,12 @@ type NetworkLease struct {
 	//
 	// API extension: network_leases_location
 	Location string `json:"location" yaml:"location"`
+
+	// Name of the project of the entity related to the hostname
+	// Example: default
+	//
+	// API extension: network_allocations_ovn_uplink
+	Project string `json:"project" yaml:"project"`
 }
 
 // NetworkState represents the network state
@@ -211,19 +242,19 @@ type NetworkStateAddress struct {
 type NetworkStateCounters struct {
 	// Number of bytes received
 	// Example: 250542118
-	BytesReceived int64 `json:"bytes_received" yaml:"bytes_received"`
+	BytesReceived uint64 `json:"bytes_received" yaml:"bytes_received"`
 
 	// Number of bytes sent
 	// Example: 17524040140
-	BytesSent int64 `json:"bytes_sent" yaml:"bytes_sent"`
+	BytesSent uint64 `json:"bytes_sent" yaml:"bytes_sent"`
 
 	// Number of packets received
 	// Example: 1182515
-	PacketsReceived int64 `json:"packets_received" yaml:"packets_received"`
+	PacketsReceived uint64 `json:"packets_received" yaml:"packets_received"`
 
 	// Number of packets sent
 	// Example: 1567934
-	PacketsSent int64 `json:"packets_sent" yaml:"packets_sent"`
+	PacketsSent uint64 `json:"packets_sent" yaml:"packets_sent"`
 }
 
 // NetworkStateBond represents bond specific state

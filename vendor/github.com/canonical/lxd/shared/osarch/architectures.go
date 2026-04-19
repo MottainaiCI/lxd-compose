@@ -2,10 +2,12 @@ package osarch
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 )
 
 const (
-	ARCH_UNKNOWN                     = 0
+	ARCH_UNKNOWN                     = 0 //nolint:revive
 	ARCH_32BIT_INTEL_X86             = 1
 	ARCH_64BIT_INTEL_X86             = 2
 	ARCH_32BIT_ARMV7_LITTLE_ENDIAN   = 3
@@ -43,7 +45,7 @@ var architectureNames = map[int]string{
 
 var architectureAliases = map[int][]string{
 	ARCH_32BIT_INTEL_X86:             {"i386", "i586", "386", "x86", "generic_32"},
-	ARCH_64BIT_INTEL_X86:             {"amd64", "generic_64"},
+	ARCH_64BIT_INTEL_X86:             {"amd64", "amd64v3", "generic_64"},
 	ARCH_32BIT_ARMV6_LITTLE_ENDIAN:   {"armel", "arm"},
 	ARCH_32BIT_ARMV7_LITTLE_ENDIAN:   {"armhf", "armhfp", "armv7a_hardfp", "armv7", "armv7a_vfpv3_hardfp"},
 	ARCH_32BIT_ARMV8_LITTLE_ENDIAN:   {},
@@ -51,6 +53,7 @@ var architectureAliases = map[int][]string{
 	ARCH_32BIT_POWERPC_BIG_ENDIAN:    {"powerpc"},
 	ARCH_64BIT_POWERPC_BIG_ENDIAN:    {"powerpc64", "ppc64"},
 	ARCH_64BIT_POWERPC_LITTLE_ENDIAN: {"ppc64el"},
+	ARCH_64BIT_S390_BIG_ENDIAN:       {},
 	ARCH_32BIT_MIPS:                  {"mipsel", "mipsle"},
 	ARCH_64BIT_MIPS:                  {"mips64el", "mips64le"},
 	ARCH_32BIT_RISCV_LITTLE_ENDIAN:   {},
@@ -94,44 +97,53 @@ var architectureSupportedPersonalities = map[int][]int{
 	ARCH_64BIT_LOONGARCH:             {},
 }
 
+// ArchitectureDefault represents the default architecture.
 const ArchitectureDefault = "x86_64"
 
+// ArchitectureName returns the local hardware architecture name.
 func ArchitectureName(arch int) (string, error) {
-	arch_name, exists := architectureNames[arch]
+	name, exists := architectureNames[arch]
 	if exists {
-		return arch_name, nil
+		return name, nil
 	}
 
 	return "unknown", fmt.Errorf("Architecture isn't supported: %d", arch)
 }
 
-func ArchitectureId(arch string) (int, error) {
-	for arch_id, arch_name := range architectureNames {
-		if arch_name == arch {
-			return arch_id, nil
+// ArchitectureId returns the architecture ID for a given architecture name or alias.
+func ArchitectureId(arch string) (int, error) { //nolint:revive
+	// Handle duplicate architectures from broken metadata (e.g. "x86_64 x86_64")
+	archFields := strings.Fields(arch)
+	if len(archFields) > 0 {
+		arch = archFields[0]
+	}
+
+	for id, name := range architectureNames {
+		if name == arch {
+			return id, nil
 		}
 	}
 
-	for arch_id, arch_aliases := range architectureAliases {
-		for _, arch_name := range arch_aliases {
-			if arch_name == arch {
-				return arch_id, nil
-			}
+	for id, aliases := range architectureAliases {
+		if slices.Contains(aliases, arch) {
+			return id, nil
 		}
 	}
 
 	return ARCH_UNKNOWN, fmt.Errorf("Architecture isn't supported: %s", arch)
 }
 
+// ArchitecturePersonality returns the personality for a given architecture ID.
 func ArchitecturePersonality(arch int) (string, error) {
-	arch_personality, exists := architecturePersonalities[arch]
+	personality, exists := architecturePersonalities[arch]
 	if exists {
-		return arch_personality, nil
+		return personality, nil
 	}
 
 	return "", fmt.Errorf("Architecture isn't supported: %d", arch)
 }
 
+// ArchitecturePersonalities returns the list of supported personalities for a given architecture ID.
 func ArchitecturePersonalities(arch int) ([]int, error) {
 	personalities, exists := architectureSupportedPersonalities[arch]
 	if exists {
@@ -158,7 +170,7 @@ func ArchitectureGetLocalID() (int, error) {
 
 // SupportedArchitectures returns the list of all supported architectures.
 func SupportedArchitectures() []string {
-	result := []string{}
+	result := make([]string, 0, len(architectureNames))
 	for _, archName := range architectureNames {
 		result = append(result, archName)
 	}

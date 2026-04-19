@@ -34,6 +34,13 @@ type RemoteOperation interface {
 	Wait() (err error)
 }
 
+// The DevLXDOperation type is a DevLXD representation of a LXD [Operation].
+type DevLXDOperation interface {
+	Get() (op api.DevLXDOperation)
+	Cancel() (err error)
+	WaitContext(ctx context.Context) error
+}
+
 // The Server type represents a generic read-only server.
 type Server interface {
 	GetConnectionInfo() (info *ConnectionInfo, err error)
@@ -73,11 +80,13 @@ type InstanceServer interface {
 	ImageServer
 
 	// Server functions
+	GetMetadataConfiguration() (metadataConfiguration *api.MetadataConfiguration, err error)
 	GetMetrics() (metrics string, err error)
 	GetServer() (server *api.Server, ETag string, err error)
 	GetServerResources() (resources *api.Resources, err error)
 	UpdateServer(server api.ServerPut, ETag string) (err error)
 	HasExtension(extension string) (exists bool)
+	CheckExtension(extension string) (err error)
 	RequireAuthenticated(authenticated bool)
 	IsClustered() (clustered bool)
 	UseTarget(name string) (client InstanceServer)
@@ -92,77 +101,14 @@ type InstanceServer interface {
 	DeleteCertificate(fingerprint string) (err error)
 	CreateCertificateToken(certificate api.CertificatesPost) (op Operation, err error)
 
-	// Container functions
-	//
-	// Deprecated: Those functions are deprecated and won't be updated anymore.
-	// Please use the equivalent Instance function instead.
-	GetContainerNames() (names []string, err error)
-	GetContainers() (containers []api.Container, err error)
-	GetContainersFull() (containers []api.ContainerFull, err error)
-	GetContainer(name string) (container *api.Container, ETag string, err error)
-	CreateContainer(container api.ContainersPost) (op Operation, err error)
-	CreateContainerFromImage(source ImageServer, image api.Image, imgcontainer api.ContainersPost) (op RemoteOperation, err error)
-	CopyContainer(source InstanceServer, container api.Container, args *ContainerCopyArgs) (op RemoteOperation, err error)
-	UpdateContainer(name string, container api.ContainerPut, ETag string) (op Operation, err error)
-	RenameContainer(name string, container api.ContainerPost) (op Operation, err error)
-	MigrateContainer(name string, container api.ContainerPost) (op Operation, err error)
-	DeleteContainer(name string) (op Operation, err error)
-
-	ExecContainer(containerName string, exec api.ContainerExecPost, args *ContainerExecArgs) (op Operation, err error)
-	ConsoleContainer(containerName string, console api.ContainerConsolePost, args *ContainerConsoleArgs) (op Operation, err error)
-	GetContainerConsoleLog(containerName string, args *ContainerConsoleLogArgs) (content io.ReadCloser, err error)
-	DeleteContainerConsoleLog(containerName string, args *ContainerConsoleLogArgs) (err error)
-
-	GetContainerFile(containerName string, path string) (content io.ReadCloser, resp *ContainerFileResponse, err error)
-	CreateContainerFile(containerName string, path string, args ContainerFileArgs) (err error)
-	DeleteContainerFile(containerName string, path string) (err error)
-
-	GetContainerSnapshotNames(containerName string) (names []string, err error)
-	GetContainerSnapshots(containerName string) (snapshots []api.ContainerSnapshot, err error)
-	GetContainerSnapshot(containerName string, name string) (snapshot *api.ContainerSnapshot, ETag string, err error)
-	CreateContainerSnapshot(containerName string, snapshot api.ContainerSnapshotsPost) (op Operation, err error)
-	CopyContainerSnapshot(source InstanceServer, containerName string, snapshot api.ContainerSnapshot, args *ContainerSnapshotCopyArgs) (op RemoteOperation, err error)
-	RenameContainerSnapshot(containerName string, name string, container api.ContainerSnapshotPost) (op Operation, err error)
-	MigrateContainerSnapshot(containerName string, name string, container api.ContainerSnapshotPost) (op Operation, err error)
-	DeleteContainerSnapshot(containerName string, name string) (op Operation, err error)
-	UpdateContainerSnapshot(containerName string, name string, container api.ContainerSnapshotPut, ETag string) (op Operation, err error)
-
-	GetContainerBackupNames(containerName string) (names []string, err error)
-	GetContainerBackups(containername string) (backups []api.ContainerBackup, err error)
-	GetContainerBackup(containerName string, name string) (backup *api.ContainerBackup, ETag string, err error)
-	CreateContainerBackup(containerName string, backup api.ContainerBackupsPost) (op Operation, err error)
-	RenameContainerBackup(containerName string, name string, backup api.ContainerBackupPost) (op Operation, err error)
-	DeleteContainerBackup(containerName string, name string) (op Operation, err error)
-	GetContainerBackupFile(containerName string, name string, req *BackupFileRequest) (resp *BackupFileResponse, err error)
-	CreateContainerFromBackup(args ContainerBackupArgs) (op Operation, err error)
-
-	GetContainerState(name string) (state *api.ContainerState, ETag string, err error)
-	UpdateContainerState(name string, state api.ContainerStatePut, ETag string) (op Operation, err error)
-
-	GetContainerLogfiles(name string) (logfiles []string, err error)
-	GetContainerLogfile(name string, filename string) (content io.ReadCloser, err error)
-	DeleteContainerLogfile(name string, filename string) (err error)
-
-	GetContainerMetadata(name string) (metadata *api.ImageMetadata, ETag string, err error)
-	SetContainerMetadata(name string, metadata api.ImageMetadata, ETag string) (err error)
-
-	GetContainerTemplateFiles(containerName string) (templates []string, err error)
-	GetContainerTemplateFile(containerName string, templateName string) (content io.ReadCloser, err error)
-	CreateContainerTemplateFile(containerName string, templateName string, content io.ReadSeeker) (err error)
-	UpdateContainerTemplateFile(containerName string, templateName string, content io.ReadSeeker) (err error)
-	DeleteContainerTemplateFile(name string, templateName string) (err error)
-
 	// Instance functions.
 	GetInstanceNames(instanceType api.InstanceType) (names []string, err error)
 	GetInstanceNamesAllProjects(instanceType api.InstanceType) (names map[string][]string, err error)
 	GetInstances(instanceType api.InstanceType) (instances []api.Instance, err error)
-	GetInstancesFull(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
+	GetInstancesFull(args GetInstancesFullArgs) (instances []api.InstanceFull, err error)
 	GetInstancesAllProjects(instanceType api.InstanceType) (instances []api.Instance, err error)
-	GetInstancesFullAllProjects(instanceType api.InstanceType) (instances []api.InstanceFull, err error)
 	GetInstancesWithFilter(instanceType api.InstanceType, filters []string) (instances []api.Instance, err error)
-	GetInstancesFullWithFilter(instanceType api.InstanceType, filters []string) (instances []api.InstanceFull, err error)
 	GetInstancesAllProjectsWithFilter(instanceType api.InstanceType, filters []string) (instances []api.Instance, err error)
-	GetInstancesFullAllProjectsWithFilter(instanceType api.InstanceType, filters []string) (instances []api.InstanceFull, err error)
 	GetInstance(name string) (instance *api.Instance, ETag string, err error)
 	GetInstanceFull(name string) (instance *api.InstanceFull, ETag string, err error)
 	CreateInstance(instance api.InstancesPost) (op Operation, err error)
@@ -171,10 +117,12 @@ type InstanceServer interface {
 	UpdateInstance(name string, instance api.InstancePut, ETag string) (op Operation, err error)
 	RenameInstance(name string, instance api.InstancePost) (op Operation, err error)
 	MigrateInstance(name string, instance api.InstancePost) (op Operation, err error)
-	DeleteInstance(name string) (op Operation, err error)
+	DeleteInstance(name string, force bool) (op Operation, err error)
 	UpdateInstances(state api.InstancesPut, ETag string) (op Operation, err error)
 	RebuildInstance(instanceName string, req api.InstanceRebuildPost) (op Operation, err error)
 	RebuildInstanceFromImage(source ImageServer, image api.Image, instanceName string, req api.InstanceRebuildPost) (op RemoteOperation, err error)
+	GetInstanceUEFIVars(name string) (instanceUEFI *api.InstanceUEFIVars, ETag string, err error)
+	UpdateInstanceUEFIVars(name string, instanceUEFI api.InstanceUEFIVars, ETag string) (err error)
 
 	ExecInstance(instanceName string, exec api.InstanceExecPost, args *InstanceExecArgs) (op Operation, err error)
 	ConsoleInstance(instanceName string, console api.InstanceConsolePost, args *InstanceConsoleArgs) (op Operation, err error)
@@ -197,7 +145,7 @@ type InstanceServer interface {
 	CopyInstanceSnapshot(source InstanceServer, instanceName string, snapshot api.InstanceSnapshot, args *InstanceSnapshotCopyArgs) (op RemoteOperation, err error)
 	RenameInstanceSnapshot(instanceName string, name string, instance api.InstanceSnapshotPost) (op Operation, err error)
 	MigrateInstanceSnapshot(instanceName string, name string, instance api.InstanceSnapshotPost) (op Operation, err error)
-	DeleteInstanceSnapshot(instanceName string, name string) (op Operation, err error)
+	DeleteInstanceSnapshot(instanceName string, name string, diskVolumesMode string) (op Operation, err error)
 	UpdateInstanceSnapshot(instanceName string, name string, instance api.InstanceSnapshotPut, ETag string) (op Operation, err error)
 
 	GetInstanceBackupNames(instanceName string) (names []string, err error)
@@ -240,10 +188,13 @@ type InstanceServer interface {
 	UpdateImageAlias(name string, alias api.ImageAliasesEntryPut, ETag string) (err error)
 	RenameImageAlias(name string, alias api.ImageAliasesEntryPost) (err error)
 	DeleteImageAlias(name string) (err error)
+	GetImagesAllProjects() (images []api.Image, err error)
+	GetImagesAllProjectsWithFilter(filters []string) (images []api.Image, err error)
 
 	// Network functions ("network" API extension)
 	GetNetworkNames() (names []string, err error)
 	GetNetworks() (networks []api.Network, err error)
+	GetNetworksAllProjects() (networks []api.Network, err error)
 	GetNetwork(name string) (network *api.Network, ETag string, err error)
 	GetNetworkLeases(name string) (leases []api.NetworkLease, err error)
 	GetNetworkState(name string) (state *api.NetworkState, err error)
@@ -279,6 +230,7 @@ type InstanceServer interface {
 	// Network ACL functions ("network_acl" API extension)
 	GetNetworkACLNames() (names []string, err error)
 	GetNetworkACLs() (acls []api.NetworkACL, err error)
+	GetNetworkACLsAllProjects() (acls []api.NetworkACL, err error)
 	GetNetworkACL(name string) (acl *api.NetworkACL, ETag string, err error)
 	GetNetworkACLLogfile(name string) (log io.ReadCloser, err error)
 	CreateNetworkACL(acl api.NetworkACLsPost) (err error)
@@ -290,6 +242,7 @@ type InstanceServer interface {
 	GetNetworkAllocations(allProjects bool) (allocations []api.NetworkAllocations, err error)
 
 	// Network zone functions ("network_dns" API extension)
+	GetNetworkZonesAllProjects() (zones []api.NetworkZone, err error)
 	GetNetworkZoneNames() (names []string, err error)
 	GetNetworkZones() (zones []api.NetworkZone, err error)
 	GetNetworkZone(name string) (zone *api.NetworkZone, ETag string, err error)
@@ -315,11 +268,12 @@ type InstanceServer interface {
 	DeleteOperation(uuid string) (err error)
 
 	// Profile functions
+	GetProfilesAllProjects() (profiles []api.Profile, err error)
 	GetProfileNames() (names []string, err error)
 	GetProfiles() (profiles []api.Profile, err error)
 	GetProfile(name string) (profile *api.Profile, ETag string, err error)
 	CreateProfile(profile api.ProfilesPost) (err error)
-	UpdateProfile(name string, profile api.ProfilePut, ETag string) (err error)
+	UpdateProfile(name string, profile api.ProfilePut, ETag string) (op Operation, err error)
 	RenameProfile(name string, profile api.ProfilePost) (err error)
 	DeleteProfile(name string) (err error)
 
@@ -331,7 +285,7 @@ type InstanceServer interface {
 	CreateProject(project api.ProjectsPost) (err error)
 	UpdateProject(name string, project api.ProjectPut, ETag string) (err error)
 	RenameProject(name string, project api.ProjectPost) (op Operation, err error)
-	DeleteProject(name string) (err error)
+	DeleteProject(name string, force bool) (op Operation, err error)
 
 	// Storage pool functions ("storage" API extension)
 	GetStoragePoolNames() (names []string, err error)
@@ -344,6 +298,7 @@ type InstanceServer interface {
 
 	// Storage bucket functions ("storage_buckets" API extension)
 	GetStoragePoolBucketNames(poolName string) ([]string, error)
+	GetStoragePoolBucketsAllProjects(poolName string) ([]api.StorageBucket, error)
 	GetStoragePoolBuckets(poolName string) ([]api.StorageBucket, error)
 	GetStoragePoolBucket(poolName string, bucketName string) (bucket *api.StorageBucket, ETag string, err error)
 	CreateStoragePoolBucket(poolName string, bucket api.StorageBucketsPost) (*api.StorageBucketKey, error)
@@ -356,6 +311,10 @@ type InstanceServer interface {
 	UpdateStoragePoolBucketKey(poolName string, bucketName string, keyName string, key api.StorageBucketKeyPut, ETag string) (err error)
 	DeleteStoragePoolBucketKey(poolName string, bucketName string, keyName string) (err error)
 
+	// List all volumes functions ("storage_volumes_all" API extension)
+	GetVolumesWithFilter(filters []string) (volumes []api.StorageVolume, err error)
+	GetVolumesWithFilterAllProjects(filters []string) (volumes []api.StorageVolume, err error)
+
 	// Storage volume functions ("storage" API extension)
 	GetStoragePoolVolumeNames(pool string) (names []string, err error)
 	GetStoragePoolVolumeNamesAllProjects(pool string) (names map[string][]string, err error)
@@ -365,10 +324,10 @@ type InstanceServer interface {
 	GetStoragePoolVolumesWithFilterAllProjects(pool string, filters []string) (volumes []api.StorageVolume, err error)
 	GetStoragePoolVolume(pool string, volType string, name string) (volume *api.StorageVolume, ETag string, err error)
 	GetStoragePoolVolumeState(pool string, volType string, name string) (state *api.StorageVolumeState, err error)
-	CreateStoragePoolVolume(pool string, volume api.StorageVolumesPost) (err error)
-	UpdateStoragePoolVolume(pool string, volType string, name string, volume api.StorageVolumePut, ETag string) (err error)
-	DeleteStoragePoolVolume(pool string, volType string, name string) (err error)
-	RenameStoragePoolVolume(pool string, volType string, name string, volume api.StorageVolumePost) (err error)
+	CreateStoragePoolVolume(pool string, volume api.StorageVolumesPost) (op Operation, err error)
+	UpdateStoragePoolVolume(pool string, volType string, name string, volume api.StorageVolumePut, ETag string) (op Operation, err error)
+	RenameStoragePoolVolume(pool string, volType string, name string, volume api.StorageVolumePost) (op Operation, err error)
+	DeleteStoragePoolVolume(pool string, volType string, name string) (op Operation, err error)
 	CopyStoragePoolVolume(pool string, source InstanceServer, sourcePool string, volume api.StorageVolume, args *StoragePoolVolumeCopyArgs) (op RemoteOperation, err error)
 	MoveStoragePoolVolume(pool string, source InstanceServer, sourcePool string, volume api.StorageVolume, args *StoragePoolVolumeMoveArgs) (op RemoteOperation, err error)
 	MigrateStoragePoolVolume(pool string, volume api.StorageVolumePost) (op Operation, err error)
@@ -380,7 +339,7 @@ type InstanceServer interface {
 	GetStoragePoolVolumeSnapshots(pool string, volumeType string, volumeName string) (snapshots []api.StorageVolumeSnapshot, err error)
 	GetStoragePoolVolumeSnapshot(pool string, volumeType string, volumeName string, snapshotName string) (snapshot *api.StorageVolumeSnapshot, ETag string, err error)
 	RenameStoragePoolVolumeSnapshot(pool string, volumeType string, volumeName string, snapshotName string, snapshot api.StorageVolumeSnapshotPost) (op Operation, err error)
-	UpdateStoragePoolVolumeSnapshot(pool string, volumeType string, volumeName string, snapshotName string, volume api.StorageVolumeSnapshotPut, ETag string) (err error)
+	UpdateStoragePoolVolumeSnapshot(pool string, volumeType string, volumeName string, snapshotName string, volume api.StorageVolumeSnapshotPut, ETag string) (op Operation, err error)
 
 	// Storage volume backup functions ("custom_volume_backup" API extension)
 	GetStoragePoolVolumeBackupNames(pool string, volName string) (names []string, err error)
@@ -394,6 +353,8 @@ type InstanceServer interface {
 
 	// Storage volume ISO import function ("custom_volume_iso" API extension)
 	CreateStoragePoolVolumeFromISO(pool string, args StoragePoolVolumeBackupArgs) (op Operation, err error)
+	// Storage volume tar import function ("import_custom_volume_tar" API extension)
+	CreateStoragePoolVolumeFromTarball(pool string, args StoragePoolVolumeBackupArgs) (op Operation, err error)
 
 	// Cluster functions ("cluster" API extensions)
 	GetCluster() (cluster *api.Cluster, ETag string, err error)
@@ -423,10 +384,119 @@ type InstanceServer interface {
 	UpdateWarning(UUID string, warning api.WarningPut, ETag string) (err error)
 	DeleteWarning(UUID string) (err error)
 
+	// Authorization functions
+	GetAuthGroupNames() (groupNames []string, err error)
+	GetAuthGroups() (groups []api.AuthGroup, err error)
+	GetAuthGroup(groupName string) (group *api.AuthGroup, ETag string, err error)
+	CreateAuthGroup(groupsPost api.AuthGroupsPost) error
+	UpdateAuthGroup(groupName string, groupPut api.AuthGroupPut, ETag string) error
+	RenameAuthGroup(groupName string, groupPost api.AuthGroupPost) error
+	DeleteAuthGroup(groupName string) error
+	GetIdentityAuthenticationMethodsIdentifiers() (authMethodsIdentifiers map[string][]string, err error)
+	GetIdentityIdentifiersByAuthenticationMethod(authenticationMethod string) (identifiers []string, err error)
+	GetIdentities() (identities []api.Identity, err error)
+	GetIdentitiesByAuthenticationMethod(authenticationMethod string) (identities []api.Identity, err error)
+	GetIdentity(authenticationMethod string, nameOrIdentifier string) (identity *api.Identity, ETag string, err error)
+	GetCurrentIdentityInfo() (identityInfo *api.IdentityInfo, ETag string, err error)
+	UpdateIdentity(authenticationMethod string, nameOrIdentifier string, identityPut api.IdentityPut, ETag string) error
+	DeleteIdentity(authenticationMethod string, nameOrIdentifier string) error
+	CreateIdentityTLS(identitiesTLSPost api.IdentitiesTLSPost) error
+	CreateIdentityTLSToken(identitiesTLSPost api.IdentitiesTLSPost) (*api.CertificateAddToken, error)
+	CreateIdentityBearer(identitiesBearerPost api.IdentitiesBearerPost) error
+	IssueBearerIdentityToken(nameOrIdentifier string, identityBearerTokenPost api.IdentityBearerTokenPost) (*api.IdentityBearerToken, error)
+	RevokeBearerIdentityToken(nameOrIdentifier string) error
+	GetIdentityProviderGroupNames() (identityProviderGroupNames []string, err error)
+	GetIdentityProviderGroups() (identityProviderGroups []api.IdentityProviderGroup, err error)
+	GetIdentityProviderGroup(identityProviderGroupName string) (identityProviderGroup *api.IdentityProviderGroup, ETag string, err error)
+	CreateIdentityProviderGroup(identityProviderGroup api.IdentityProviderGroupsPost) error
+	UpdateIdentityProviderGroup(identityProviderGroupName string, identityProviderGroupPut api.IdentityProviderGroupPut, ETag string) error
+	RenameIdentityProviderGroup(identityProviderGroupName string, identityProviderGroupPost api.IdentityProviderGroupPost) error
+	DeleteIdentityProviderGroup(identityProviderGroupName string) error
+	GetPermissions(args GetPermissionsArgs) (permissions []api.Permission, err error)
+	GetPermissionsInfo(args GetPermissionsArgs) (permissions []api.PermissionInfo, err error)
+	GetOIDCSessionUUIDs() (uuids []string, err error)
+	GetOIDCSessionUUIDsByEmail(email string) (uuids []string, err error)
+	GetOIDCSessions() (sessions []api.OIDCSession, err error)
+	GetOIDCSessionsByEmail(email string) (sessions []api.OIDCSession, err error)
+	GetOIDCSession(sessionID string) (session *api.OIDCSession, err error)
+	DeleteOIDCSession(sessionID string) error
+
+	// Placement groups
+	GetPlacementGroupNames() (placementGroupNames []string, err error)
+	GetPlacementGroupNamesAllProjects() (projectToPlacementGroups map[string][]string, err error)
+	GetPlacementGroups() (placementGroups []api.PlacementGroup, err error)
+	GetPlacementGroupsAllProjects() (placementGroups []api.PlacementGroup, err error)
+	GetPlacementGroup(placementGroupName string) (placementGroup *api.PlacementGroup, ETag string, err error)
+	CreatePlacementGroup(placementGroupsPost api.PlacementGroupsPost) error
+	UpdatePlacementGroup(placementGroupName string, placementGroupPut api.PlacementGroupPut, ETag string) error
+	DeletePlacementGroup(placementGroupName string) error
+	RenamePlacementGroup(placementGroupName string, placementGroupPost api.PlacementGroupPost) error
+
 	// Internal functions (for internal use)
 	RawQuery(method string, path string, data any, queryETag string) (resp *api.Response, ETag string, err error)
 	RawWebsocket(path string) (conn *websocket.Conn, err error)
 	RawOperation(method string, path string, data any, queryETag string) (op Operation, ETag string, err error)
+}
+
+// The DevLXDServer type represents a devLXD server.
+type DevLXDServer interface {
+	Server
+
+	// Client configuration.
+	UseTarget(name string) (client DevLXDServer)
+	UseBearerToken(bearerToken string) (client DevLXDServer)
+
+	// DevLXD info/state.
+	GetState() (state *api.DevLXDGet, err error)
+	UpdateState(state api.DevLXDPut) error
+
+	// DevLXD config.
+	GetConfig() (config map[string]string, err error)
+	GetConfigURLs() (keyPaths []string, err error)
+	GetConfigByKey(key string) (string, error)
+
+	// DevLXD metadata.
+	GetMetadata() (metadata string, err error)
+
+	// DevLXD devices.
+	GetDevices() (devices map[string]map[string]string, err error)
+
+	// DevLXD events.
+	GetEvents() (*EventListener, error)
+
+	// DevLXD images.
+	GetImageFile(fingerprint string, req ImageFileRequest) (resp *ImageFileResponse, err error)
+
+	// DevLXD instance devices.
+	GetInstance(instName string) (inst *api.DevLXDInstance, etag string, err error)
+	UpdateInstance(instName string, inst api.DevLXDInstancePut, ETag string) error
+
+	// DevLXD storage pools.
+	GetStoragePool(poolName string) (pool *api.DevLXDStoragePool, ETag string, err error)
+
+	// DevLXD storage volumes.
+	GetStoragePoolVolumes(poolName string) (vols []api.DevLXDStorageVolume, err error)
+	GetStoragePoolVolume(poolName string, volType string, volName string) (vol *api.DevLXDStorageVolume, ETag string, err error)
+	CreateStoragePoolVolume(poolName string, vol api.DevLXDStorageVolumesPost) (DevLXDOperation, error)
+	UpdateStoragePoolVolume(poolName string, volType string, volName string, vol api.DevLXDStorageVolumePut, ETag string) (DevLXDOperation, error)
+	DeleteStoragePoolVolume(poolName string, volType string, volName string) (DevLXDOperation, error)
+
+	// DevLXD storage volume snapshots.
+	GetStoragePoolVolumeSnapshots(poolName string, volType string, volName string) (snapshots []api.DevLXDStorageVolumeSnapshot, err error)
+	GetStoragePoolVolumeSnapshot(poolName string, volType string, volName string, snapshotName string) (snapshot *api.DevLXDStorageVolumeSnapshot, ETag string, err error)
+	CreateStoragePoolVolumeSnapshot(poolName string, volType string, volName string, snapshot api.DevLXDStorageVolumeSnapshotsPost) (op DevLXDOperation, err error)
+	DeleteStoragePoolVolumeSnapshot(poolName string, volType string, volName string, snapshotName string) (op DevLXDOperation, err error)
+
+	// DevLXD operations.
+	GetOperationWait(uuid string, timeout int) (*api.DevLXDOperation, string, error)
+	DeleteOperation(uuid string) error
+
+	// DevLXD Ubuntu Pro.
+	GetUbuntuPro() (*api.DevLXDUbuntuProSettings, error)
+	CreateUbuntuProToken() (*api.DevLXDUbuntuProGuestTokenResponse, error)
+
+	// Internal functions (for internal use)
+	RawQuery(method string, path string, data any, queryETag string) (resp *api.DevLXDResponse, ETag string, err error)
 }
 
 // The ConnectionInfo struct represents general information for a connection.
@@ -582,6 +652,9 @@ type InstanceBackupArgs struct {
 
 	// Name to import backup as
 	Name string
+
+	// If set, it would override devices
+	Devices map[string]map[string]string
 }
 
 // The InstanceCopyArgs struct is used to pass additional options during instance copy.
@@ -604,6 +677,14 @@ type InstanceCopyArgs struct {
 
 	// API extension: instance_allow_inconsistent_copy
 	AllowInconsistent bool
+
+	// API extension: override_snapshot_profiles_on_copy
+	// If set, snapshots of the instance copy receive profiles of the target instance
+	OverrideSnapshotProfiles bool
+
+	// Whether to start the instance after copy.
+	// This was made possible by adding the instance_create_start API extension.
+	Start bool
 }
 
 // The InstanceSnapshotCopyArgs struct is used to pass additional options during instance copy.
@@ -617,6 +698,10 @@ type InstanceSnapshotCopyArgs struct {
 	// API extension: container_snapshot_stateful_migration
 	// If set, the instance running state will be transferred (live migration)
 	Live bool
+
+	// Whether to start the instance after copy.
+	// This was made possible by adding the instance_create_start API extension.
+	Start bool
 }
 
 // The InstanceConsoleArgs struct is used to pass additional options during a
@@ -669,6 +754,12 @@ type InstanceFileArgs struct {
 	// File permissions
 	Mode int
 
+	// Whether to modify the permissions of existing files (see the
+	// instances_files_modify_permissions api extension)
+	GIDModifyExisting  bool
+	UIDModifyExisting  bool
+	ModeModifyExisting bool
+
 	// File type (file or directory)
 	Type string
 
@@ -692,4 +783,16 @@ type InstanceFileResponse struct {
 
 	// If a directory, the list of files inside it
 	Entries []string
+}
+
+// GetPermissionsArgs is used in the call to GetPermissions to specify filtering behaviour.
+type GetPermissionsArgs struct {
+	// EntityType is the type of entity to filter against.
+	// If left unspecified, permissions will be returned for all entity types.
+	EntityType string
+
+	// ProjectName is the project to filter against.
+	// If the project name is specified, only permissions for resources in the given project will be returned and server
+	// level permissions will not be returned.
+	ProjectName string
 }

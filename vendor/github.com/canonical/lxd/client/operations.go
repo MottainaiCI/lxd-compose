@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -26,10 +25,20 @@ type operation struct {
 	chActive chan bool
 }
 
+// disconnectListener disconnects the event listener associated with the operation.
+// It must be called under [operation.handlerLock].
+func (op *operation) disconnectListener() {
+	if op.listener != nil {
+		op.listener.Disconnect()
+		op.listener = nil
+		close(op.chActive)
+	}
+}
+
 // AddHandler adds a function to be called whenever an event is received.
 func (op *operation) AddHandler(function func(api.Operation)) (*EventTarget, error) {
 	if op.skipListener {
-		return nil, fmt.Errorf("Cannot add handler, client operation does not support event listeners")
+		return nil, errors.New("Cannot add handler, client operation does not support event listeners")
 	}
 
 	// Make sure we have a listener setup
@@ -63,7 +72,7 @@ func (op *operation) AddHandler(function func(api.Operation)) (*EventTarget, err
 		function(newOp)
 	}
 
-	return op.listener.AddHandler([]string{"operation"}, wrapped)
+	return op.listener.AddHandler([]string{api.EventTypeOperation}, wrapped)
 }
 
 // Cancel will request that LXD cancels the operation (if supported).
@@ -84,7 +93,7 @@ func (op *operation) GetWebsocket(secret string) (*websocket.Conn, error) {
 // RemoveHandler removes a function to be called whenever an event is received.
 func (op *operation) RemoveHandler(target *EventTarget) error {
 	if op.skipListener {
-		return fmt.Errorf("Cannot remove handler, client operation does not support event listeners")
+		return errors.New("Cannot remove handler, client operation does not support event listeners")
 	}
 
 	// Make sure we're not racing with ourselves
@@ -180,7 +189,7 @@ func (op *operation) WaitContext(ctx context.Context) error {
 // and triggers a manual refresh of the operation's state to prevent race conditions.
 func (op *operation) setupListener() error {
 	if op.skipListener {
-		return fmt.Errorf("Cannot set up event listener, client operation does not support event listeners")
+		return errors.New("Cannot set up event listener, client operation does not support event listeners")
 	}
 
 	// Make sure we're not racing with ourselves
@@ -206,7 +215,7 @@ func (op *operation) setupListener() error {
 
 	// Setup the handler
 	chReady := make(chan bool)
-	_, err := op.listener.AddHandler([]string{"operation"}, func(event api.Event) {
+	_, err := op.listener.AddHandler([]string{api.EventTypeOperation}, func(event api.Event) {
 		<-chReady
 
 		// We don't want concurrency while processing events
@@ -230,16 +239,12 @@ func (op *operation) setupListener() error {
 
 		// And check if we're done
 		if op.StatusCode.IsFinal() {
-			op.listener.Disconnect()
-			op.listener = nil
-			close(op.chActive)
+			op.disconnectListener()
 			return
 		}
 	})
 	if err != nil {
-		op.listener.Disconnect()
-		op.listener = nil
-		close(op.chActive)
+		op.disconnectListener()
 		close(chReady)
 
 		return err
@@ -267,7 +272,7 @@ func (op *operation) setupListener() error {
 			op.handlerLock.Lock()
 			if op.listener != nil {
 				op.Err = listener.err.Error()
-				close(op.chActive)
+				op.disconnectListener()
 			}
 
 			op.handlerLock.Unlock()
@@ -279,9 +284,7 @@ func (op *operation) setupListener() error {
 	// And do a manual refresh to avoid races
 	err = op.Refresh()
 	if err != nil {
-		op.listener.Disconnect()
-		op.listener = nil
-		close(op.chActive)
+		op.disconnectListener()
 		close(chReady)
 
 		return err
@@ -289,9 +292,7 @@ func (op *operation) setupListener() error {
 
 	// Check if not done already
 	if op.StatusCode.IsFinal() {
-		op.listener.Disconnect()
-		op.listener = nil
-		close(op.chActive)
+		op.disconnectListener()
 		close(chReady)
 
 		if op.Err != "" {
@@ -337,7 +338,7 @@ func (op *remoteOperation) AddHandler(function func(api.Operation)) (*EventTarge
 		// Generate a mock EventTarget
 		target = &EventTarget{
 			function: func(api.Event) { function(api.Operation{}) },
-			types:    []string{"operation"},
+			types:    []string{api.EventTypeOperation},
 		}
 	}
 
@@ -350,7 +351,7 @@ func (op *remoteOperation) AddHandler(function func(api.Operation)) (*EventTarge
 // CancelTarget attempts to cancel the target operation.
 func (op *remoteOperation) CancelTarget() error {
 	if op.targetOp == nil {
-		return fmt.Errorf("No associated target operation")
+		return errors.New("No associated target operation")
 	}
 
 	return op.targetOp.Cancel()
@@ -359,7 +360,7 @@ func (op *remoteOperation) CancelTarget() error {
 // GetTarget returns the target operation.
 func (op *remoteOperation) GetTarget() (*api.Operation, error) {
 	if op.targetOp == nil {
-		return nil, fmt.Errorf("No associated target operation")
+		return nil, errors.New("No associated target operation")
 	}
 
 	opAPI := op.targetOp.Get()
@@ -375,4 +376,54 @@ func (op *remoteOperation) Wait() error {
 	}
 
 	return op.err
+}
+
+// noopOperation represents a non-operation LXD response as an operation. This is mainly used for endpoints
+// were initially synchronous but later changed to asynchronous and are still supposed to return an operation
+// but don't actually perform any asynchronous processing.
+type noopOperation struct{}
+
+// Get returns an empty API operation struct.
+func (op noopOperation) Get() api.Operation {
+	return api.Operation{
+		ID:         "",
+		Class:      api.OperationClassTask,
+		Status:     "OK",
+		StatusCode: api.Success,
+	}
+}
+
+// GetWebsocket returns a raw websocket connection from the operation.
+func (op noopOperation) GetWebsocket(secret string) (*websocket.Conn, error) {
+	return nil, errors.New("Cannot get websocket, operation does not support websockets")
+}
+
+// Refresh is a no-op.
+func (op noopOperation) Refresh() error {
+	return nil
+}
+
+// Cancel is a no-op for DummyOperation.
+func (op noopOperation) Cancel() error {
+	return nil
+}
+
+// Wait is a no-op.
+func (op noopOperation) Wait() error {
+	return nil
+}
+
+// WaitContext is a no-op.
+func (op noopOperation) WaitContext(ctx context.Context) error {
+	return nil
+}
+
+// AddHandler returns an error because noopOperation does not support event listeners.
+func (op noopOperation) AddHandler(function func(api.Operation)) (*EventTarget, error) {
+	return nil, errors.New("Cannot add handler, client operation does not support event listeners")
+}
+
+// RemoveHandler removes a function to be called whenever an event is received.
+func (op noopOperation) RemoveHandler(target *EventTarget) error {
+	return errors.New("Cannot remove handler, client operation does not support event listeners")
 }

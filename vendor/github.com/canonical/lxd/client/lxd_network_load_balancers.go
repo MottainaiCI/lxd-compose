@@ -1,6 +1,10 @@
 package lxd
 
 import (
+	"fmt"
+	"net"
+	"net/http"
+
 	"github.com/canonical/lxd/shared/api"
 )
 
@@ -14,7 +18,7 @@ func (r *ProtocolLXD) GetNetworkLoadBalancerAddresses(networkName string) ([]str
 	// Fetch the raw URL values.
 	urls := []string{}
 	u := api.NewURL().Path("networks", networkName, "load-balancers")
-	_, err = r.queryStruct("GET", u.String(), nil, "", &urls)
+	_, err = r.queryStruct(http.MethodGet, u.String(), nil, "", &urls)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +38,7 @@ func (r *ProtocolLXD) GetNetworkLoadBalancers(networkName string) ([]api.Network
 
 	// Fetch the raw value.
 	u := api.NewURL().Path("networks", networkName, "load-balancers").WithQuery("recursion", "1")
-	_, err = r.queryStruct("GET", u.String(), nil, "", &loadBalancers)
+	_, err = r.queryStruct(http.MethodGet, u.String(), nil, "", &loadBalancers)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +57,7 @@ func (r *ProtocolLXD) GetNetworkLoadBalancer(networkName string, listenAddress s
 
 	// Fetch the raw value.
 	u := api.NewURL().Path("networks", networkName, "load-balancers", listenAddress)
-	etag, err := r.queryStruct("GET", u.String(), nil, "", &loadBalancer)
+	etag, err := r.queryStruct(http.MethodGet, u.String(), nil, "", &loadBalancer)
 	if err != nil {
 		return nil, "", err
 	}
@@ -68,9 +72,21 @@ func (r *ProtocolLXD) CreateNetworkLoadBalancer(networkName string, loadBalancer
 		return err
 	}
 
+	listenAddressIP := net.ParseIP(loadBalancer.ListenAddress)
+	if listenAddressIP == nil {
+		return fmt.Errorf("Invalid network load balancer listen address: %s", loadBalancer.ListenAddress)
+	}
+
+	if listenAddressIP.IsUnspecified() {
+		err := r.CheckExtension("network_allocate_external_ips")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Send the request.
 	u := api.NewURL().Path("networks", networkName, "load-balancers")
-	_, _, err = r.query("POST", u.String(), loadBalancer, "")
+	_, _, err = r.query(http.MethodPost, u.String(), loadBalancer, "")
 	if err != nil {
 		return err
 	}
@@ -87,7 +103,7 @@ func (r *ProtocolLXD) UpdateNetworkLoadBalancer(networkName string, listenAddres
 
 	// Send the request.
 	u := api.NewURL().Path("networks", networkName, "load-balancers", listenAddress)
-	_, _, err = r.query("PUT", u.String(), loadBalancer, ETag)
+	_, _, err = r.query(http.MethodPut, u.String(), loadBalancer, ETag)
 	if err != nil {
 		return err
 	}
@@ -104,7 +120,7 @@ func (r *ProtocolLXD) DeleteNetworkLoadBalancer(networkName string, listenAddres
 
 	// Send the request.
 	u := api.NewURL().Path("networks", networkName, "load-balancers", listenAddress)
-	_, _, err = r.query("DELETE", u.String(), nil, "")
+	_, _, err = r.query(http.MethodDelete, u.String(), nil, "")
 	if err != nil {
 		return err
 	}

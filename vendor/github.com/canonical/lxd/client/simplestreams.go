@@ -1,7 +1,7 @@
 package lxd
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 
 	"github.com/canonical/lxd/shared/simplestreams"
@@ -35,13 +35,13 @@ func (r *ProtocolSimpleStreams) GetConnectionInfo() (*ConnectionInfo, error) {
 // GetHTTPClient returns the http client used for the connection. This can be used to set custom http options.
 func (r *ProtocolSimpleStreams) GetHTTPClient() (*http.Client, error) {
 	if r.http == nil {
-		return nil, fmt.Errorf("HTTP client isn't set, bad connection")
+		return nil, errors.New("HTTP client isn't set, bad connection")
 	}
 
 	return r.http, nil
 }
 
-// DoHTTP performs a Request, using macaroon authentication if set.
+// DoHTTP performs a Request.
 func (r *ProtocolSimpleStreams) DoHTTP(req *http.Request) (*http.Response, error) {
 	// Set the user agent
 	if r.httpUserAgent != "" {

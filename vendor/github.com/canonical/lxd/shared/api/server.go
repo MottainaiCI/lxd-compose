@@ -1,5 +1,13 @@
 package api
 
+const (
+	// AuthTrusted is the value of [ServerUntrusted.Auth] returned by the server when the client has authenticated.
+	AuthTrusted = "trusted"
+
+	// AuthUntrusted is the value of [ServerUntrusted.Auth] returned by the server when the client not authenticated.
+	AuthUntrusted = "untrusted"
+)
+
 // ServerEnvironment represents the read-only environment fields of a LXD server.
 type ServerEnvironment struct {
 	// List of addresses the server is listening on
@@ -9,6 +17,12 @@ type ServerEnvironment struct {
 	// List of architectures supported by the server
 	// Example: ["x86_64", "i686"]
 	Architectures []string `json:"architectures" yaml:"architectures"`
+
+	// Range of supported backup metadata versions
+	// Example: [1, 2]
+	//
+	// API extension: backup_metadata_version
+	BackupMetadataVersionRange []uint32 `json:"backup_metadata_version_range" yaml:"backup_metadata_version_range"`
 
 	// Server certificate as PEM encoded X509
 	// Example: X509 PEM certificate
@@ -25,6 +39,12 @@ type ServerEnvironment struct {
 	// List of supported instance driver versions (separate by " | ")
 	// Example: 4.0.7 | 5.2.0
 	DriverVersion string `json:"driver_version" yaml:"driver_version"`
+
+	// List of supported instance types
+	// Example: ["container", "virtual-machine"]
+	//
+	// API extension: server_instance_type_info
+	InstanceTypes []string `json:"instance_types" yaml:"instance_types"`
 
 	// Current firewall driver
 	// Example: nftables
@@ -47,7 +67,7 @@ type ServerEnvironment struct {
 	KernelFeatures map[string]string `json:"kernel_features" yaml:"kernel_features"`
 
 	// Kernel version
-	// Example: 5.4.0-36-generic
+	// Example: 5.15.0-36-generic
 	KernelVersion string `json:"kernel_version" yaml:"kernel_version"`
 
 	// Map of LXC features that were tested on startup
@@ -63,7 +83,7 @@ type ServerEnvironment struct {
 	OSName string `json:"os_name" yaml:"os_name"`
 
 	// Version of the operating system (Linux distribution)
-	// Example: 22.04
+	// Example: 24.04
 	//
 	// API extension: api_os
 	OSVersion string `json:"os_version" yaml:"os_version"`
@@ -104,6 +124,10 @@ type ServerEnvironment struct {
 	// Server version
 	// Example: 4.11
 	ServerVersion string `json:"server_version" yaml:"server_version"`
+
+	// Whether the version is an LTS release
+	// Example: false
+	ServerLTS bool `json:"server_lts" yaml:"server_lts"`
 
 	// List of active storage drivers (separate by " | ")
 	// Example: dir | zfs
@@ -147,7 +171,7 @@ type ServerStorageDriverInfo struct {
 // swagger:model
 type ServerPut struct {
 	// Server configuration map (refer to doc/server.md)
-	// Example: {"core.https_address": ":8443", "core.trust_password": true}
+	// Example: {"core.https_address": ":8443"}
 	Config map[string]any `json:"config" yaml:"config"`
 }
 
@@ -182,18 +206,29 @@ type ServerUntrusted struct {
 
 	// List of supported authentication methods
 	// Read only: true
-	// Example: ["tls", "candid"]
+	// Example: ["bearer", "tls", "oidc"]
 	//
-	// API extension: macaroon_authentication
+	// API extension: oidc
 	AuthMethods []string `json:"auth_methods" yaml:"auth_methods"`
+
+	// Whether the requester sent a client certificate with the request
+	// Read only: true
+	// Example: false
+	//
+	// API extension: client_cert_presence
+	ClientCertificate bool `json:"client_certificate" yaml:"client_certificate"`
+
+	// Server configuration map (refer to doc/server.md) The available fields for public endpoint (before authentication) are limited.
+	// Example: {"user.microcloud": "true"}
+	Config map[string]any `json:"config" yaml:"config"`
 }
 
 // Server represents a LXD server
 //
 // swagger:model
 type Server struct {
-	ServerPut       `yaml:",inline"`
-	ServerUntrusted `yaml:",inline"`
+	WithEntitlements `yaml:",inline"`
+	ServerUntrusted  `yaml:",inline"`
 
 	// The current user username as seen by LXD
 	// Read only: true
@@ -216,5 +251,7 @@ type Server struct {
 
 // Writable converts a full Server struct into a ServerPut struct (filters read-only fields).
 func (srv *Server) Writable() ServerPut {
-	return srv.ServerPut
+	return ServerPut{
+		Config: srv.Config,
+	}
 }

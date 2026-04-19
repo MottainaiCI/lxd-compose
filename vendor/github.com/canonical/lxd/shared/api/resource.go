@@ -556,7 +556,7 @@ type ResourcesNetworkCardSRIOV struct {
 	VFs []ResourcesNetworkCard `json:"vfs" yaml:"vfs"`
 }
 
-// ResourceNetworkCardVDPA represents the VDPA configuration of the network card
+// ResourcesNetworkCardVDPA represents the VDPA configuration of the network card
 //
 // swagger:model
 //
@@ -608,6 +608,10 @@ type ResourcesStorageDisk struct {
 	// Whether the disk is read-only
 	// Example: false
 	ReadOnly bool `json:"read_only" yaml:"read_only"`
+
+	// Mounted status of the disk
+	// Example: true
+	Mounted bool `json:"mounted" yaml:"mounted"`
 
 	// Total size of the disk (bytes)
 	// Example: 256060514304
@@ -675,6 +679,18 @@ type ResourcesStorageDisk struct {
 	//
 	// API extension: resources_disk_address
 	USBAddress string `json:"usb_address,omitempty" yaml:"usb_address,omitempty"`
+
+	// UUID of the filesystem on the device
+	// Example: 9313518c-0e13-4067-9746-5c1703830b78
+	//
+	// API extension: resources_device_fs_uuid
+	DeviceFSUUID string `json:"device_fs_uuid" yaml:"device_fs_uuid"`
+
+	// Parent device type
+	// Example: bcache
+	//
+	// API extension: resources_disk_used_by
+	UsedBy string `json:"used_by,omitempty" yaml:"used_by,omitempty"`
 }
 
 // ResourcesStorageDiskPartition represents a partition on a disk
@@ -702,6 +718,16 @@ type ResourcesStorageDiskPartition struct {
 	// Partition number
 	// Example: 1
 	Partition uint64 `json:"partition" yaml:"partition"`
+
+	// Mounted status of the partition.
+	// Example: true
+	Mounted bool `json:"mounted" yaml:"mounted"`
+
+	// UUID of the filesystem on the device
+	// Example: 9313518c-0e13-4067-9746-5c1703830b78
+	//
+	// API extension: resources_device_fs_uuid
+	DeviceFSUUID string `json:"device_fs_uuid" yaml:"device_fs_uuid"`
 }
 
 // ResourcesMemory represents the memory resources available on the system
@@ -834,6 +860,12 @@ type ResourcesUSBDevice struct {
 	// USB address (device)
 	// Example: 3
 	DeviceAddress uint64 `json:"device_address" yaml:"device_address"`
+
+	// USB serial number
+	// Example: DAE005fp
+	//
+	// API extension: device_usb_serial.
+	Serial string `json:"serial" yaml:"serial"`
 
 	// List of USB interfaces
 	Interfaces []ResourcesUSBDeviceInterface `json:"interfaces" yaml:"interfaces"`

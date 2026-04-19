@@ -82,11 +82,11 @@ type ClusterPut struct {
 	// API extension: clustering_join
 	ServerAddress string `json:"server_address" yaml:"server_address"`
 
-	// The trust password of the cluster you're trying to join
+	// The cluster join token for the cluster you're trying to join
 	// Example: blah
 	//
-	// API extension: clustering_join
-	ClusterPassword string `json:"cluster_password" yaml:"cluster_password"`
+	// API extension: explicit_trust_token
+	ClusterToken string `json:"cluster_token" yaml:"cluster_token"`
 }
 
 // ClusterMembersPost represents the fields required to request a join token to add a member to the cluster.
@@ -154,8 +154,6 @@ type ClusterMemberPost struct {
 //
 // API extension: clustering.
 type ClusterMember struct {
-	ClusterMemberPut `yaml:",inline"`
-
 	// Name of the cluster member
 	// Example: lxd01
 	ServerName string `json:"server_name" yaml:"server_name"`
@@ -164,7 +162,7 @@ type ClusterMember struct {
 	// Example: https://10.0.0.1:8443
 	URL string `json:"url" yaml:"url"`
 
-	// Whether the cluster member is a database server
+	// Whether the cluster member is a database server (database-leader, database-voter, or database-standby)
 	// Example: true
 	Database bool `json:"database" yaml:"database"`
 
@@ -181,11 +179,47 @@ type ClusterMember struct {
 	//
 	// API extension: clustering_architecture
 	Architecture string `json:"architecture" yaml:"architecture"`
+
+	// List of roles held by this cluster member
+	// Example: ["database"]
+	//
+	// API extension: clustering_roles
+	Roles []string `json:"roles" yaml:"roles"`
+
+	// Name of the failure domain for this cluster member
+	// Example: rack1
+	//
+	// API extension: clustering_failure_domains
+	FailureDomain string `json:"failure_domain" yaml:"failure_domain"`
+
+	// Cluster member description
+	// Example: AMD Epyc 32c/64t
+	//
+	// API extension: clustering_description
+	Description string `json:"description" yaml:"description"`
+
+	// Additional configuration information
+	// Example: {"scheduler.instance": "all"}
+	//
+	// API extension: clustering_config
+	Config map[string]string `json:"config" yaml:"config"`
+
+	// List of cluster groups this member belongs to
+	// Example: ["group1", "group2"]
+	//
+	// API extension: clustering_groups
+	Groups []string `json:"groups" yaml:"groups"`
 }
 
 // Writable converts a full Profile struct into a ProfilePut struct (filters read-only fields).
 func (member *ClusterMember) Writable() ClusterMemberPut {
-	return member.ClusterMemberPut
+	return ClusterMemberPut{
+		Description:   member.Description,
+		FailureDomain: member.FailureDomain,
+		Roles:         member.Roles,
+		Config:        member.Config,
+		Groups:        member.Groups,
+	}
 }
 
 // ClusterMemberPut represents the modifiable fields of a LXD cluster member
@@ -240,6 +274,26 @@ type ClusterCertificatePut struct {
 	ClusterCertificateKey string `json:"cluster_certificate_key" yaml:"cluster_certificate_key"`
 }
 
+const (
+	// ClusterEvacuateModeStop indicates that all instances on the evacuated member should be stopped.
+	ClusterEvacuateModeStop = "stop"
+
+	// ClusterEvacuateModeMigrate indicates that all instances on the evacuated member should be migrated to other members.
+	ClusterEvacuateModeMigrate = "migrate"
+
+	// ClusterEvacuateModeLiveMigrate indicates that all instances on the evacuated member should be live-migrated to other members.
+	ClusterEvacuateModeLiveMigrate = "live-migrate"
+
+	// ClusterEvacuateModeAuto indicates that the system should automatically choose the best evacuation method for the instance based on instance type and device capabilities.
+	ClusterEvacuateModeAuto = "auto"
+
+	// ClusterEvacuateModeHeal is used internally to indicate that instances should be evacuated during automatic cluster healing.
+	ClusterEvacuateModeHeal = "heal"
+
+	// ClusterRestoreModeSkip indicates that cluster member status should be restored without starting local instances or migrating back evacuated instances.
+	ClusterRestoreModeSkip = "skip"
+)
+
 // ClusterMemberStatePost represents the fields required to evacuate a cluster member.
 //
 // swagger:model
@@ -251,9 +305,11 @@ type ClusterMemberStatePost struct {
 	Action string `json:"action" yaml:"action"`
 
 	// Override the configured evacuation mode.
+	// Valid modes for the "evacuate" action are "stop", "migrate", and "live-migrate".
+	// Valid modes for the "restore" action are "skip".
 	// Example: stop
 	//
-	// API extension: clustering_evacuate_mode
+	// API extension: clustering_evacuation_mode
 	Mode string `json:"mode" yaml:"mode"`
 }
 
@@ -276,8 +332,22 @@ type ClusterGroupsPost struct {
 //
 // API extension: clustering_groups.
 type ClusterGroup struct {
-	ClusterGroupPut  `yaml:",inline"`
-	ClusterGroupPost `yaml:",inline"`
+	// The new name of the cluster group
+	// Example: group1
+	Name string `json:"name" yaml:"name"`
+
+	// The description of the cluster group
+	// Example: amd64 servers
+	Description string `json:"description" yaml:"description"`
+
+	// List of members in this group
+	// Example: ["node1", "node3"]
+	Members []string `json:"members" yaml:"members"`
+
+	// UsedBy is a list or LXD entity URLs that reference the cluster group.
+	//
+	// API extension: clustering_groups_used_by
+	UsedBy []string `json:"used_by" yaml:"used_by"`
 }
 
 // ClusterGroupPost represents the fields required to rename a cluster group.
@@ -308,5 +378,14 @@ type ClusterGroupPut struct {
 
 // Writable converts a full ClusterGroup struct into a ClusterGroupPut struct (filters read-only fields).
 func (c *ClusterGroup) Writable() ClusterGroupPut {
-	return c.ClusterGroupPut
+	return ClusterGroupPut{
+		Description: c.Description,
+		Members:     c.Members,
+	}
+}
+
+// SetWritable sets applicable values from ClusterGroupPut struct to ClusterGroup struct.
+func (c *ClusterGroup) SetWritable(put ClusterGroupPut) {
+	c.Description = put.Description
+	c.Members = put.Members
 }

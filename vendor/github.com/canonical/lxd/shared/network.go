@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 	"time"
 )
@@ -59,16 +59,9 @@ func IsConnectionError(err error) bool {
 // parameters. This is used as baseline config for both client and server
 // certificates used by LXD.
 func InitTLSConfig() *tls.Config {
-	config := &tls.Config{}
-
-	// Restrict to TLS 1.3 unless LXD_INSECURE_TLS is set.
-	if IsFalseOrEmpty(os.Getenv("LXD_INSECURE_TLS")) {
-		config.MinVersion = tls.VersionTLS13
-	} else {
-		config.MinVersion = tls.VersionTLS12
+	return &tls.Config{
+		MinVersion: tls.VersionTLS13,
 	}
-
-	return config
 }
 
 func finalizeTLSConfig(tlsConfig *tls.Config, tlsRemoteCert *x509.Certificate) {
@@ -97,6 +90,7 @@ func finalizeTLSConfig(tlsConfig *tls.Config, tlsRemoteCert *x509.Certificate) {
 	}
 }
 
+// GetTLSConfig returns a client TLS configuration suitable for requests to LXD.
 func GetTLSConfig(tlsRemoteCert *x509.Certificate) (*tls.Config, error) {
 	tlsConfig := InitTLSConfig()
 
@@ -105,6 +99,7 @@ func GetTLSConfig(tlsRemoteCert *x509.Certificate) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+// GetTLSConfigMem returns a client TLS configuration suitable for requests to LXD, including client certificates for mTLS.
 func GetTLSConfigMem(tlsClientCert string, tlsClientKey string, tlsClientCA string, tlsRemoteCertPEM string, insecureSkipVerify bool) (*tls.Config, error) {
 	tlsConfig := InitTLSConfig()
 
@@ -116,6 +111,12 @@ func GetTLSConfigMem(tlsClientCert string, tlsClientKey string, tlsClientCA stri
 		}
 
 		tlsConfig.Certificates = []tls.Certificate{cert}
+		tlsConfig.GetClientCertificate = func(info *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			// GetClientCertificate is called if not nil instead of performing the default selection of an appropriate
+			// certificate from the `Certificates` list. We only have one-key pair to send, and we always want to send it
+			// because this is what uniquely identifies the caller to the server.
+			return &cert, nil
+		}
 	}
 
 	var tlsRemoteCert *x509.Certificate
@@ -123,7 +124,7 @@ func GetTLSConfigMem(tlsClientCert string, tlsClientKey string, tlsClientCA stri
 		// Ignore any content outside of the PEM bytes we care about
 		certBlock, _ := pem.Decode([]byte(tlsRemoteCertPEM))
 		if certBlock == nil {
-			return nil, fmt.Errorf("Invalid remote certificate")
+			return nil, errors.New("Invalid remote certificate")
 		}
 
 		var err error
@@ -150,6 +151,7 @@ func GetTLSConfigMem(tlsClientCert string, tlsClientKey string, tlsClientCA stri
 	return tlsConfig, nil
 }
 
+// IsLoopback returns true if the given interface is a loopback interface.
 func IsLoopback(iface *net.Interface) bool {
 	return int(iface.Flags&net.FlagLoopback) > 0
 }

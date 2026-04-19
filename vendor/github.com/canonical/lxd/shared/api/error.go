@@ -4,36 +4,60 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 )
 
-// StatusErrorf returns a new StatusError containing the specified status and message.
-func StatusErrorf(status int, format string, a ...any) StatusError {
-	var msg string
-	if len(a) > 0 {
-		msg = fmt.Sprintf(format, a...)
-	} else {
-		msg = format
+// NewGenericStatusError returns a new StatusError with the given status code.
+// The generic http.StatusText will be used for the error message.
+func NewGenericStatusError(status int) StatusError {
+	return StatusError{
+		status: status,
+	}
+}
+
+// NewStatusError returns a new StatusError with the given message and status code.
+func NewStatusError(status int, msg string) StatusError {
+	if msg == "" {
+		return NewGenericStatusError(status)
 	}
 
 	return StatusError{
 		status: status,
-		msg:    msg,
+		err:    errors.New(msg),
+	}
+}
+
+// StatusErrorf returns a new StatusError containing the specified status and message.
+func StatusErrorf(status int, format string, a ...any) StatusError {
+	return StatusError{
+		status: status,
+		err:    fmt.Errorf(format, a...),
 	}
 }
 
 // StatusError error type that contains an HTTP status code and message.
 type StatusError struct {
 	status int
-	msg    string
+	err    error
 }
 
-// Error returns the error message or the http.StatusText() of the status code if message is empty.
+// Error returns the error message or the http.StatusText() of the status code if error message is empty.
 func (e StatusError) Error() string {
-	if e.msg != "" {
-		return e.msg
+	if e.err != nil && e.err.Error() != "" {
+		return e.err.Error()
 	}
 
-	return http.StatusText(e.status)
+	statusText := http.StatusText(e.status)
+	if statusText == "" {
+		return "Undefined error"
+	}
+
+	return statusText
+}
+
+// Unwrap implements the xerrors.Wrapper interface for StatusError.
+func (e StatusError) Unwrap() error {
+	return e.err
 }
 
 // Status returns the HTTP status code.
@@ -54,10 +78,8 @@ func StatusErrorMatch(err error, matchStatusCodes ...int) (int, bool) {
 			return statusCode, true
 		}
 
-		for _, s := range matchStatusCodes {
-			if statusCode == s {
-				return statusCode, true
-			}
+		if slices.Contains(matchStatusCodes, statusCode) {
+			return statusCode, true
 		}
 	}
 

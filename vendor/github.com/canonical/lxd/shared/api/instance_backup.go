@@ -24,7 +24,9 @@ type InstanceBackupsPost struct {
 
 	// Whether to ignore snapshots (deprecated, use instance_only)
 	// Example: false
-	ContainerOnly bool `json:"container_only" yaml:"container_only"` // Deprecated, use InstanceOnly.
+	//
+	// Deprecated: Use InstanceOnly.
+	ContainerOnly bool `json:"container_only" yaml:"container_only"`
 
 	// Whether to use a pool-optimized binary format (instead of plain tarball)
 	// Example: true
@@ -35,6 +37,12 @@ type InstanceBackupsPost struct {
 	//
 	// API extension: backup_compression_algorithm
 	CompressionAlgorithm string `json:"compression_algorithm" yaml:"compression_algorithm"`
+
+	// What backup format version to use
+	// Example: 1
+	//
+	// API extension: backup_metadata_version
+	Version uint32 `json:"version" yaml:"version"`
 }
 
 // InstanceBackup represents a LXD instance backup.
@@ -61,7 +69,9 @@ type InstanceBackup struct {
 
 	// Whether to ignore snapshots (deprecated, use instance_only)
 	// Example: false
-	ContainerOnly bool `json:"container_only" yaml:"container_only"` // Deprecated, use InstanceOnly.
+	//
+	// Deprecated: Use InstanceOnly.
+	ContainerOnly bool `json:"container_only" yaml:"container_only"`
 
 	// Whether to use a pool-optimized binary format (instead of plain tarball)
 	// Example: true

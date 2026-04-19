@@ -23,6 +23,12 @@ type InstanceSnapshotsPost struct {
 	//
 	// API extension: snapshot_expiry_creation
 	ExpiresAt *time.Time `json:"expires_at" yaml:"expires_at"`
+
+	// Which disk volumes to include in instance snapshot. Possible values are "root" or "all-exclusive".
+	// Example: all-exclusive
+	//
+	// API extension: instance_snapshot_multi_volume
+	DiskVolumesMode string `json:"disk_volumes_mode,omitempty" yaml:"disk_volumes_mode,omitempty"`
 }
 
 // InstanceSnapshotPost represents the fields required to rename/move a LXD instance snapshot.
@@ -64,8 +70,6 @@ type InstanceSnapshotPut struct {
 //
 // API extension: instances.
 type InstanceSnapshot struct {
-	InstanceSnapshotPut `yaml:",inline"`
-
 	// Architecture name
 	// Example: x86_64
 	Architecture string `json:"architecture" yaml:"architecture"`
@@ -77,6 +81,10 @@ type InstanceSnapshot struct {
 	// Instance creation timestamp
 	// Example: 2021-03-23T20:00:00-04:00
 	CreatedAt time.Time `json:"created_at" yaml:"created_at"`
+
+	// When the snapshot expires (gets auto-deleted)
+	// Example: 2021-03-23T17:38:37.753398689-04:00
+	ExpiresAt time.Time `json:"expires_at" yaml:"expires_at"`
 
 	// Instance devices (see doc/instances.md)
 	// Example: {"root": {"type": "disk", "pool": "default", "path": "/"}}
@@ -122,5 +130,12 @@ type InstanceSnapshot struct {
 //
 // API extension: instances.
 func (c *InstanceSnapshot) Writable() InstanceSnapshotPut {
-	return c.InstanceSnapshotPut
+	return InstanceSnapshotPut{
+		ExpiresAt: c.ExpiresAt,
+	}
+}
+
+// SetWritable sets applicable values from InstanceSnapshotPut struct to InstanceSnapshot struct.
+func (c *InstanceSnapshot) SetWritable(put InstanceSnapshotPut) {
+	c.ExpiresAt = put.ExpiresAt
 }

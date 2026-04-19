@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/gorilla/websocket"
+	"slices"
 
 	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/api"
@@ -18,7 +17,7 @@ func (r *ProtocolLXD) GetServer() (*api.Server, string, error) {
 	server := api.Server{}
 
 	// Fetch the raw value
-	etag, err := r.queryStruct("GET", "", nil, "", &server)
+	etag, err := r.queryStruct(http.MethodGet, "", nil, "", &server)
 	if err != nil {
 		return nil, "", err
 	}
@@ -46,7 +45,7 @@ func (r *ProtocolLXD) GetServer() (*api.Server, string, error) {
 // UpdateServer updates the server status to match the provided Server struct.
 func (r *ProtocolLXD) UpdateServer(server api.ServerPut, ETag string) error {
 	// Send the request
-	_, _, err := r.query("PUT", "", server, ETag)
+	_, _, err := r.query(http.MethodPut, "", server, ETag)
 	if err != nil {
 		return err
 	}
@@ -55,6 +54,7 @@ func (r *ProtocolLXD) UpdateServer(server api.ServerPut, ETag string) error {
 }
 
 // HasExtension returns true if the server supports a given API extension.
+//
 // Deprecated: Use CheckExtension instead.
 func (r *ProtocolLXD) HasExtension(extension string) bool {
 	// If no cached API information, just assume we're good
@@ -63,7 +63,7 @@ func (r *ProtocolLXD) HasExtension(extension string) bool {
 		return true
 	}
 
-	return shared.ValueInSlice(extension, r.server.APIExtensions)
+	return slices.Contains(r.server.APIExtensions, extension)
 }
 
 // CheckExtension checks if the server has the specified extension.
@@ -82,14 +82,15 @@ func (r *ProtocolLXD) IsClustered() bool {
 
 // GetServerResources returns the resources available to a given LXD server.
 func (r *ProtocolLXD) GetServerResources() (*api.Resources, error) {
-	if !r.HasExtension("resources") {
-		return nil, fmt.Errorf("The server is missing the required \"resources\" API extension")
+	err := r.CheckExtension("resources")
+	if err != nil {
+		return nil, err
 	}
 
 	resources := api.Resources{}
 
 	// Fetch the raw value
-	_, err := r.queryStruct("GET", "/resources", nil, "", &resources)
+	_, err = r.queryStruct(http.MethodGet, "/resources", nil, "", &resources)
 	if err != nil {
 		return nil, err
 	}
@@ -99,50 +100,18 @@ func (r *ProtocolLXD) GetServerResources() (*api.Resources, error) {
 
 // UseProject returns a client that will use a specific project.
 func (r *ProtocolLXD) UseProject(name string) InstanceServer {
-	return &ProtocolLXD{
-		ctx:                  r.ctx,
-		ctxConnected:         r.ctxConnected,
-		ctxConnectedCancel:   r.ctxConnectedCancel,
-		server:               r.server,
-		http:                 r.http,
-		httpCertificate:      r.httpCertificate,
-		httpBaseURL:          r.httpBaseURL,
-		httpProtocol:         r.httpProtocol,
-		httpUserAgent:        r.httpUserAgent,
-		bakeryClient:         r.bakeryClient,
-		bakeryInteractor:     r.bakeryInteractor,
-		requireAuthenticated: r.requireAuthenticated,
-		clusterTarget:        r.clusterTarget,
-		project:              name,
-		eventConns:           make(map[string]*websocket.Conn),  // New project specific listener conns.
-		eventListeners:       make(map[string][]*EventListener), // New project specific listeners.
-		oidcClient:           r.oidcClient,
-	}
+	server := *r
+	server.project = name
+	return &server
 }
 
 // UseTarget returns a client that will target a specific cluster member.
 // Use this member-specific operations such as specific container
 // placement, preparing a new storage pool or network, ...
 func (r *ProtocolLXD) UseTarget(name string) InstanceServer {
-	return &ProtocolLXD{
-		ctx:                  r.ctx,
-		ctxConnected:         r.ctxConnected,
-		ctxConnectedCancel:   r.ctxConnectedCancel,
-		server:               r.server,
-		http:                 r.http,
-		httpCertificate:      r.httpCertificate,
-		httpBaseURL:          r.httpBaseURL,
-		httpProtocol:         r.httpProtocol,
-		httpUserAgent:        r.httpUserAgent,
-		bakeryClient:         r.bakeryClient,
-		bakeryInteractor:     r.bakeryInteractor,
-		requireAuthenticated: r.requireAuthenticated,
-		project:              r.project,
-		eventConns:           make(map[string]*websocket.Conn),  // New target specific listener conns.
-		eventListeners:       make(map[string][]*EventListener), // New target specific listeners.
-		oidcClient:           r.oidcClient,
-		clusterTarget:        name,
-	}
+	server := *r
+	server.clusterTarget = name
+	return &server
 }
 
 // IsAgent returns true if the server is a LXD agent.
@@ -153,17 +122,18 @@ func (r *ProtocolLXD) IsAgent() bool {
 // GetMetrics returns the text OpenMetrics data.
 func (r *ProtocolLXD) GetMetrics() (string, error) {
 	// Check that the server supports it.
-	if !r.HasExtension("metrics") {
-		return "", fmt.Errorf("The server is missing the required \"metrics\" API extension")
-	}
-
-	// Prepare the request.
-	requestURL, err := r.setQueryAttributes(fmt.Sprintf("%s/1.0/metrics", r.httpBaseURL.String()))
+	err := r.CheckExtension("metrics")
 	if err != nil {
 		return "", err
 	}
 
-	req, err := http.NewRequest("GET", requestURL, nil)
+	// Prepare the request.
+	requestURL, err := r.setQueryAttributes(r.httpBaseURL.String() + "/1.0/metrics")
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return "", err
 	}
@@ -187,4 +157,22 @@ func (r *ProtocolLXD) GetMetrics() (string, error) {
 	}
 
 	return string(content), nil
+}
+
+// GetMetadataConfiguration returns metadata configuration for a server.
+func (r *ProtocolLXD) GetMetadataConfiguration() (*api.MetadataConfiguration, error) {
+	// Check that the server supports it.
+	err := r.CheckExtension("metadata_configuration")
+	if err != nil {
+		return nil, err
+	}
+
+	metadataConfiguration := api.MetadataConfiguration{}
+
+	_, err = r.queryStruct(http.MethodGet, api.NewURL().Path("metadata", "configuration").String(), nil, "", &metadataConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	return &metadataConfiguration, err
 }

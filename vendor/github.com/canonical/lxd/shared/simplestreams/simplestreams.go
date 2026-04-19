@@ -103,7 +103,7 @@ func (s *SimpleStreams) cachedDownload(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", uri, nil)
+	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (s *SimpleStreams) applyAliases(images []api.Image) ([]api.Image, []extende
 
 	addAlias := func(imageType string, architecture string, name string, fingerprint string) *api.ImageAlias {
 		if defaultOS != "" {
-			name = strings.TrimPrefix(name, fmt.Sprintf("%s/", defaultOS))
+			name = strings.TrimPrefix(name, defaultOS+"/")
 		}
 
 		for _, entry := range aliasesList {
@@ -251,7 +251,7 @@ func (s *SimpleStreams) applyAliases(images []api.Image) ([]api.Image, []extende
 
 	architectureName, _ := osarch.ArchitectureGetLocal()
 
-	newImages := []api.Image{}
+	newImages := make([]api.Image, 0, len(images))
 	for _, image := range images {
 		if image.Aliases != nil {
 			// Build a new list of aliases from the provided ones
@@ -266,7 +266,7 @@ func (s *SimpleStreams) applyAliases(images []api.Image) ([]api.Image, []extende
 				}
 
 				// Medium
-				alias = addAlias(image.Type, image.Architecture, fmt.Sprintf("%s/%s", entry.Name, image.Properties["architecture"]), image.Fingerprint)
+				alias = addAlias(image.Type, image.Architecture, entry.Name+"/"+image.Properties["architecture"], image.Fingerprint)
 				if alias != nil {
 					image.Aliases = append(image.Aliases, *alias)
 				}
@@ -377,7 +377,7 @@ func (s *SimpleStreams) GetFiles(fingerprint string) (map[string]DownloadableFil
 		}
 	}
 
-	return nil, fmt.Errorf("Couldn't find the requested image")
+	return nil, fmt.Errorf("Couldn't find the requested image for fingerprint %q", fingerprint)
 }
 
 // ListAliases returns a list of image aliases for the provided image fingerprint.
@@ -437,7 +437,7 @@ func (s *SimpleStreams) GetAlias(imageType string, name string) (*api.ImageAlias
 
 		if match != nil {
 			if match.Type != entry.Type {
-				return nil, fmt.Errorf("More than one match for alias '%s'", name)
+				return nil, fmt.Errorf("More than one match for alias %q", name)
 			}
 
 			continue
@@ -447,7 +447,7 @@ func (s *SimpleStreams) GetAlias(imageType string, name string) (*api.ImageAlias
 	}
 
 	if match == nil {
-		return nil, fmt.Errorf("Alias '%s' doesn't exist", name)
+		return nil, fmt.Errorf("Alias %q doesn't exist", name)
 	}
 
 	return match, nil
@@ -472,14 +472,14 @@ func (s *SimpleStreams) GetAliasArchitectures(imageType string, name string) (ma
 		}
 
 		if aliases[entry.Architecture] != nil {
-			return nil, fmt.Errorf("More than one match for alias '%s'", name)
+			return nil, fmt.Errorf("More than one match for alias %q", name)
 		}
 
 		aliases[entry.Architecture] = entry.Alias
 	}
 
 	if len(aliases) == 0 {
-		return nil, fmt.Errorf("Alias '%s' doesn't exist", name)
+		return nil, fmt.Errorf("Alias %q doesn't exist", name)
 	}
 
 	return aliases, nil
@@ -501,9 +501,9 @@ func (s *SimpleStreams) GetImage(fingerprint string) (*api.Image, error) {
 	}
 
 	if len(matches) == 0 {
-		return nil, fmt.Errorf("The requested image couldn't be found")
+		return nil, fmt.Errorf("The requested image couldn't be found for fingerprint %q", fingerprint)
 	} else if len(matches) > 1 {
-		return nil, fmt.Errorf("More than one match for the provided partial fingerprint")
+		return nil, fmt.Errorf("More than one match for the provided partial fingerprint %q", fingerprint)
 	}
 
 	return &matches[0], nil

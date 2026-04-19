@@ -2,6 +2,7 @@ package lxd
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/canonical/lxd/shared/api"
@@ -9,14 +10,15 @@ import (
 
 // GetNetworkZoneNames returns a list of network zone names.
 func (r *ProtocolLXD) GetNetworkZoneNames() ([]string, error) {
-	if !r.HasExtension("network_dns") {
-		return nil, fmt.Errorf(`The server is missing the required "network_dns" API extension`)
+	err := r.CheckExtension("network_dns")
+	if err != nil {
+		return nil, err
 	}
 
 	// Fetch the raw URL values.
 	urls := []string{}
 	baseURL := "/network-zones"
-	_, err := r.queryStruct("GET", baseURL, nil, "", &urls)
+	_, err = r.queryStruct(http.MethodGet, baseURL, nil, "", &urls)
 	if err != nil {
 		return nil, err
 	}
@@ -27,14 +29,33 @@ func (r *ProtocolLXD) GetNetworkZoneNames() ([]string, error) {
 
 // GetNetworkZones returns a list of Network zone structs.
 func (r *ProtocolLXD) GetNetworkZones() ([]api.NetworkZone, error) {
-	if !r.HasExtension("network_dns") {
-		return nil, fmt.Errorf(`The server is missing the required "network_dns" API extension`)
+	err := r.CheckExtension("network_dns")
+	if err != nil {
+		return nil, err
 	}
 
 	zones := []api.NetworkZone{}
 
 	// Fetch the raw value.
-	_, err := r.queryStruct("GET", "/network-zones?recursion=1", nil, "", &zones)
+	_, err = r.queryStruct(http.MethodGet, "/network-zones?recursion=1", nil, "", &zones)
+	if err != nil {
+		return nil, err
+	}
+
+	return zones, nil
+}
+
+// GetNetworkZonesAllProjects returns a list of network zones across all projects as NetworkZone structs.
+func (r *ProtocolLXD) GetNetworkZonesAllProjects() ([]api.NetworkZone, error) {
+	err := r.CheckExtension("network_zones_all_projects")
+	if err != nil {
+		return nil, err
+	}
+
+	zones := []api.NetworkZone{}
+
+	u := api.NewURL().Path("network-zones").WithQuery("recursion", "1").WithQuery("all-projects", "true")
+	_, err = r.queryStruct(http.MethodGet, u.String(), nil, "", &zones)
 	if err != nil {
 		return nil, err
 	}
@@ -44,14 +65,15 @@ func (r *ProtocolLXD) GetNetworkZones() ([]api.NetworkZone, error) {
 
 // GetNetworkZone returns a Network zone entry for the provided name.
 func (r *ProtocolLXD) GetNetworkZone(name string) (*api.NetworkZone, string, error) {
-	if !r.HasExtension("network_dns") {
-		return nil, "", fmt.Errorf(`The server is missing the required "network_dns" API extension`)
+	err := r.CheckExtension("network_dns")
+	if err != nil {
+		return nil, "", err
 	}
 
 	zone := api.NetworkZone{}
 
 	// Fetch the raw value.
-	etag, err := r.queryStruct("GET", fmt.Sprintf("/network-zones/%s", url.PathEscape(name)), nil, "", &zone)
+	etag, err := r.queryStruct(http.MethodGet, "/network-zones/"+url.PathEscape(name), nil, "", &zone)
 	if err != nil {
 		return nil, "", err
 	}
@@ -61,12 +83,13 @@ func (r *ProtocolLXD) GetNetworkZone(name string) (*api.NetworkZone, string, err
 
 // CreateNetworkZone defines a new Network zone using the provided struct.
 func (r *ProtocolLXD) CreateNetworkZone(zone api.NetworkZonesPost) error {
-	if !r.HasExtension("network_dns") {
-		return fmt.Errorf(`The server is missing the required "network_dns" API extension`)
+	err := r.CheckExtension("network_dns")
+	if err != nil {
+		return err
 	}
 
 	// Send the request.
-	_, _, err := r.query("POST", "/network-zones", zone, "")
+	_, _, err = r.query(http.MethodPost, "/network-zones", zone, "")
 	if err != nil {
 		return err
 	}
@@ -76,12 +99,13 @@ func (r *ProtocolLXD) CreateNetworkZone(zone api.NetworkZonesPost) error {
 
 // UpdateNetworkZone updates the network zone to match the provided struct.
 func (r *ProtocolLXD) UpdateNetworkZone(name string, zone api.NetworkZonePut, ETag string) error {
-	if !r.HasExtension("network_dns") {
-		return fmt.Errorf(`The server is missing the required "network_dns" API extension`)
+	err := r.CheckExtension("network_dns")
+	if err != nil {
+		return err
 	}
 
 	// Send the request.
-	_, _, err := r.query("PUT", fmt.Sprintf("/network-zones/%s", url.PathEscape(name)), zone, ETag)
+	_, _, err = r.query(http.MethodPut, "/network-zones/"+url.PathEscape(name), zone, ETag)
 	if err != nil {
 		return err
 	}
@@ -91,12 +115,13 @@ func (r *ProtocolLXD) UpdateNetworkZone(name string, zone api.NetworkZonePut, ET
 
 // DeleteNetworkZone deletes an existing network zone.
 func (r *ProtocolLXD) DeleteNetworkZone(name string) error {
-	if !r.HasExtension("network_dns") {
-		return fmt.Errorf(`The server is missing the required "network_dns" API extension`)
+	err := r.CheckExtension("network_dns")
+	if err != nil {
+		return err
 	}
 
 	// Send the request.
-	_, _, err := r.query("DELETE", fmt.Sprintf("/network-zones/%s", url.PathEscape(name)), nil, "")
+	_, _, err = r.query(http.MethodDelete, "/network-zones/"+url.PathEscape(name), nil, "")
 	if err != nil {
 		return err
 	}
@@ -106,14 +131,15 @@ func (r *ProtocolLXD) DeleteNetworkZone(name string) error {
 
 // GetNetworkZoneRecordNames returns a list of network zone record names.
 func (r *ProtocolLXD) GetNetworkZoneRecordNames(zone string) ([]string, error) {
-	if !r.HasExtension("network_dns_records") {
-		return nil, fmt.Errorf(`The server is missing the required "network_dns_records" API extension`)
+	err := r.CheckExtension("network_dns_records")
+	if err != nil {
+		return nil, err
 	}
 
 	// Fetch the raw URL values.
 	urls := []string{}
 	baseURL := fmt.Sprintf("/network-zones/%s/records", url.PathEscape(zone))
-	_, err := r.queryStruct("GET", baseURL, nil, "", &urls)
+	_, err = r.queryStruct(http.MethodGet, baseURL, nil, "", &urls)
 	if err != nil {
 		return nil, err
 	}
@@ -124,14 +150,15 @@ func (r *ProtocolLXD) GetNetworkZoneRecordNames(zone string) ([]string, error) {
 
 // GetNetworkZoneRecords returns a list of Network zone record structs.
 func (r *ProtocolLXD) GetNetworkZoneRecords(zone string) ([]api.NetworkZoneRecord, error) {
-	if !r.HasExtension("network_dns_records") {
-		return nil, fmt.Errorf(`The server is missing the required "network_dns_records" API extension`)
+	err := r.CheckExtension("network_dns_records")
+	if err != nil {
+		return nil, err
 	}
 
 	records := []api.NetworkZoneRecord{}
 
 	// Fetch the raw value.
-	_, err := r.queryStruct("GET", fmt.Sprintf("/network-zones/%s/records?recursion=1", url.PathEscape(zone)), nil, "", &records)
+	_, err = r.queryStruct(http.MethodGet, fmt.Sprintf("/network-zones/%s/records?recursion=1", url.PathEscape(zone)), nil, "", &records)
 	if err != nil {
 		return nil, err
 	}
@@ -141,14 +168,15 @@ func (r *ProtocolLXD) GetNetworkZoneRecords(zone string) ([]api.NetworkZoneRecor
 
 // GetNetworkZoneRecord returns a Network zone record entry for the provided zone and name.
 func (r *ProtocolLXD) GetNetworkZoneRecord(zone string, name string) (*api.NetworkZoneRecord, string, error) {
-	if !r.HasExtension("network_dns_records") {
-		return nil, "", fmt.Errorf(`The server is missing the required "network_dns_records" API extension`)
+	err := r.CheckExtension("network_dns_records")
+	if err != nil {
+		return nil, "", err
 	}
 
 	record := api.NetworkZoneRecord{}
 
 	// Fetch the raw value.
-	etag, err := r.queryStruct("GET", fmt.Sprintf("/network-zones/%s/records/%s", url.PathEscape(zone), url.PathEscape(name)), nil, "", &record)
+	etag, err := r.queryStruct(http.MethodGet, fmt.Sprintf("/network-zones/%s/records/%s", url.PathEscape(zone), url.PathEscape(name)), nil, "", &record)
 	if err != nil {
 		return nil, "", err
 	}
@@ -158,12 +186,13 @@ func (r *ProtocolLXD) GetNetworkZoneRecord(zone string, name string) (*api.Netwo
 
 // CreateNetworkZoneRecord defines a new Network zone record using the provided struct.
 func (r *ProtocolLXD) CreateNetworkZoneRecord(zone string, record api.NetworkZoneRecordsPost) error {
-	if !r.HasExtension("network_dns_records") {
-		return fmt.Errorf(`The server is missing the required "network_dns_records" API extension`)
+	err := r.CheckExtension("network_dns_records")
+	if err != nil {
+		return err
 	}
 
 	// Send the request.
-	_, _, err := r.query("POST", fmt.Sprintf("/network-zones/%s/records", url.PathEscape(zone)), record, "")
+	_, _, err = r.query(http.MethodPost, fmt.Sprintf("/network-zones/%s/records", url.PathEscape(zone)), record, "")
 	if err != nil {
 		return err
 	}
@@ -173,12 +202,13 @@ func (r *ProtocolLXD) CreateNetworkZoneRecord(zone string, record api.NetworkZon
 
 // UpdateNetworkZoneRecord updates the network zone record to match the provided struct.
 func (r *ProtocolLXD) UpdateNetworkZoneRecord(zone string, name string, record api.NetworkZoneRecordPut, ETag string) error {
-	if !r.HasExtension("network_dns_records") {
-		return fmt.Errorf(`The server is missing the required "network_dns_records" API extension`)
+	err := r.CheckExtension("network_dns_records")
+	if err != nil {
+		return err
 	}
 
 	// Send the request.
-	_, _, err := r.query("PUT", fmt.Sprintf("/network-zones/%s/records/%s", url.PathEscape(zone), url.PathEscape(name)), record, ETag)
+	_, _, err = r.query(http.MethodPut, fmt.Sprintf("/network-zones/%s/records/%s", url.PathEscape(zone), url.PathEscape(name)), record, ETag)
 	if err != nil {
 		return err
 	}
@@ -188,12 +218,13 @@ func (r *ProtocolLXD) UpdateNetworkZoneRecord(zone string, name string, record a
 
 // DeleteNetworkZoneRecord deletes an existing network zone record.
 func (r *ProtocolLXD) DeleteNetworkZoneRecord(zone string, name string) error {
-	if !r.HasExtension("network_dns_records") {
-		return fmt.Errorf(`The server is missing the required "network_dns_records" API extension`)
+	err := r.CheckExtension("network_dns_records")
+	if err != nil {
+		return err
 	}
 
 	// Send the request.
-	_, _, err := r.query("DELETE", fmt.Sprintf("/network-zones/%s/records/%s", url.PathEscape(zone), url.PathEscape(name)), nil, "")
+	_, _, err = r.query(http.MethodDelete, fmt.Sprintf("/network-zones/%s/records/%s", url.PathEscape(zone), url.PathEscape(name)), nil, "")
 	if err != nil {
 		return err
 	}
