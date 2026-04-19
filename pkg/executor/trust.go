@@ -52,13 +52,11 @@ func (e *LxdCExecutor) CreateCertificate(cert *specs.LxdCCertificate) error {
 	}
 
 	post := lxd_api.CertificatesPost{
-		CertificatePut: lxd_api.CertificatePut{
-			Name:        cert.Name,
-			Type:        cert.Type,
-			Restricted:  cert.Restricted,
-			Projects:    cert.Projects,
-			Certificate: cert.Certificate,
-		},
+		Name:        cert.Name,
+		Type:        cert.Type,
+		Restricted:  cert.Restricted,
+		Projects:    cert.Projects,
+		Certificate: cert.Certificate,
 	}
 
 	return e.LxdClient.CreateCertificate(post)

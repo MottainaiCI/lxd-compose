@@ -85,5 +85,9 @@ func (e *LxdCExecutor) UpdateProfile(profile specs.LxdCProfile) error {
 		lxdProfilePut.Devices = make(map[string]map[string]string, 0)
 	}
 
-	return e.LxdClient.UpdateProfile(profile.Name, lxdProfilePut, "")
+	op, err := e.LxdClient.UpdateProfile(profile.Name, lxdProfilePut, "")
+	if err != nil {
+		return err
+	}
+	return op.Wait()
 }

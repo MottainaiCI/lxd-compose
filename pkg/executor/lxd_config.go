@@ -52,7 +52,7 @@ func getLxcDefaultConfDir() (string, error) {
 }
 
 func (e *LxdCExecutor) Setup() error {
-	var client lxd.ContainerServer
+	var client lxd.InstanceServer
 
 	configDir, err := getLxcDefaultConfDir()
 	if err != nil {

@@ -43,38 +43,20 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 		return err
 	}
 
-	if e.LegacyApi {
-		// Setup container creation request
-		req := lxd_api.ContainersPost{
-			Name: name,
-		}
-		req.Config = configMap
-		req.Devices = devicesMap
-		req.Profiles = profiles
-		req.Ephemeral = ephemeral
+	// Setup container creation request
+	req := lxd_api.InstancesPost{
+		Name: name,
+		Type: lxd_api.InstanceTypeContainer,
+	}
+	req.Config = configMap
+	req.Devices = devicesMap
+	req.Profiles = profiles
+	req.Ephemeral = ephemeral
 
-		// Create the container
-		remoteOperation, err = e.LxdClient.CreateContainerFromImage(e.LxdClient, *image, req)
-		if err != nil {
-			return err
-		}
-	} else {
-
-		// Setup container creation request
-		req := lxd_api.InstancesPost{
-			Name: name,
-			Type: lxd_api.InstanceTypeContainer,
-		}
-		req.Config = configMap
-		req.Devices = devicesMap
-		req.Profiles = profiles
-		req.Ephemeral = ephemeral
-
-		// Create the container
-		remoteOperation, err = e.LxdClient.CreateInstanceFromImage(e.LxdClient, *image, req)
-		if err != nil {
-			return err
-		}
+	// Create the container
+	remoteOperation, err = e.LxdClient.CreateInstanceFromImage(e.LxdClient, *image, req)
+	if err != nil {
+		return err
 	}
 
 	// Watch the background operation
@@ -152,32 +134,17 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 	var containerStatus string
 	var operation lxd.Operation
 
-	if e.LegacyApi {
-		container, _, err := e.LxdClient.GetContainer(name)
-		if err != nil {
-			if action == "stop" {
-				e.Emitter.WarnLog(false,
-					fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
-				return nil
-			}
-			return err
+	instance, _, err := e.LxdClient.GetInstance(name)
+	if err != nil {
+		if action == "stop" {
+			e.Emitter.WarnLog(false,
+				fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
+			return nil
 		}
-		ephemeral = container.Ephemeral
-		containerStatus = container.Status
-	} else {
-
-		instance, _, err := e.LxdClient.GetInstance(name)
-		if err != nil {
-			if action == "stop" {
-				e.Emitter.WarnLog(false,
-					fmt.Sprintf("Container %s not found. Already stopped nothing to do.", name))
-				return nil
-			}
-			return err
-		}
-		ephemeral = instance.Ephemeral
-		containerStatus = instance.Status
+		return err
 	}
+	ephemeral = instance.Ephemeral
+	containerStatus = instance.Status
 
 	if action == "start" && containerStatus == "Started" {
 		e.Emitter.WarnLog(false,
@@ -193,11 +160,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 			var currOper lxd.Operation
 
 			// Delete container
-			if e.LegacyApi {
-				currOper, err = e.LxdClient.DeleteContainer(name)
-			} else {
-				currOper, err = e.LxdClient.DeleteInstance(name)
-			}
+			currOper, err = e.LxdClient.DeleteInstance(name, true)
 
 			if err != nil {
 				e.Emitter.ErrorLog(false, "Error on delete container: "+err.Error())
@@ -212,25 +175,14 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 		return nil
 	}
 
-	if e.LegacyApi {
-		req := lxd_api.ContainerStatePut{
-			Action:   action,
-			Timeout:  120,
-			Force:    false,
-			Stateful: false,
-		}
-
-		operation, err = e.LxdClient.UpdateContainerState(name, req, "")
-	} else {
-		req := lxd_api.InstanceStatePut{
-			Action:   action,
-			Timeout:  120,
-			Force:    false,
-			Stateful: false,
-		}
-
-		operation, err = e.LxdClient.UpdateInstanceState(name, req, "")
+	req := lxd_api.InstanceStatePut{
+		Action:   action,
+		Timeout:  120,
+		Force:    false,
+		Stateful: false,
 	}
+
+	operation, err = e.LxdClient.UpdateInstanceState(name, req, "")
 
 	if err != nil {
 		e.Emitter.ErrorLog(false, "Error on update container state: "+err.Error())
@@ -305,7 +257,7 @@ func (e *LxdCExecutor) GetImage(image string, remote lxd.ImageServer) (*lxd_api.
 }
 
 // Delete alias from image of a specific ContainerServer if available
-func (e *LxdCExecutor) DeleteImageAliases4Alias(imageAlias string, server lxd.ContainerServer) error {
+func (e *LxdCExecutor) DeleteImageAliases4Alias(imageAlias string, server lxd.InstanceServer) error {
 	var err error
 	var img *lxd_api.Image
 
@@ -318,7 +270,7 @@ func (e *LxdCExecutor) DeleteImageAliases4Alias(imageAlias string, server lxd.Co
 }
 
 // Delete all local alias defined on input Image to avoid conflict on pull.
-func (e *LxdCExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.ContainerServer) error {
+func (e *LxdCExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.InstanceServer) error {
 	for _, alias := range image.Aliases {
 		// Retrieve image with alias
 		aliasEntry, _, _ := server.GetImageAlias(alias.Name)
@@ -338,7 +290,7 @@ func (e *LxdCExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.Conta
 	return nil
 }
 
-func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer, to lxd.ContainerServer) error {
+func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer, to lxd.InstanceServer) error {
 	var err error
 
 	// Get the image information
@@ -401,7 +353,7 @@ func (e *LxdCExecutor) DownloadImage(imageFingerprint string, remote lxd.ImageSe
 }
 
 func (e *LxdCExecutor) AddAlias2Image(fingerprint string, alias lxd_api.ImageAlias,
-	server lxd.ContainerServer) error {
+	server lxd.InstanceServer) error {
 	aliasPost := lxd_api.ImageAliasesPost{}
 	aliasPost.Name = alias.Name
 	aliasPost.Description = alias.Description

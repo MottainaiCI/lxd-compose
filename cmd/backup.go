@@ -195,7 +195,7 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 										strings.Join(profiles2remove, ","),
 									))
 
-								err = executor.RemoveProfilesFromContainer(
+								err = executor.RemoveProfilesFromInstance(
 									backupName, profiles2remove,
 								)
 								if err != nil {

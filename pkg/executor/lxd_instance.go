@@ -53,15 +53,17 @@ func (e *LxdCExecutor) RemoveProfilesFromInstance(name string, profiles []string
 
 	// Check if the profiles to remove are present
 	newProfilesList := []string{}
-	for _, p := range idata.InstancePut.Profiles {
+	for _, p := range idata.Profiles {
 		if _, present := mprofiles[p]; !present {
 			newProfilesList = append(newProfilesList, p)
 		}
 	}
 
-	idata.InstancePut.Profiles = newProfilesList
+	iput := &lxd_api.InstancePut{
+		Profiles: newProfilesList,
+	}
 
-	err = e.UpdateInstance(name, &idata.InstancePut, etag)
+	err = e.UpdateInstance(name, iput, etag)
 	if err != nil {
 		return err
 	}
@@ -78,13 +80,13 @@ func (e *LxdCExecutor) AddProfiles2Instance(name string, profiles []string) erro
 
 	// Convert profiles to add in map
 	mprofiles := make(map[string]bool, 0)
-	for _, p := range idata.InstancePut.Profiles {
+	for _, p := range idata.Profiles {
 		mprofiles[p] = true
 	}
 
 	// Check if the profiles to add are present
 	update2do := false
-	newProfilesList := idata.InstancePut.Profiles
+	newProfilesList := idata.Profiles
 	for _, p := range profiles {
 		if _, present := mprofiles[p]; !present {
 			update2do = true
@@ -93,9 +95,11 @@ func (e *LxdCExecutor) AddProfiles2Instance(name string, profiles []string) erro
 	}
 
 	if update2do {
-		idata.InstancePut.Profiles = newProfilesList
+		iput := &lxd_api.InstancePut{
+			Profiles: newProfilesList,
+		}
 
-		err := e.UpdateInstance(name, &idata.InstancePut, etag)
+		err := e.UpdateInstance(name, iput, etag)
 		if err != nil {
 			return err
 		}

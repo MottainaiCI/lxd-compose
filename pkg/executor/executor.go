@@ -18,7 +18,7 @@ import (
 )
 
 type LxdCExecutor struct {
-	LxdClient         lxd.ContainerServer
+	LxdClient         lxd.InstanceServer
 	LxdConfig         *lxd_config.Config
 	ConfigDir         string
 	Endpoint          string
@@ -157,30 +157,18 @@ func (e *LxdCExecutor) StartContainer(name string) error {
 }
 
 func (e *LxdCExecutor) GetContainerList() ([]string, error) {
-	if e.LegacyApi {
-		return e.LxdClient.GetContainerNames()
-	} else {
-		return e.LxdClient.GetInstanceNames(lxd_api.InstanceTypeContainer)
-	}
+	return e.LxdClient.GetInstanceNames(lxd_api.InstanceTypeContainer)
 }
 
 func (e *LxdCExecutor) IsRunningContainer(name string) (bool, error) {
 	ans := false
 	var status string
 
-	if e.LegacyApi {
-		cInfo, _, err := e.LxdClient.GetContainer(name)
-		if err != nil {
-			return ans, err
-		}
-		status = cInfo.Status
-	} else {
-		iInfo, _, err := e.LxdClient.GetInstance(name)
-		if err != nil {
-			return ans, err
-		}
-		status = iInfo.Status
+	iInfo, _, err := e.LxdClient.GetInstance(name)
+	if err != nil {
+		return ans, err
 	}
+	status = iInfo.Status
 
 	if status == "Running" {
 		ans = true
@@ -190,19 +178,11 @@ func (e *LxdCExecutor) IsRunningContainer(name string) (bool, error) {
 }
 
 func (e *LxdCExecutor) IsEphemeralContainer(containerName string) (bool, error) {
-	if e.LegacyApi {
-		cInfo, _, err := e.LxdClient.GetContainer(containerName)
-		if err != nil {
-			return false, err
-		}
-		return cInfo.ContainerPut.Ephemeral, nil
-	} else {
-		iInfo, _, err := e.LxdClient.GetInstance(containerName)
-		if err != nil {
-			return false, err
-		}
-		return iInfo.InstancePut.Ephemeral, nil
+	iInfo, _, err := e.LxdClient.GetInstance(containerName)
+	if err != nil {
+		return false, err
 	}
+	return iInfo.Ephemeral, nil
 }
 
 func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
@@ -301,13 +281,8 @@ func (e *LxdCExecutor) DeleteContainer(containerName string) error {
 		var currOper lxd.Operation
 		var err error
 
-		if e.LegacyApi {
-			// Delete container
-			currOper, err = e.LxdClient.DeleteContainer(containerName)
-		} else {
-			// Delete container
-			currOper, err = e.LxdClient.DeleteInstance(containerName)
-		}
+		// Delete container (set force true considering that is been stopped before)
+		currOper, err = e.LxdClient.DeleteInstance(containerName, true)
 		if err != nil {
 			e.Emitter.ErrorLog(false, "Error on delete container: "+err.Error())
 			return err
@@ -327,9 +302,11 @@ func (e *LxdCExecutor) WaitIpOfContainer(containerName string, timeout int64) er
 	diff := int64(0)
 	withoutIp := true
 	for withoutIp && diff < timeout {
-		instances, err := e.LxdClient.GetInstancesFullWithFilter(
-			lxd_api.InstanceTypeContainer,
-			filters,
+		instances, err := e.LxdClient.GetInstancesFull(
+			lxd.GetInstancesFullArgs{
+				InstanceType: lxd_api.InstanceTypeContainer,
+				Filters:      filters,
+			},
 		)
 		if err != nil {
 			e.Emitter.ErrorLog(false, "Error on get instances: "+err.Error())
