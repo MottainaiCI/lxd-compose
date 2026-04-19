@@ -56,7 +56,7 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 	// Create the container
 	remoteOperation, err = e.LxdClient.CreateInstanceFromImage(e.LxdClient, *image, req)
 	if err != nil {
-		return err
+		return fmt.Errorf("error on create instance from image: %s", err)
 	}
 
 	// Watch the background operation
@@ -81,15 +81,24 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 	// Extract the container name
 	opInfo, err = remoteOperation.GetTarget()
 	if err != nil {
-		return err
+		return fmt.Errorf("error on retrieve opInfo for container: %s", err)
 	}
 
-	instances, ok := opInfo.Resources["instances"]
-	if !ok || len(instances) == 0 {
-		// Try using the older "containers" field
-		instances, ok = opInfo.Resources["containers"]
-		if !ok || len(instances) == 0 {
+	// LXD instance with operation_metadata_entity_url doesn't supply attributes
+	// Resources["instances"]. We can check metadata[entity_url]
+	if e.LxdClient.HasExtension("operation_metadata_entity_url") {
+		_, ok := opInfo.Metadata["entity_url"]
+		if !ok {
 			return fmt.Errorf("didn't get any affected image, container or snapshot from server")
+		}
+	} else {
+		instances, ok := opInfo.Resources["instances"]
+		if !ok || len(instances) == 0 {
+			// Try using the older "containers" field
+			instances, ok = opInfo.Resources["containers"]
+			if !ok || len(instances) == 0 {
+				return fmt.Errorf("didn't get any affected image, container or snapshot from server")
+			}
 		}
 	}
 
