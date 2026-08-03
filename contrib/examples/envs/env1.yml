@@ -321,8 +321,8 @@ projects:
               - event: post-node-creation
                 commands:
                   - apk add curl
-                  - curl https://raw.githubusercontent.com/geaaru/luet/geaaru/contrib/config/get_luet_root.sh | sh
-                  - luet install utils/jq
+                  - curl https://raw.githubusercontent.com/macaroni-os/anise/geaaru/contrib/config/get_anise_root.sh | sh
+                  - anise install utils/jq
                   - echo "${node}" | jq
                   # Creating user and group for
                   - >-
