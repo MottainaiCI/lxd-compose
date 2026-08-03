@@ -2,7 +2,7 @@
 Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ import (
 )
 
 // Based on code of lxc client tool https://github.com/canonical/lxd/blob/master/lxc/file.go
-func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os.FileMode, uid int64, gid int64) error {
+func (e *LxdExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os.FileMode, uid int64, gid int64) error {
 
 	/* special case, every container has a /, we don't need to do anything */
 	if dir == "/" {
@@ -85,7 +85,7 @@ func (e *LxdCExecutor) RecursiveMkdir(nameContainer string, dir string, mode *os
 }
 
 // Based on code of lxc client tool https://github.com/canonical/lxd/blob/master/lxc/file.go
-func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) error {
+func (e *LxdExecutor) RecursivePushFile(nameContainer, source, target string) error {
 	var targetIsFile bool = true
 	var sourceIsFile bool = true
 
@@ -237,7 +237,7 @@ func (e *LxdCExecutor) RecursivePushFile(nameContainer, source, target string) e
 }
 
 // Based on code of lxc client tool https://github.com/canonical/lxd/blob/master/lxc/file.go
-func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, localPath string, localAsTarget bool) error {
+func (l *LxdExecutor) RecursivePullFile(nameContainer string, destPath string, localPath string, localAsTarget bool) error {
 	var ftype string
 	var mode int
 	var entries []string
@@ -337,7 +337,7 @@ func (l *LxdCExecutor) RecursivePullFile(nameContainer string, destPath string, 
 	return nil
 }
 
-func (e *LxdCExecutor) recursiveListFile(nameContainer string, targetPath string, list *list.List) error {
+func (e *LxdExecutor) recursiveListFile(nameContainer string, targetPath string, list *list.List) error {
 	var ftype string
 	var entries []string
 	var buf io.ReadCloser
@@ -375,7 +375,7 @@ func (e *LxdCExecutor) recursiveListFile(nameContainer string, targetPath string
 	return nil
 }
 
-func (e *LxdCExecutor) DeleteContainerDir(name, dir string) error {
+func (e *LxdExecutor) DeleteContainerDir(name, dir string) error {
 	var err error
 	var list *list.List = list.New()
 

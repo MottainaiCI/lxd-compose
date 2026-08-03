@@ -1,23 +1,8 @@
 /*
-Copyright (C) 2020-2025  Daniele Rondina <geaaru@macaronios.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
+See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"errors"
@@ -28,11 +13,11 @@ import (
 	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
-func (e *LxdCExecutor) GetAclList() ([]string, error) {
+func (e *LxdExecutor) GetAclList() ([]string, error) {
 	return e.LxdClient.GetNetworkACLNames()
 }
 
-func (e *LxdCExecutor) IsPresentACL(name string) (bool, error) {
+func (e *LxdExecutor) IsPresentACL(name string) (bool, error) {
 	ans := false
 	list, err := e.GetAclList()
 
@@ -50,7 +35,7 @@ func (e *LxdCExecutor) IsPresentACL(name string) (bool, error) {
 	return ans, nil
 }
 
-func (e *LxdCExecutor) CreateACL(acl *specs.LxdCAcl) error {
+func (e *LxdExecutor) CreateACL(acl *specs.LxdCAcl) error {
 	if acl.Name == "" {
 		return errors.New("Invalid acl with empty name")
 	}
@@ -96,7 +81,7 @@ func (e *LxdCExecutor) CreateACL(acl *specs.LxdCAcl) error {
 	return e.LxdClient.CreateNetworkACL(post)
 }
 
-func (e *LxdCExecutor) UpdateACL(acl *specs.LxdCAcl) error {
+func (e *LxdExecutor) UpdateACL(acl *specs.LxdCAcl) error {
 	if acl.Name == "" {
 		return errors.New("Invalid acl with empty name")
 	}
@@ -137,7 +122,7 @@ func (e *LxdCExecutor) UpdateACL(acl *specs.LxdCAcl) error {
 	return e.LxdClient.UpdateNetworkACL(acl.Name, put, "")
 }
 
-func (e *LxdCExecutor) aclRule2Lxd(rule *specs.LxdCAclRule) *lxd_api.NetworkACLRule {
+func (e *LxdExecutor) aclRule2Lxd(rule *specs.LxdCAclRule) *lxd_api.NetworkACLRule {
 	return &lxd_api.NetworkACLRule{
 		Action:          rule.Action,
 		Source:          rule.Source,

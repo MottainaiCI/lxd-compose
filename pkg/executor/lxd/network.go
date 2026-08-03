@@ -2,7 +2,7 @@
 Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"errors"
@@ -13,11 +13,11 @@ import (
 	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
-func (e *LxdCExecutor) GetNetworkList() ([]string, error) {
+func (e *LxdExecutor) GetNetworkList() ([]string, error) {
 	return e.LxdClient.GetNetworkNames()
 }
 
-func (e *LxdCExecutor) IsPresentNetwork(name string) (bool, error) {
+func (e *LxdExecutor) IsPresentNetwork(name string) (bool, error) {
 	ans := false
 	list, err := e.GetNetworkList()
 
@@ -35,7 +35,7 @@ func (e *LxdCExecutor) IsPresentNetwork(name string) (bool, error) {
 	return ans, nil
 }
 
-func (e *LxdCExecutor) CreateNetwork(net specs.LxdCNetwork) error {
+func (e *LxdExecutor) CreateNetwork(net specs.LxdCNetwork) error {
 	if net.Name == "" {
 		return errors.New("Invalid network with empty name")
 	}
@@ -59,7 +59,7 @@ func (e *LxdCExecutor) CreateNetwork(net specs.LxdCNetwork) error {
 	return e.LxdClient.CreateNetwork(lxdNetwork)
 }
 
-func (e *LxdCExecutor) UpdateNetwork(net specs.LxdCNetwork) error {
+func (e *LxdExecutor) UpdateNetwork(net specs.LxdCNetwork) error {
 	if net.Name == "" {
 		return errors.New("Invalid network with empty name")
 	}
@@ -79,7 +79,7 @@ func (e *LxdCExecutor) UpdateNetwork(net specs.LxdCNetwork) error {
 	return e.LxdClient.UpdateNetwork(net.Name, lxdNetworkPut, "")
 }
 
-func (e *LxdCExecutor) SyncNetworkForwarders(net *specs.LxdCNetwork) error {
+func (e *LxdExecutor) SyncNetworkForwarders(net *specs.LxdCNetwork) error {
 	if net.Name == "" {
 		return errors.New("Invalid network with empty name")
 	}
@@ -155,7 +155,7 @@ func (e *LxdCExecutor) SyncNetworkForwarders(net *specs.LxdCNetwork) error {
 	return nil
 }
 
-func (e *LxdCExecutor) netForward2Lxd(f *specs.LxdCNetworkForward) *lxd_api.NetworkForwardPut {
+func (e *LxdExecutor) netForward2Lxd(f *specs.LxdCNetworkForward) *lxd_api.NetworkForwardPut {
 	ans := &lxd_api.NetworkForwardPut{
 		Description: f.Description,
 		Config:      f.Config,

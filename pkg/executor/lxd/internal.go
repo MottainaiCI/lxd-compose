@@ -2,27 +2,28 @@
 Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"fmt"
-	"strings"
 	"time"
+
+	base "github.com/MottainaiCI/lxd-compose/pkg/executor/base"
 
 	lxd "github.com/canonical/lxd/client"
 	lxd_api "github.com/canonical/lxd/shared/api"
 	lxd_cli "github.com/canonical/lxd/shared/cmd"
 )
 
-func (e *LxdCExecutor) LaunchContainer(name, fingerprint string, profiles []string) error {
+func (e *LxdExecutor) LaunchContainer(name, fingerprint string, profiles []string) error {
 	return e.LaunchContainerType(name, fingerprint, profiles, map[string]string{}, e.Ephemeral)
 }
 
-func (e *LxdCExecutor) LaunchContainerWithConfig(name, fingerprint string, profiles []string, configMap map[string]string) error {
+func (e *LxdExecutor) LaunchContainerWithConfig(name, fingerprint string, profiles []string, configMap map[string]string) error {
 	return e.LaunchContainerType(name, fingerprint, profiles, configMap, e.Ephemeral)
 }
 
-func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []string, configMap map[string]string, ephemeral bool) error {
+func (e *LxdExecutor) LaunchContainerType(name, fingerprint string, profiles []string, configMap map[string]string, ephemeral bool) error {
 
 	var err error
 	var image *lxd_api.Image
@@ -102,7 +103,7 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 		}
 	}
 
-	e.Emitter.Emits(LxdContainerCreated, map[string]interface{}{
+	e.Emitter.Emits(base.LxdContainerCreated, map[string]interface{}{
 		"name":      name,
 		"profiles":  profiles,
 		"ephemeral": e.Ephemeral,
@@ -112,7 +113,7 @@ func (e *LxdCExecutor) LaunchContainerType(name, fingerprint string, profiles []
 	return e.DoAction2Container(name, "start")
 }
 
-func (e *LxdCExecutor) WaitOperation(rawOp interface{}, p *lxd_cli.ProgressRenderer) error {
+func (e *LxdExecutor) WaitOperation(rawOp interface{}, p *lxd_cli.ProgressRenderer) error {
 	var err error = nil
 
 	// NOTE: currently on ARM we have a weird behavior where the process that waits
@@ -137,7 +138,7 @@ func (e *LxdCExecutor) WaitOperation(rawOp interface{}, p *lxd_cli.ProgressRende
 	return err
 }
 
-func (e *LxdCExecutor) DoAction2Container(name, action string) error {
+func (e *LxdExecutor) DoAction2Container(name, action string) error {
 	var err error
 	var ephemeral bool
 	var containerStatus string
@@ -218,12 +219,12 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 	}
 
 	if action == "start" {
-		e.Emitter.Emits(LxdContainerStarted, map[string]interface{}{
+		e.Emitter.Emits(base.LxdContainerStarted, map[string]interface{}{
 			"name": name,
 		})
 
 	} else {
-		e.Emitter.Emits(LxdContainerStopped, map[string]interface{}{
+		e.Emitter.Emits(base.LxdContainerStopped, map[string]interface{}{
 			"name": name,
 		})
 	}
@@ -232,7 +233,7 @@ func (e *LxdCExecutor) DoAction2Container(name, action string) error {
 }
 
 // Retrieve Image from alias or fingerprint to a specific remote.
-func (e *LxdCExecutor) GetImage(image string, remote lxd.ImageServer) (*lxd_api.Image, error) {
+func (e *LxdExecutor) GetImage(image string, remote lxd.ImageServer) (*lxd_api.Image, error) {
 	var err error
 	var img *lxd_api.Image
 	var aliasEntry *lxd_api.ImageAliasesEntry
@@ -266,7 +267,7 @@ func (e *LxdCExecutor) GetImage(image string, remote lxd.ImageServer) (*lxd_api.
 }
 
 // Delete alias from image of a specific ContainerServer if available
-func (e *LxdCExecutor) DeleteImageAliases4Alias(imageAlias string, server lxd.InstanceServer) error {
+func (e *LxdExecutor) DeleteImageAliases4Alias(imageAlias string, server lxd.InstanceServer) error {
 	var err error
 	var img *lxd_api.Image
 
@@ -279,7 +280,7 @@ func (e *LxdCExecutor) DeleteImageAliases4Alias(imageAlias string, server lxd.In
 }
 
 // Delete all local alias defined on input Image to avoid conflict on pull.
-func (e *LxdCExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.InstanceServer) error {
+func (e *LxdExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.InstanceServer) error {
 	for _, alias := range image.Aliases {
 		// Retrieve image with alias
 		aliasEntry, _, _ := server.GetImageAlias(alias.Name)
@@ -299,7 +300,7 @@ func (e *LxdCExecutor) DeleteImageAliases(image *lxd_api.Image, server lxd.Insta
 	return nil
 }
 
-func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer, to lxd.InstanceServer) error {
+func (e *LxdExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer, to lxd.InstanceServer) error {
 	var err error
 
 	// Get the image information
@@ -357,11 +358,11 @@ func (e *LxdCExecutor) CopyImage(imageFingerprint string, remote lxd.ImageServer
 	return nil
 }
 
-func (e *LxdCExecutor) DownloadImage(imageFingerprint string, remote lxd.ImageServer) error {
+func (e *LxdExecutor) DownloadImage(imageFingerprint string, remote lxd.ImageServer) error {
 	return e.CopyImage(imageFingerprint, remote, e.LxdClient)
 }
 
-func (e *LxdCExecutor) AddAlias2Image(fingerprint string, alias lxd_api.ImageAlias,
+func (e *LxdExecutor) AddAlias2Image(fingerprint string, alias lxd_api.ImageAlias,
 	server lxd.InstanceServer) error {
 	aliasPost := lxd_api.ImageAliasesPost{}
 	aliasPost.Name = alias.Name
@@ -370,69 +371,7 @@ func (e *LxdCExecutor) AddAlias2Image(fingerprint string, alias lxd_api.ImageAli
 	return server.CreateImageAlias(aliasPost)
 }
 
-func (e *LxdCExecutor) PullImage(imageAlias, imageRemoteServer string) (string, error) {
-	var err error
-	var imageFingerprint, remote_name string
-	var remote lxd.ImageServer
-	var noRemoteImageFound = false
-
-	e.Emitter.InfoLog(false, "Searching image: "+imageAlias)
-
-	// Find image hashing id
-	imageFingerprint, remote, remote_name, err = e.FindImage(imageAlias, imageRemoteServer)
-	if err != nil {
-		noRemoteImageFound = true
-		if strings.Contains(imageAlias, "/") {
-			// Is not a fingerprint alias. I can't ensure right image.
-			return "", err
-		}
-		// POST: Try to see if there a local image with the fingerprint
-		imageFingerprint = imageAlias
-	}
-
-	if imageFingerprint == imageAlias {
-		e.Emitter.InfoLog(false, "Use directly fingerprint "+imageAlias)
-	} else {
-		e.Emitter.InfoLog(false,
-			"For image "+imageAlias+" found fingerprint "+imageFingerprint)
-	}
-
-	if e.LxdClient == nil {
-		return "", fmt.Errorf("Something goes wrong on initialize client.")
-	}
-
-	// Check if image is already present locally else we receive an error.
-	image, _, _ := e.LxdClient.GetImage(imageFingerprint)
-	if image == nil {
-		if noRemoteImageFound {
-			// No local image found. I return error.
-			return "", err
-		}
-
-		// NOTE: In concurrency could be happens that different image that
-		//       share same aliases generate reset of aliases but
-		//       if I work with fingerprint after FindImage I can ignore
-		//       aliases.
-
-		// Delete local image with same target aliases to avoid error on pull.
-		err = e.DeleteImageAliases4Alias(imageAlias, e.LxdClient)
-
-		// Try to pull image to lxd instance
-		e.Emitter.InfoLog(false, fmt.Sprintf(
-			"Try to download image %s from remote %s...",
-			imageFingerprint, remote_name,
-		))
-		err = e.DownloadImage(imageFingerprint, remote)
-	} else {
-		e.Emitter.DebugLog(false,
-			"Image "+imageFingerprint+" already present.")
-		err = nil
-	}
-
-	return imageFingerprint, err
-}
-
-func (e *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.ImageServer, string, error) {
+func (e *LxdExecutor) FindImage(image, imageRemoteServer string) (string, lxd.ImageServer, string, error) {
 	var err error
 	var tmp_srv, srv lxd.ImageServer
 	var img, tmp_img *lxd_api.Image
@@ -508,7 +447,8 @@ func (e *LxdCExecutor) FindImage(image, imageRemoteServer string) (string, lxd.I
 	return fingerprint, srv, srv_name, err
 }
 
-func (l *LxdCExecutor) CreateImageFromContainer(containerName string, aliases []string, properties map[string]string, compressionAlgorithm string, public bool) (string, error) {
+func (l *LxdExecutor) CreateImageFromContainer(containerName string, aliases []string,
+	properties map[string]string, compressionAlgorithm string, public bool) (string, error) {
 
 	var err error
 	imageAliases := []lxd_api.ImageAlias{}

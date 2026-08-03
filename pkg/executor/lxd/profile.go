@@ -2,7 +2,7 @@
 Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"errors"
@@ -13,11 +13,11 @@ import (
 	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
-func (e *LxdCExecutor) GetProfilesList() ([]string, error) {
+func (e *LxdExecutor) GetProfilesList() ([]string, error) {
 	return e.LxdClient.GetProfileNames()
 }
 
-func (e *LxdCExecutor) IsPresentProfile(profileName string) (bool, error) {
+func (e *LxdExecutor) IsPresentProfile(profileName string) (bool, error) {
 	ans := false
 	list, err := e.GetProfilesList()
 
@@ -35,7 +35,7 @@ func (e *LxdCExecutor) IsPresentProfile(profileName string) (bool, error) {
 	return ans, nil
 }
 
-func (e *LxdCExecutor) CreateProfile(profile specs.LxdCProfile) error {
+func (e *LxdExecutor) CreateProfile(profile specs.LxdCProfile) error {
 	if profile.Name == "" {
 		return errors.New("Invalid profile with empty name")
 	}
@@ -64,7 +64,7 @@ func (e *LxdCExecutor) CreateProfile(profile specs.LxdCProfile) error {
 	return e.LxdClient.CreateProfile(lxdProfile)
 }
 
-func (e *LxdCExecutor) UpdateProfile(profile specs.LxdCProfile) error {
+func (e *LxdExecutor) UpdateProfile(profile specs.LxdCProfile) error {
 	if profile.Name == "" {
 		return errors.New("Invalid profile with empty name")
 	}

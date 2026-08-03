@@ -2,7 +2,7 @@
 Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package base
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 )
 
-func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error) {
+func (e *BaseExecutor) RunHostCommandWithOutput(command string, envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error) {
 	ans := 1
 
 	entrypoint := []string{"/bin/bash", "-c"}
@@ -84,7 +84,7 @@ func (e *LxdCExecutor) RunHostCommandWithOutput(command string, envs map[string]
 	return ans, nil
 }
 
-func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string, entryPoint []string) (int, error) {
+func (e *BaseExecutor) RunHostCommand(command string, envs map[string]string, entryPoint []string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 
@@ -109,7 +109,7 @@ func (e *LxdCExecutor) RunHostCommand(command string, envs map[string]string, en
 	return res, err
 }
 
-func (e *LxdCExecutor) RunHostCommandWithOutput4Var(command, outVar, errVar string, envs *map[string]string, entryPoint []string) (int, error) {
+func (e *BaseExecutor) RunHostCommandWithOutput4Var(command, outVar, errVar string, envs *map[string]string, entryPoint []string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
 

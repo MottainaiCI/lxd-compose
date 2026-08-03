@@ -2,18 +2,20 @@
 Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
+	base "github.com/MottainaiCI/lxd-compose/pkg/executor/base"
+
 	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
 // Get instance data and the ETag
-func (e *LxdCExecutor) GetInstance(name string) (*lxd_api.Instance, string, error) {
+func (e *LxdExecutor) GetInstance(name string) (*lxd_api.Instance, string, error) {
 	return e.LxdClient.GetInstance(name)
 }
 
-func (e *LxdCExecutor) UpdateInstance(
+func (e *LxdExecutor) UpdateInstance(
 	name string, idata *lxd_api.InstancePut,
 	etag string) error {
 
@@ -27,7 +29,7 @@ func (e *LxdCExecutor) UpdateInstance(
 		return err
 	}
 
-	e.Emitter.Emits(LxdContainerUpdated, map[string]interface{}{
+	e.Emitter.Emits(base.LxdContainerUpdated, map[string]interface{}{
 		"name":      name,
 		"profiles":  idata.Profiles,
 		"ephemeral": idata.Ephemeral,
@@ -38,7 +40,7 @@ func (e *LxdCExecutor) UpdateInstance(
 	return nil
 }
 
-func (e *LxdCExecutor) RemoveProfilesFromInstance(name string, profiles []string) error {
+func (e *LxdExecutor) RemoveProfilesFromInstance(name string, profiles []string) error {
 	// Retrieve the current status of the instance
 	idata, etag, err := e.GetInstance(name)
 	if err != nil {
@@ -71,7 +73,7 @@ func (e *LxdCExecutor) RemoveProfilesFromInstance(name string, profiles []string
 	return nil
 }
 
-func (e *LxdCExecutor) AddProfiles2Instance(name string, profiles []string) error {
+func (e *LxdExecutor) AddProfiles2Instance(name string, profiles []string) error {
 	// Retrieve the current status of the instance
 	idata, etag, err := e.GetInstance(name)
 	if err != nil {

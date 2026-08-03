@@ -36,6 +36,10 @@ func (g *LxdCGroup) Init() {
 	for idx := range g.Nodes {
 		g.Nodes[idx].Init()
 	}
+
+	if g.ConnectionType == "" {
+		g.ConnectionType = ConnectionIncus
+	}
 }
 
 func GroupFromYaml(data []byte) (*LxdCGroup, error) {

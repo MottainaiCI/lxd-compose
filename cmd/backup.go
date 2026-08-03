@@ -1,21 +1,6 @@
 /*
-Copyright (C) 2020-2025  Daniele Rondina <geaaru@macaronios.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.:s
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2025 Daniele Rondina <geaaru@macaronios.org>
+See AUTHORS and LICENSE for the license details and contributors.
 */
 package cmd
 
@@ -77,7 +62,7 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			composer.SetNodesPrefix(prefix)
 
 			projects := args[0:]
-			mapExecutors := make(map[string]*lxd_executor.LxdCExecutor, 0)
+			mapExecutors := make(map[string]lxd_executor.LxdCExecutor, 0)
 
 			t := time.Now()
 			containerPostfix := t.Format("20060102")
@@ -109,7 +94,8 @@ func newBackupCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 						if !ok {
 							// Initialize executor
-							executor = lxd_executor.NewLxdCExecutor(grp.Connection,
+							executor = lxd_executor.NewLxdCExecutor(
+								grp.ConnectionType, grp.Connection,
 								config.GetGeneral().LxdConfDir, []string{}, grp.Ephemeral,
 								config.GetLogging().CmdsOutput,
 								config.GetLogging().RuntimeCmdsOutput)

@@ -2,7 +2,7 @@
 Copyright © 2020-2025 Daniele Rondina <geaaru@macaronios.org>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
-func (e *LxdCExecutor) GetCertificates() ([]*specs.LxdCCertificate, error) {
+func (e *LxdExecutor) GetCertificates() ([]*specs.LxdCCertificate, error) {
 	ans := []*specs.LxdCCertificate{}
 
 	certs, err := e.LxdClient.GetCertificates()
@@ -34,11 +34,11 @@ func (e *LxdCExecutor) GetCertificates() ([]*specs.LxdCCertificate, error) {
 	return ans, nil
 }
 
-func (e *LxdCExecutor) DeleteCertificate(fingerprint string) error {
+func (e *LxdExecutor) DeleteCertificate(fingerprint string) error {
 	return e.LxdClient.DeleteCertificate(fingerprint)
 }
 
-func (e *LxdCExecutor) CreateCertificate(cert *specs.LxdCCertificate) error {
+func (e *LxdExecutor) CreateCertificate(cert *specs.LxdCCertificate) error {
 
 	if cert.Certificate == "" {
 		if cert.CertificatePath == "" {
@@ -62,7 +62,7 @@ func (e *LxdCExecutor) CreateCertificate(cert *specs.LxdCCertificate) error {
 	return e.LxdClient.CreateCertificate(post)
 }
 
-func (e *LxdCExecutor) IsPresentCertificate(certName string) (bool, error) {
+func (e *LxdExecutor) IsPresentCertificate(certName string) (bool, error) {
 	ans := false
 	list, err := e.GetCertificates()
 

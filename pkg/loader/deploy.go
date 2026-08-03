@@ -1,21 +1,6 @@
 /*
-Copyright (C) 2020-2025  Daniele Rondina <geaaru@macaronios.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
+See AUTHORS and LICENSE for the license details and contributors.
 */
 package loader
 
@@ -26,6 +11,7 @@ import (
 	"path/filepath"
 
 	lxd_executor "github.com/MottainaiCI/lxd-compose/pkg/executor"
+	base "github.com/MottainaiCI/lxd-compose/pkg/executor/base"
 	helpers "github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 	"github.com/MottainaiCI/lxd-compose/pkg/template"
@@ -119,12 +105,12 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 	nodes := []specs.LxdCNode{}
 	storeVar := false
 
-	executorMap := make(map[string]*lxd_executor.LxdCExecutor, 0)
+	executorMap := make(map[string]lxd_executor.LxdCExecutor, 0)
 
 	if len(*hooks) > 0 {
 
 		runSingleCmd := func(h *specs.LxdCHook, node, cmds string) error {
-			var executor *lxd_executor.LxdCExecutor
+			var executor lxd_executor.LxdCExecutor
 
 			envs, err := proj.GetEnvsMap()
 			if err != nil {
@@ -165,7 +151,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 					if _, ok := executorMap[node]; !ok {
 						// Initialize executor
-						executor = lxd_executor.NewLxdCExecutor(grp.Connection,
+						executor = lxd_executor.NewLxdCExecutor(grp.ConnectionType,
+							grp.Connection,
 							i.Config.GetGeneral().LxdConfDir, []string{}, grp.Ephemeral,
 							i.Config.GetLogging().CmdsOutput,
 							i.Config.GetLogging().RuntimeCmdsOutput)
@@ -188,7 +175,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 							group = grp
 						}
 
-						executor = lxd_executor.NewLxdCExecutor(group.Connection,
+						executor = lxd_executor.NewLxdCExecutor(grp.ConnectionType,
+							group.Connection,
 							i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
 							i.Config.GetLogging().CmdsOutput,
 							i.Config.GetLogging().RuntimeCmdsOutput)
@@ -201,9 +189,9 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 
 					// Initialize entrypoint to ensure to set always the
 					if nodeEntity.Entrypoint != nil && len(nodeEntity.Entrypoint) > 0 {
-						executor.Entrypoint = nodeEntity.Entrypoint
+						executor.SetEntrypoint(nodeEntity.Entrypoint)
 					} else {
-						executor.Entrypoint = []string{}
+						executor.SetEntrypoint([]string{})
 					}
 
 				} else {
@@ -219,7 +207,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 					ephemeral = group.Ephemeral
 				}
 				// Initialize executor with local LXD connection
-				executor = lxd_executor.NewLxdCExecutor(connection,
+				executor = lxd_executor.NewLxdCExecutor(group.ConnectionType,
+					connection,
 					i.Config.GetGeneral().LxdConfDir, []string{}, ephemeral,
 					i.Config.GetLogging().CmdsOutput,
 					i.Config.GetLogging().RuntimeCmdsOutput)
@@ -244,8 +233,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						emitter := executor.GetEmitter()
 						res, err = executor.RunHostCommandWithOutput(
 							cmds, envs,
-							(emitter.(*lxd_executor.LxdCEmitter)).GetHostWriterStdout(),
-							(emitter.(*lxd_executor.LxdCEmitter)).GetHostWriterStderr(),
+							(emitter.(*base.LxdCEmitter)).GetHostWriterStdout(),
+							(emitter.(*base.LxdCEmitter)).GetHostWriterStderr(),
 							h.Entrypoint,
 						)
 					} else {
@@ -264,8 +253,8 @@ func (i *LxdCInstance) ProcessHooks(hooks *[]specs.LxdCHook, proj *specs.LxdCPro
 						emitter := executor.GetEmitter()
 						res, err = executor.RunCommandWithOutput(
 							node, cmds, envs,
-							(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStdout(),
-							(emitter.(*lxd_executor.LxdCEmitter)).GetLxdWriterStderr(),
+							(emitter.(*base.LxdCEmitter)).GetLxdWriterStdout(),
+							(emitter.(*base.LxdCEmitter)).GetLxdWriterStderr(),
 							h.Entrypoint, h.Uid, h.Gid, h.Cwd,
 						)
 					} else {
@@ -388,7 +377,8 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	}
 
 	// Initialize executor
-	executor := lxd_executor.NewLxdCExecutor(group.Connection,
+	executor := lxd_executor.NewLxdCExecutor(group.ConnectionType,
+		group.Connection,
 		i.Config.GetGeneral().LxdConfDir, []string{}, group.Ephemeral,
 		i.Config.GetLogging().CmdsOutput,
 		i.Config.GetLogging().RuntimeCmdsOutput)
@@ -413,9 +403,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 
 		// Initialize entrypoint to ensure to set always the
 		if node.Entrypoint != nil && len(node.Entrypoint) > 0 {
-			executor.Entrypoint = node.Entrypoint
+			executor.SetEntrypoint(node.Entrypoint)
 		} else {
-			executor.Entrypoint = []string{}
+			executor.SetEntrypoint([]string{})
 		}
 
 		isPresent, err := executor.IsPresentContainer(node.GetName())
@@ -659,7 +649,7 @@ func (i *LxdCInstance) createInstance(
 	proj *specs.LxdCProject,
 	group *specs.LxdCGroup,
 	node *specs.LxdCNode,
-	executor *lxd_executor.LxdCExecutor,
+	executor lxd_executor.LxdCExecutor,
 	instanceProfiles []string) error {
 
 	// Retrieve pre-node-creation hooks

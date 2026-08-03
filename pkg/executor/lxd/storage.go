@@ -2,7 +2,7 @@
 Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
 See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"errors"
@@ -13,11 +13,11 @@ import (
 	lxd_api "github.com/canonical/lxd/shared/api"
 )
 
-func (e *LxdCExecutor) GetStorageList() ([]string, error) {
+func (e *LxdExecutor) GetStorageList() ([]string, error) {
 	return e.LxdClient.GetStoragePoolNames()
 }
 
-func (e *LxdCExecutor) IsPresentStorage(name string) (bool, error) {
+func (e *LxdExecutor) IsPresentStorage(name string) (bool, error) {
 	ans := false
 	list, err := e.GetStorageList()
 
@@ -35,7 +35,7 @@ func (e *LxdCExecutor) IsPresentStorage(name string) (bool, error) {
 	return ans, nil
 }
 
-func (e *LxdCExecutor) CreateStorage(sto specs.LxdCStorage) error {
+func (e *LxdExecutor) CreateStorage(sto specs.LxdCStorage) error {
 	if sto.Name == "" {
 		return errors.New("Invalid storage with empty name")
 	}
@@ -62,7 +62,7 @@ func (e *LxdCExecutor) CreateStorage(sto specs.LxdCStorage) error {
 	return e.LxdClient.CreateStoragePool(lxdStorage)
 }
 
-func (e *LxdCExecutor) UpdateStorage(sto specs.LxdCStorage) error {
+func (e *LxdExecutor) UpdateStorage(sto specs.LxdCStorage) error {
 	if sto.Name == "" {
 		return errors.New("Invalid storage with empty name")
 	}

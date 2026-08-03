@@ -23,6 +23,11 @@ import (
 	tarf_specs "github.com/geaaru/tar-formers/pkg/specs"
 )
 
+const (
+	ConnectionLxd6  = "lxd-6"
+	ConnectionIncus = "incus"
+)
+
 type LxdCEnvironment struct {
 	Version string `json:"version,omitempty" yaml:"version,omitempty"`
 	File    string `json:"-" yaml:"-"`
@@ -266,9 +271,10 @@ type LxdCProjectSanitized struct {
 }
 
 type LxdCGroup struct {
-	Name        string `json:"name" yaml:"name"`
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-	Connection  string `json:"connection,omitempty" yaml:"connection,omitempty"`
+	Name           string `json:"name" yaml:"name"`
+	Description    string `json:"description,omitempty" yaml:"description,omitempty"`
+	Connection     string `json:"connection,omitempty" yaml:"connection,omitempty"`
+	ConnectionType string `json:"connection_type,omitempty" yaml:"connection_type,omitempty"`
 
 	CommonProfiles []string          `json:"common_profiles,omitempty" yaml:"common_profiles,omitempty"`
 	Config         map[string]string `json:"config,omitempty" yaml:"config,omitempty"`

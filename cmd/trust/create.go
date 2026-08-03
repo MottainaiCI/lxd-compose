@@ -49,6 +49,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			}
 
 			endpoint, _ := cmd.Flags().GetString("endpoint")
+			connType, _ := cmd.Flags().GetString("connection-type")
 			all, _ := cmd.Flags().GetBool("all")
 			//upd, _ := cmd.Flags().GetBool("update")
 
@@ -96,7 +97,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			if endpoint != "" {
 
-				executor := executor.NewLxdCExecutor(endpoint, confdir, nil, true,
+				executor := executor.NewLxdCExecutor(
+					connType, endpoint, confdir, nil, true,
 					config.GetLogging().CmdsOutput,
 					config.GetLogging().RuntimeCmdsOutput)
 				err = executor.Setup()
@@ -131,7 +133,8 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 					for _, grp := range proj.Groups {
 
-						executor := executor.NewLxdCExecutor(grp.Connection, confdir, nil, true,
+						executor := executor.NewLxdCExecutor(
+							grp.ConnectionType, grp.Connection, confdir, nil, true,
 							config.GetLogging().CmdsOutput,
 							config.GetLogging().RuntimeCmdsOutput)
 						err = executor.Setup()
@@ -172,6 +175,7 @@ func NewCreateCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 	pflags := cmd.Flags()
 	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
+	pflags.String("connection-type", "incus", "Override connection type.")
 	pflags.BoolP("all", "a", false, "Create all available certificates.")
 	pflags.StringSliceVar(&renderEnvs, "render-env", []string{},
 		"Append render engine environments in the format key=value.")

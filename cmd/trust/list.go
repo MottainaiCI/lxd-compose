@@ -27,6 +27,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 			confdir, _ := cmd.Flags().GetString("lxd-config-dir")
 			jsonOutput, _ := cmd.Flags().GetBool("json")
 			endpoint, _ := cmd.Flags().GetString("endpoint")
+			connType, _ := cmd.Flags().GetString("connection-type")
 
 			// Create Instance
 			composer := loader.NewLxdCInstance(config)
@@ -41,7 +42,8 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				confdir = config.GetGeneral().LxdConfDir
 			}
 
-			executor := executor.NewLxdCExecutor(endpoint, confdir, nil, true,
+			executor := executor.NewLxdCExecutor(
+				connType, endpoint, confdir, nil, true,
 				config.GetLogging().CmdsOutput,
 				config.GetLogging().RuntimeCmdsOutput)
 			err = executor.Setup()
@@ -86,7 +88,8 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 	}
 
 	pflags := cmd.Flags()
-	pflags.StringP("endpoint", "e", "", "Set endpoint of the LXD connection")
+	pflags.StringP("endpoint", "e", "", "Set endpoint of the connection.")
+	pflags.String("connection-type", "incus", "Override connection type.")
 	pflags.Bool("json", false, "JSON output")
 
 	return cmd

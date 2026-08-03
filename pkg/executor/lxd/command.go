@@ -1,23 +1,8 @@
 /*
-Copyright (C) 2020-2025  Daniele Rondina <geaaru@macaronios.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2024 Daniele Rondina <geaaru@gmail.com>
+See AUTHORS and LICENSE for the license details and contributors.
 */
-package executor
+package lxd
 
 import (
 	"bytes"
@@ -35,7 +20,7 @@ import (
 	"github.com/canonical/lxd/shared/termios"
 )
 
-func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string,
+func (e *LxdExecutor) RunCommandWithOutput(containerName, command string,
 	envs map[string]string, outBuffer, errBuffer io.WriteCloser, entryPoint []string,
 	uid, gid *uint32, cwd string) (int, error) {
 
@@ -145,7 +130,7 @@ func (e *LxdCExecutor) RunCommandWithOutput(containerName, command string,
 	return ans, nil
 }
 
-func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string]string,
+func (e *LxdExecutor) RunCommand(containerName, command string, envs map[string]string,
 	entryPoint []string, uid, gid *uint32, cwd string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()
@@ -174,7 +159,7 @@ func (e *LxdCExecutor) RunCommand(containerName, command string, envs map[string
 	return res, err
 }
 
-func (e *LxdCExecutor) RunCommandWithOutput4Var(containerName, command, outVar,
+func (e *LxdExecutor) RunCommandWithOutput4Var(containerName, command, outVar,
 	errVar string, envs *map[string]string, entryPoint []string, uid, gid *uint32, cwd string) (int, error) {
 	var outBuffer, errBuffer bytes.Buffer
 	logger := log.GetDefaultLogger()

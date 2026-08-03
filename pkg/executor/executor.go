@@ -5,347 +5,126 @@ See AUTHORS and LICENSE for the license details and contributors.
 package executor
 
 import (
-	"errors"
-	"fmt"
-	"time"
+	"io"
+	"os"
 
-	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
-
-	lxd "github.com/canonical/lxd/client"
-	lxd_config "github.com/canonical/lxd/lxc/config"
-	lxd_api "github.com/canonical/lxd/shared/api"
-	lxd_cli "github.com/canonical/lxd/shared/cmd"
+	"github.com/MottainaiCI/lxd-compose/pkg/executor/base"
+	lxd "github.com/MottainaiCI/lxd-compose/pkg/executor/lxd"
+	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 )
 
-type LxdCExecutor struct {
-	LxdClient         lxd.InstanceServer
-	LxdConfig         *lxd_config.Config
-	ConfigDir         string
-	Endpoint          string
-	Entrypoint        []string
-	Ephemeral         bool
-	ShowCmdsOutput    bool
-	RuntimeCmdsOutput bool
-	P2PMode           bool
-	WaitSleep         int
-	LocalDisable      bool
-	LegacyApi         bool
+type LxdCExecutor interface {
+	GetType() string
+	Setup() error
 
-	ExcludedRemotes []string
+	CreateContainer(name, fingerprint, imageServer string, profiles []string) error
 
-	Emitter LxdCExecutorEmitter
+	CreateContainerWithConfig(name, fingerprint, imageServer string, profiles []string, configMap map[string]string) error
+
+	StopContainer(name string) error
+	StartContainer(name string) error
+	GetContainerList() ([]string, error)
+	IsRunningContainer(name string) (bool, error)
+	IsEphemeralContainer(name string) (bool, error)
+	IsPresentContainer(name string) (bool, error)
+	CopyContainerOnInstance(srcName, dstName string) error
+	DeleteContainer(name string) error
+	WaitIpOfContainer(name string, timeout int64) error
+
+	GetAclList() ([]string, error)
+	IsPresentACL(name string) (bool, error)
+	CreateACL(acl *specs.LxdCAcl) error
+	UpdateACL(acl *specs.LxdCAcl) error
+
+	RunCommandWithOutput(name, command string, envs map[string]string,
+		outBuffer, errBuffer io.WriteCloser, entrypoint []string,
+		uid, git *uint32, cwd string) (int, error)
+	RunCommand(name, command string, envs map[string]string,
+		entrypoint []string, uid, git *uint32, cwd string) (int, error)
+	RunCommandWithOutput4Var(name, command, outVar, errVar string,
+		envs *map[string]string, eentrypoint []string,
+		uid, git *uint32, cwd string) (int, error)
+
+	RunHostCommandWithOutput(command string, envs map[string]string,
+		outBuffer, errBuffer io.WriteCloser, entryPoint []string) (int, error)
+	RunHostCommand(command string, envs map[string]string,
+		entryPoint []string) (int, error)
+	RunHostCommandWithOutput4Var(command, outVar, errVar string,
+		envs *map[string]string, entryPoint []string) (int, error)
+
+	RecursiveMkdir(name string, dir string, mode *os.FileMode, uid int64, gid int64) error
+	RecursivePushFile(name, source, target string) error
+	RecursivePullFile(name string, destPath string, localPath string, localAsTarget bool) error
+	DeleteContainerDir(name, dir string) error
+
+	// Images
+	PurgeImages(opts *base.PurgeOpts) error
+	DeleteImageByFingerprint(f string) error
+	PullImage(imageAlias, imageRemoteServer string) (string, error)
+
+	// Profiles
+	AddProfiles2Instance(name string, profiles []string) error
+	RemoveProfilesFromInstance(name string, profiles []string) error
+	GetProfilesList() ([]string, error)
+	IsPresentProfile(name string) (bool, error)
+	CreateProfile(profile specs.LxdCProfile) error
+	UpdateProfile(profile specs.LxdCProfile) error
+
+	// Network
+	GetNetworkList() ([]string, error)
+	IsPresentNetwork(name string) (bool, error)
+	CreateNetwork(net specs.LxdCNetwork) error
+	UpdateNetwork(net specs.LxdCNetwork) error
+	SyncNetworkForwarders(net *specs.LxdCNetwork) error
+
+	// Storage
+	GetStorageList() ([]string, error)
+	IsPresentStorage(name string) (bool, error)
+	CreateStorage(sto specs.LxdCStorage) error
+	UpdateStorage(sto specs.LxdCStorage) error
+
+	// Trust
+	GetCertificates() ([]*specs.LxdCCertificate, error)
+	DeleteCertificate(fingerprint string) error
+	CreateCertificate(cert *specs.LxdCCertificate) error
+	IsPresentCertificate(name string) (bool, error)
+
+	// Base
+	GetEntrypoint() []string
+	SetEntrypoint(ep []string)
+	GetEmitter() base.LxdCExecutorEmitter
+	SetEmitter(emitter base.LxdCExecutorEmitter)
+	SetP2PMode(m bool)
+	GetP2PMode() bool
+	SetLocalDisable(v bool)
+	GetLocalDisable() bool
+	SetLegacyApi(a bool)
+	GetLegacyApi() bool
+	AddRemote2Exclude(remote string)
+	SetExcludedRemotes(remotes []string)
+	GetExcludedRemotes() []string
+	IsRemoteExcluded(remote string) bool
 }
 
-func NewLxdCExecutor(endpoint, configdir string, entrypoint []string, ephemeral, showCmdsOutput, runtimeCmdsOutput bool) *LxdCExecutor {
+func NewLxdCExecutor(connType, endpoint, configdir string, entrypoint []string, ephemeral, showCmdsOutput, runtimeCmdsOutput bool) LxdCExecutor {
 	return NewLxdCExecutorWithEmitter(
-		endpoint, configdir, entrypoint, ephemeral,
-		showCmdsOutput, runtimeCmdsOutput, NewLxdCEmitter(),
+		connType, endpoint, configdir, entrypoint, ephemeral,
+		showCmdsOutput, runtimeCmdsOutput, base.NewLxdCEmitter(),
 	)
 }
 
-func NewLxdCExecutorWithEmitter(endpoint, configdir string,
+func NewLxdCExecutorWithEmitter(connType, endpoint, configdir string,
 	entrypoint []string, ephemeral, showCmdsOutput,
-	runtimeCmdsOutput bool, emitter LxdCExecutorEmitter) *LxdCExecutor {
-	return &LxdCExecutor{
-		ConfigDir:         configdir,
-		Endpoint:          endpoint,
-		Entrypoint:        entrypoint,
-		Ephemeral:         ephemeral,
-		ShowCmdsOutput:    showCmdsOutput,
-		RuntimeCmdsOutput: runtimeCmdsOutput,
-		WaitSleep:         1,
-		Emitter:           emitter,
-		P2PMode:           false,
-		LocalDisable:      false,
-		LegacyApi:         false,
-		ExcludedRemotes:   []string{},
-	}
-}
+	runtimeCmdsOutput bool, emitter base.LxdCExecutorEmitter) LxdCExecutor {
 
-func (e *LxdCExecutor) GetEmitter() LxdCExecutorEmitter        { return e.Emitter }
-func (e *LxdCExecutor) SetEmitter(emitter LxdCExecutorEmitter) { e.Emitter = emitter }
-func (e *LxdCExecutor) SetP2PMode(m bool)                      { e.P2PMode = m }
-func (e *LxdCExecutor) GetP2PMode() bool                       { return e.P2PMode }
-func (e *LxdCExecutor) SetLocalDisable(v bool)                 { e.LocalDisable = v }
-func (e *LxdCExecutor) GetLocalDisable() bool                  { return e.LocalDisable }
-func (e *LxdCExecutor) SetLegacyApi(a bool)                    { e.LegacyApi = a }
-func (e *LxdCExecutor) GetLegacyApi() bool                     { return e.LegacyApi }
-
-func (e *LxdCExecutor) AddRemote2Exclude(remote string) {
-	isPresent := false
-	for _, r := range e.ExcludedRemotes {
-		if r == remote {
-			isPresent = true
-			break
-		}
+	if connType == specs.ConnectionLxd6 {
+		return lxd.NewLxdExecutorWithEmitter(
+			endpoint, configdir, entrypoint, ephemeral,
+			showCmdsOutput, runtimeCmdsOutput, emitter)
+	} else {
+		return lxd.NewLxdExecutorWithEmitter(
+			endpoint, configdir, entrypoint, ephemeral,
+			showCmdsOutput, runtimeCmdsOutput, emitter)
 	}
 
-	if !isPresent {
-		e.ExcludedRemotes = append(e.ExcludedRemotes, remote)
-	}
-}
-
-func (e *LxdCExecutor) SetExcludedRemotes(remotes []string) {
-	e.ExcludedRemotes = remotes
-}
-
-func (e *LxdCExecutor) GetExcludedRemotes() []string {
-	return e.ExcludedRemotes
-}
-
-func (e *LxdCExecutor) IsRemoteExcluded(remote string) bool {
-	if len(e.ExcludedRemotes) == 0 {
-		return false
-	}
-
-	for _, r := range e.ExcludedRemotes {
-		if r == remote {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (e *LxdCExecutor) CreateContainer(name, fingerprint, imageServer string, profiles []string) error {
-	return e.CreateContainerWithConfig(name, fingerprint, imageServer, profiles, map[string]string{})
-}
-
-func (e *LxdCExecutor) CreateContainerWithConfig(name, fingerprint, imageServer string, profiles []string, configMap map[string]string) error {
-	if name == "" {
-		return errors.New("Invalid container name")
-	}
-
-	// Check if container is already present.
-	isPresent, err := e.IsPresentContainer(name)
-	if err != nil {
-		return err
-	}
-
-	logger := log.GetDefaultLogger()
-
-	if isPresent {
-		e.Emitter.InfoLog(false, logger.Aurora.Bold(logger.Aurora.BrightCyan(
-			">>> Container "+name+" already present. Nothing to do. - :check_mark:")))
-		return nil
-	}
-
-	// Pull image
-	imageFingerprint, err := e.PullImage(fingerprint, imageServer)
-	if err != nil {
-		logger.Error("Error on pull image " + fingerprint + " from remote " + imageServer)
-		return err
-	}
-
-	e.Emitter.InfoLog(true, logger.Aurora.Bold(logger.Aurora.BrightCyan(
-		">>> Creating container "+name+"... - :factory:")))
-	err = e.LaunchContainerWithConfig(name, imageFingerprint, profiles, configMap)
-	if err != nil {
-		logger.Error("Creating container error: " + err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func (e *LxdCExecutor) StopContainer(name string) error {
-	return e.DoAction2Container(name, "stop")
-}
-
-func (e *LxdCExecutor) StartContainer(name string) error {
-	return e.DoAction2Container(name, "start")
-}
-
-func (e *LxdCExecutor) GetContainerList() ([]string, error) {
-	return e.LxdClient.GetInstanceNames(lxd_api.InstanceTypeContainer)
-}
-
-func (e *LxdCExecutor) IsRunningContainer(name string) (bool, error) {
-	ans := false
-	var status string
-
-	iInfo, _, err := e.LxdClient.GetInstance(name)
-	if err != nil {
-		return ans, err
-	}
-	status = iInfo.Status
-
-	if status == "Running" {
-		ans = true
-	}
-
-	return ans, nil
-}
-
-func (e *LxdCExecutor) IsEphemeralContainer(containerName string) (bool, error) {
-	iInfo, _, err := e.LxdClient.GetInstance(containerName)
-	if err != nil {
-		return false, err
-	}
-	return iInfo.Ephemeral, nil
-}
-
-func (e *LxdCExecutor) IsPresentContainer(containerName string) (bool, error) {
-	ans := false
-	list, err := e.GetContainerList()
-
-	if err != nil {
-		return false, err
-	}
-
-	for _, c := range list {
-		if c == containerName {
-			ans = true
-			break
-		}
-	}
-
-	return ans, nil
-}
-
-func (e *LxdCExecutor) CopyContainerOnInstance(
-	containerName, newContainerName string) error {
-
-	args := lxd.InstanceCopyArgs{
-		Name: newContainerName,
-		// Always follow stateless copy.
-		Live: false,
-		// Ignore containers snapshot
-		InstanceOnly: true,
-		Mode:         "pull",
-		// I don't think that it makes sense an incremental update
-		// in our use case.
-		Refresh: false,
-		// Ignore copy errors for volatile files.
-		AllowInconsistent: true,
-	}
-
-	entry, _, err := e.LxdClient.GetInstance(containerName)
-	if err != nil {
-		return err
-	}
-
-	if entry.Config != nil {
-		// Strip the last_state.power key in all cases
-		delete(entry.Config, "volatile.last_state.power")
-	}
-
-	op, err := e.LxdClient.CopyInstance(e.LxdClient, *entry, &args)
-	if err != nil {
-		return err
-	}
-
-	// Watch the background operation
-	progress := lxd_cli.ProgressRenderer{
-		Format: "Copy container: %s",
-		Quiet:  false,
-	}
-
-	_, err = op.AddHandler(progress.UpdateOp)
-	if err != nil {
-		progress.Done("")
-		return err
-	}
-
-	// Wait the copy of the container
-	err = lxd_cli.CancelableWait(op, &progress)
-	if err != nil {
-		progress.Done("")
-		return err
-	}
-
-	progress.Done("")
-
-	e.Emitter.DebugLog(false,
-		fmt.Sprintf("Container %s copy to %s.", containerName, newContainerName))
-
-	return nil
-}
-
-func (e *LxdCExecutor) DeleteContainer(containerName string) error {
-
-	ephemeral, err := e.IsEphemeralContainer(containerName)
-	if err != nil {
-		e.Emitter.ErrorLog(false,
-			fmt.Sprintf("Error on retrieve info of the container %s", containerName))
-		return err
-	}
-
-	err = e.DoAction2Container(containerName, "stop")
-	if err != nil {
-		e.Emitter.ErrorLog(false, "Error on stop container: "+err.Error())
-		return err
-	}
-
-	if !ephemeral {
-		var currOper lxd.Operation
-		var err error
-
-		// Delete container (set force true considering that is been stopped before)
-		currOper, err = e.LxdClient.DeleteInstance(containerName, true)
-		if err != nil {
-			e.Emitter.ErrorLog(false, "Error on delete container: "+err.Error())
-			return err
-		}
-		_ = e.WaitOperation(currOper, nil)
-	}
-
-	return nil
-}
-
-func (e *LxdCExecutor) WaitIpOfContainer(containerName string, timeout int64) error {
-	filters := []string{
-		"name=" + containerName,
-	}
-
-	start := time.Now().Unix()
-	diff := int64(0)
-	withoutIp := true
-	for withoutIp && diff < timeout {
-		instances, err := e.LxdClient.GetInstancesFull(
-			lxd.GetInstancesFullArgs{
-				InstanceType: lxd_api.InstanceTypeContainer,
-				Filters:      filters,
-			},
-		)
-		if err != nil {
-			e.Emitter.ErrorLog(false, "Error on get instances: "+err.Error())
-			return err
-		}
-
-		if len(instances) == 0 {
-			return errors.New("No container found with name " + containerName)
-		} else if len(instances) > 1 {
-			return errors.New("Found multiple container with name " + containerName)
-		}
-
-		c := instances[0]
-		for netIface, net := range c.State.Network {
-			if net.Type == "loopback" {
-				continue
-			}
-			for _, a := range net.Addresses {
-				if a.Scope == "link" || a.Scope == "local" {
-					continue
-				}
-
-				if a.Family == "inet" {
-					if a.Address != "" && a.Netmask != "" {
-						e.Emitter.Emits(LxdContainerIpAssigned, map[string]interface{}{
-							"name":    containerName,
-							"iface":   netIface,
-							"address": fmt.Sprintf("%s/%s", a.Address, a.Netmask),
-						})
-						withoutIp = false
-						break
-					}
-				}
-			}
-		}
-
-		time.Sleep(100 * time.Millisecond)
-		diff = time.Now().Unix() - start
-	}
-
-	return nil
 }
