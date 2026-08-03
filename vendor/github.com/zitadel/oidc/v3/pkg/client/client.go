@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
-	"github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/internal/otel"
 	"golang.org/x/oauth2"
 
@@ -25,8 +25,17 @@ var (
 	Tracer  = otel.Tracer("github.com/zitadel/oidc/pkg/client")
 )
 
+// Deprecated: This interface function Auth() is no longer invoked because it violates
+// RFC 6749 §2.3: The client MUST NOT use more than one authentication method in each request.
+//
+// Configure the OAuth2 endpoint AuthStyle (e.g., oauth2.AuthStyleInHeader)
+// or use the "authFn" parameter in the related functions for custom needs.
+type ClientSecretBasicAuthRequest interface {
+	Auth(req *http.Request)
+}
+
 // Discover calls the discovery endpoint of the provided issuer and returns its configuration
-// It accepts an optional argument "wellknownUrl" which can be used to overide the dicovery endpoint url
+// It accepts an optional argument "wellknownUrl" which can be used to override the discovery endpoint url
 func Discover(ctx context.Context, issuer string, httpClient *http.Client, wellKnownUrl ...string) (*oidc.DiscoveryConfiguration, error) {
 	ctx, span := Tracer.Start(ctx, "Discover")
 	defer span.End()
@@ -44,9 +53,7 @@ func Discover(ctx context.Context, issuer string, httpClient *http.Client, wellK
 	if err != nil {
 		return nil, errors.Join(oidc.ErrDiscoveryFailed, err)
 	}
-	if logger, ok := logging.FromContext(ctx); ok {
-		logger.Debug("discover", "config", discoveryConfig)
-	}
+	slog.DebugContext(ctx, "discover", "config", discoveryConfig)
 
 	if discoveryConfig.Issuer != issuer {
 		return nil, oidc.ErrIssuerInvalid
@@ -60,10 +67,10 @@ type TokenEndpointCaller interface {
 }
 
 func CallTokenEndpoint(ctx context.Context, request any, caller TokenEndpointCaller) (newToken *oauth2.Token, err error) {
-	return callTokenEndpoint(ctx, request, nil, caller)
+	return CallTokenEndpointWithAuthFn(ctx, request, nil, caller)
 }
 
-func callTokenEndpoint(ctx context.Context, request any, authFn any, caller TokenEndpointCaller) (newToken *oauth2.Token, err error) {
+func CallTokenEndpointWithAuthFn(ctx context.Context, request any, authFn any, caller TokenEndpointCaller) (newToken *oauth2.Token, err error) {
 	ctx, span := Tracer.Start(ctx, "callTokenEndpoint")
 	defer span.End()
 
@@ -71,6 +78,7 @@ func callTokenEndpoint(ctx context.Context, request any, authFn any, caller Toke
 	if err != nil {
 		return nil, err
 	}
+
 	tokenRes := new(oidc.AccessTokenResponse)
 	if err := httphelper.HttpRequest(caller.HttpClient(), req, &tokenRes); err != nil {
 		return nil, err
@@ -145,6 +153,17 @@ type RevokeRequest struct {
 	ClientSecret  string `schema:"client_secret"`
 }
 
+// Deprecated: This function is no longer invoked because it violates
+// RFC 6749 §2.3: The client MUST NOT use more than one authentication method in each request.
+//
+// Configure the OAuth2 endpoint AuthStyle (e.g., oauth2.AuthStyleInHeader)
+// or use the "authFn" parameter in the related functions for custom needs.
+func (r RevokeRequest) Auth(req *http.Request) {
+	if r.ClientSecret != "" {
+		req.SetBasicAuth(url.QueryEscape(r.ClientID), url.QueryEscape(r.ClientSecret))
+	}
+}
+
 func CallRevokeEndpoint(ctx context.Context, request any, authFn any, caller RevokeCaller) error {
 	ctx, span := Tracer.Start(ctx, "CallRevokeEndpoint")
 	defer span.End()
@@ -158,6 +177,7 @@ func CallRevokeEndpoint(ctx context.Context, request any, authFn any, caller Rev
 	if err != nil {
 		return err
 	}
+
 	client := caller.HttpClient()
 	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 		return http.ErrUseLastResponse
@@ -238,9 +258,6 @@ func CallDeviceAuthorizationEndpoint(ctx context.Context, request *oidc.ClientCr
 	if err != nil {
 		return nil, err
 	}
-	if request.ClientSecret != "" {
-		req.SetBasicAuth(request.ClientID, request.ClientSecret)
-	}
 
 	resp := new(oidc.DeviceAuthorizationResponse)
 	if err := httphelper.HttpRequest(caller.HttpClient(), req, &resp); err != nil {
@@ -254,16 +271,25 @@ type DeviceAccessTokenRequest struct {
 	oidc.DeviceAccessTokenRequest
 }
 
-func CallDeviceAccessTokenEndpoint(ctx context.Context, request *DeviceAccessTokenRequest, caller TokenEndpointCaller) (*oidc.AccessTokenResponse, error) {
+// Deprecated: This function is no longer invoked because it violates
+// RFC 6749 §2.3: The client MUST NOT use more than one authentication method in each request.
+//
+// Configure the OAuth2 endpoint AuthStyle (e.g., oauth2.AuthStyleInHeader)
+// or use the "authFn" parameter in the related functions for custom needs.
+func (r *DeviceAccessTokenRequest) Auth(req *http.Request) {
+	if r.ClientSecret != "" {
+		req.SetBasicAuth(url.QueryEscape(r.ClientID), url.QueryEscape(r.ClientSecret))
+	}
+}
+
+// CallDeviceAccessTokenEndpointWithAuthFn calls the device access token endpoint, accepting an authFn for custom authentication.
+func CallDeviceAccessTokenEndpointWithAuthFn(ctx context.Context, request *DeviceAccessTokenRequest, caller TokenEndpointCaller, authFn any) (*oidc.AccessTokenResponse, error) {
 	ctx, span := Tracer.Start(ctx, "CallDeviceAccessTokenEndpoint")
 	defer span.End()
 
-	req, err := httphelper.FormRequest(ctx, caller.TokenEndpoint(), request, Encoder, nil)
+	req, err := httphelper.FormRequest(ctx, caller.TokenEndpoint(), request, Encoder, authFn)
 	if err != nil {
 		return nil, err
-	}
-	if request.ClientSecret != "" {
-		req.SetBasicAuth(request.ClientID, request.ClientSecret)
 	}
 
 	resp := new(oidc.AccessTokenResponse)
@@ -273,7 +299,13 @@ func CallDeviceAccessTokenEndpoint(ctx context.Context, request *DeviceAccessTok
 	return resp, nil
 }
 
-func PollDeviceAccessTokenEndpoint(ctx context.Context, interval time.Duration, request *DeviceAccessTokenRequest, caller TokenEndpointCaller) (*oidc.AccessTokenResponse, error) {
+// Deprecated: Use CallDeviceAccessTokenEndpointWithAuthFn instead.
+func CallDeviceAccessTokenEndpoint(ctx context.Context, request *DeviceAccessTokenRequest, caller TokenEndpointCaller) (*oidc.AccessTokenResponse, error) {
+	return CallDeviceAccessTokenEndpointWithAuthFn(ctx, request, caller, nil)
+}
+
+// PollDeviceAccessTokenEndpointWithAuthFn polls the device access token endpoint, accepting an authFn for custom authentication.
+func PollDeviceAccessTokenEndpointWithAuthFn(ctx context.Context, interval time.Duration, request *DeviceAccessTokenRequest, caller TokenEndpointCaller, authFn any) (*oidc.AccessTokenResponse, error) {
 	ctx, span := Tracer.Start(ctx, "PollDeviceAccessTokenEndpoint")
 	defer span.End()
 
@@ -288,7 +320,7 @@ func PollDeviceAccessTokenEndpoint(ctx context.Context, interval time.Duration, 
 		ctx, cancel := context.WithTimeout(ctx, interval)
 		defer cancel()
 
-		resp, err := CallDeviceAccessTokenEndpoint(ctx, request, caller)
+		resp, err := CallDeviceAccessTokenEndpointWithAuthFn(ctx, request, caller, authFn)
 		if err == nil {
 			return resp, nil
 		}
@@ -309,4 +341,9 @@ func PollDeviceAccessTokenEndpoint(ctx context.Context, interval time.Duration, 
 			return nil, err
 		}
 	}
+}
+
+// Deprecated: Use PollDeviceAccessTokenEndpointWithAuthFn instead.
+func PollDeviceAccessTokenEndpoint(ctx context.Context, interval time.Duration, request *DeviceAccessTokenRequest, caller TokenEndpointCaller) (*oidc.AccessTokenResponse, error) {
+	return PollDeviceAccessTokenEndpointWithAuthFn(ctx, interval, request, caller, nil)
 }

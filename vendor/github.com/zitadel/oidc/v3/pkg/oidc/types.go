@@ -35,6 +35,31 @@ func (a *Audience) UnmarshalJSON(text []byte) error {
 	return nil
 }
 
+type AuthenticationMethodsReferences []string
+
+func (a *AuthenticationMethodsReferences) UnmarshalJSON(data []byte) error {
+	var dst any
+	if err := json.Unmarshal(data, &dst); err != nil {
+		return fmt.Errorf("oidc amr: %w", err)
+	}
+
+	switch v := dst.(type) {
+	case nil:
+		*a = nil
+	case string:
+		*a = AuthenticationMethodsReferences{v}
+	case []any:
+		refs, err := gu.AssertInterfaces[string](v)
+		if err != nil {
+			return fmt.Errorf("oidc amr: %w", err)
+		}
+		*a = AuthenticationMethodsReferences(refs)
+	default:
+		return fmt.Errorf("oidc amr: unsupported type: %T", v)
+	}
+	return nil
+}
+
 type Display string
 
 func (d *Display) UnmarshalText(text []byte) error {
@@ -124,8 +149,8 @@ func (l Locales) String() string {
 }
 
 // UnmarshalText implements the [encoding.TextUnmarshaler] interface.
-// It decodes an unquoted space seperated string into Locales.
-// Undefined language tags in the input are ignored and ommited from
+// It decodes an unquoted space separated string into Locales.
+// Undefined language tags in the input are ignored and omitted from
 // the resulting Locales.
 func (l *Locales) UnmarshalText(text []byte) error {
 	*l = ParseLocales(
@@ -135,8 +160,8 @@ func (l *Locales) UnmarshalText(text []byte) error {
 }
 
 // UnmarshalJSON implements the [json.Unmarshaler] interface.
-// It decodes a json array or a space seperated string into Locales.
-// Undefined language tags in the input are ignored and ommited from
+// It decodes a json array or a space separated string into Locales.
+// Undefined language tags in the input are ignored and omitted from
 // the resulting Locales.
 func (l *Locales) UnmarshalJSON(data []byte) error {
 	var dst any
@@ -144,8 +169,8 @@ func (l *Locales) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("oidc locales: %w", err)
 	}
 
-	// We catch the posibility of a space seperated string here,
-	// because UnmarshalText might have been implicetely called
+	// We catch the possibility of a space separated string here,
+	// because UnmarshalText might have been implicitly called
 	// by the json library before we added UnmarshalJSON.
 	switch v := dst.(type) {
 	case nil:
