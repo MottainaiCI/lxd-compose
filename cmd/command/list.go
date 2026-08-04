@@ -83,7 +83,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			} else {
 				if len(commands) > 0 {
-					table := tablewriter.NewWriter(os.Stdout,
+					table := tablewriter.NewTable(os.Stdout,
 						tablewriter.WithRendition(tw.Rendition{
 							Borders: tw.Border{
 								Left:   tw.On,
@@ -91,12 +91,10 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 								Right:  tw.On,
 								Bottom: tw.On,
 							},
-							Symbols: tw.Symbols{
-								Merge: "|",
-							},
+							Symbols: tw.NewSymbols(tw.StyleASCII),
 						}),
 						tablewriter.WithRowAutoWrap(tw.WrapNone),
-						tablewriter.WithColumnMaxWidth(150),
+						tablewriter.WithMaxWidth(150),
 					)
 					table.Header([]string{"Command", "Project", "Description"})
 

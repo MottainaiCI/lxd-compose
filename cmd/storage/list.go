@@ -72,7 +72,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				fmt.Println(string(data))
 			} else {
 
-				table := tablewriter.NewWriter(os.Stdout,
+				table := tablewriter.NewTable(os.Stdout,
 					tablewriter.WithRendition(tw.Rendition{
 						Borders: tw.Border{
 							Left:   tw.On,
@@ -80,9 +80,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 							Right:  tw.On,
 							Bottom: tw.Off,
 						},
-						Symbols: tw.Symbols{
-							Merge: "|",
-						},
+						Symbols: tw.NewSymbols(tw.StyleASCII),
 					}),
 					tablewriter.WithRowAutoWrap(tw.WrapNone),
 				)

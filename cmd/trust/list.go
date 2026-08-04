@@ -65,7 +65,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			} else {
 
-				table := tablewriter.NewWriter(os.Stdout,
+				table := tablewriter.NewTable(os.Stdout,
 					tablewriter.WithRendition(tw.Rendition{
 						Borders: tw.Border{
 							Left:   tw.On,
@@ -73,9 +73,7 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 							Right:  tw.On,
 							Bottom: tw.Off,
 						},
-						Symbols: tw.Symbols{
-							Merge: "|",
-						},
+						Symbols: tw.NewSymbols(tw.StyleASCII),
 					}),
 				)
 				table.Header([]string{
