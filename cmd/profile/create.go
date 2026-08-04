@@ -1,5 +1,5 @@
 /*
-Copyright © 2020-2025 Daniele Rondina <geaaru@macaronios.org>
+Copyright © 2020-2026 Daniele Rondina <geaaru@macaronios.org>
 See AUTHORS and LICENSE for the license details and contributors.
 */
 package cmd_profile
