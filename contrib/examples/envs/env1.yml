@@ -240,6 +240,8 @@ projects:
     groups:
       - name: "group1"
         description: "Description1"
+        connection_type: "lxd6"
+        #connection_type: "incus"
 
         # Define the LXD Remote to use and where
         # create the environment.
@@ -278,6 +280,7 @@ projects:
         nodes:
           - name: node1
             image_source: "alpine/edge"
+            #image_remote_server: images-incus
             #image_remote_server: "images"
             wait_ip: 2
 
