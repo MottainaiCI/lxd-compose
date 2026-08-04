@@ -14,6 +14,7 @@ import (
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
 	tablewriter "github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/spf13/cobra"
 )
 
@@ -64,10 +65,20 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			} else {
 
-				table := tablewriter.NewWriter(os.Stdout)
-				table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-				table.SetCenterSeparator("|")
-				table.SetHeader([]string{
+				table := tablewriter.NewWriter(os.Stdout,
+					tablewriter.WithRendition(tw.Rendition{
+						Borders: tw.Border{
+							Left:   tw.On,
+							Top:    tw.Off,
+							Right:  tw.On,
+							Bottom: tw.Off,
+						},
+						Symbols: tw.Symbols{
+							Merge: "|",
+						},
+					}),
+				)
+				table.Header([]string{
 					"Certificate Name", "Type", "Fingerprint",
 				})
 

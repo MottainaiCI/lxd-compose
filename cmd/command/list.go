@@ -1,21 +1,6 @@
 /*
-Copyright (C) 2020-2025  Daniele Rondina <geaaru@macaronios.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2025 Daniele Rondina <geaaru@macaronios.org>
+See AUTHORS and LICENSE for the license details and contributors.
 */
 package cmd_command
 
@@ -29,6 +14,7 @@ import (
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 
 	tablewriter "github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/spf13/cobra"
 )
 
@@ -97,17 +83,22 @@ func NewListCommand(config *specs.LxdComposeConfig) *cobra.Command {
 
 			} else {
 				if len(commands) > 0 {
-					table := tablewriter.NewWriter(os.Stdout)
-					table.SetBorders(tablewriter.Border{
-						Left:   true,
-						Top:    true,
-						Right:  true,
-						Bottom: true})
-					table.SetHeader([]string{"Command", "Project", "Description"})
-					table.SetColMinWidth(1, 10)
-					table.SetColMinWidth(2, 50)
-					table.SetColWidth(150)
-					table.SetAutoWrapText(false)
+					table := tablewriter.NewWriter(os.Stdout,
+						tablewriter.WithRendition(tw.Rendition{
+							Borders: tw.Border{
+								Left:   tw.On,
+								Top:    tw.On,
+								Right:  tw.On,
+								Bottom: tw.On,
+							},
+							Symbols: tw.Symbols{
+								Merge: "|",
+							},
+						}),
+						tablewriter.WithRowAutoWrap(tw.WrapNone),
+						tablewriter.WithColumnMaxWidth(150),
+					)
+					table.Header([]string{"Command", "Project", "Description"})
 
 					for _, c := range commands {
 						table.Append([]string{
