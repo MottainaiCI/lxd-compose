@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/MottainaiCI/lxd-compose/pkg/executor/base"
+	incus "github.com/MottainaiCI/lxd-compose/pkg/executor/incus"
 	lxd "github.com/MottainaiCI/lxd-compose/pkg/executor/lxd"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
 )
@@ -122,7 +123,7 @@ func NewLxdCExecutorWithEmitter(connType, endpoint, configdir string,
 			endpoint, configdir, entrypoint, ephemeral,
 			showCmdsOutput, runtimeCmdsOutput, emitter)
 	} else {
-		return lxd.NewLxdExecutorWithEmitter(
+		return incus.NewIncusExecutorWithEmitter(
 			endpoint, configdir, entrypoint, ephemeral,
 			showCmdsOutput, runtimeCmdsOutput, emitter)
 	}
