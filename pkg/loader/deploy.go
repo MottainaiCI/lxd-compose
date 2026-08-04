@@ -69,7 +69,9 @@ func (i *LxdCInstance) ApplyProject(projectName string) error {
 	}
 
 	// Compiler project files
-	err = template.CompileProjectFiles(proj, compiler, template.CompilerOpts{})
+	err = template.CompileProjectFiles(proj, compiler, template.CompilerOpts{
+		Concurrency: i.Config.GetGeneral().Concurrency,
+	})
 	if err != nil {
 		return err
 	}
@@ -371,7 +373,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 	compiler.InitVars()
 
 	// Compile group templates
-	err = template.CompileGroupFiles(group, compiler, template.CompilerOpts{})
+	err = template.CompileGroupFiles(group, compiler, template.CompilerOpts{
+		Concurrency: i.Config.GetGeneral().Concurrency,
+	})
 	if err != nil {
 		return err
 	}
@@ -558,7 +562,9 @@ func (i *LxdCInstance) ApplyGroup(group *specs.LxdCGroup, proj *specs.LxdCProjec
 		compiler.InitVars()
 
 		// Compile node templates
-		err = template.CompileNodeFiles(node, compiler, template.CompilerOpts{})
+		err = template.CompileNodeFiles(node, compiler, template.CompilerOpts{
+			Concurrency: i.Config.GetGeneral().Concurrency,
+		})
 		if err != nil {
 			return err
 		}

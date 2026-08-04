@@ -7,6 +7,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
@@ -78,6 +79,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 		"Override the security.encrypted_secrets option.")
 	pflags.String("keyfile", "", "Overrife keyfile path for decryption.")
 	pflags.String("key", "", "Overrife key for decryption.")
+	pflags.Int("concurrency", runtime.NumCPU(), "Concurrency")
 
 	config.Viper.BindPFlag("config", pflags.Lookup("config"))
 	config.Viper.BindPFlag("render_default_file", pflags.Lookup("render-default"))
@@ -87,6 +89,7 @@ func initCommand(rootCmd *cobra.Command, config *specs.LxdComposeConfig) {
 	config.Viper.BindPFlag("general.p2pmode", pflags.Lookup("p2p-mode"))
 	config.Viper.BindPFlag("general.legacyapi", pflags.Lookup("legacy-api"))
 	config.Viper.BindPFlag("general.lxd_confdir", pflags.Lookup("lxd-config-dir"))
+	config.Viper.BindPFlag("general.concurrency", pflags.Lookup("concurrency"))
 	config.Viper.BindPFlag("logging.cmds_output", pflags.Lookup("cmds-output"))
 	config.Viper.BindPFlag("logging.push_progressbar", pflags.Lookup("push-progress"))
 	config.Viper.BindPFlag("security.keyfile", pflags.Lookup("keyfile"))

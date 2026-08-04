@@ -69,6 +69,7 @@ func newCompileCommand(config *specs.LxdComposeConfig) *cobra.Command {
 				Sources:        sources,
 				GroupsEnabled:  enabledGroups,
 				GroupsDisabled: disabledGroups,
+				Concurrency:    config.GetGeneral().Concurrency,
 			}
 
 			if len(projects) > 0 {

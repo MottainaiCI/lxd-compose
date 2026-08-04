@@ -1,38 +1,29 @@
 /*
-Copyright (C) 2020-2025  Daniele Rondina <geaaru@macaronios.org>
-Credits goes also to Gogs authors, some code portions and re-implemented design
-are also coming from the Gogs project, which is using the go-macaron framework
-and was really source of ispiration. Kudos to them!
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Copyright © 2020-2026 Daniele Rondina <geaaru@macaronios.org>
+See AUTHORS and LICENSE for the license details and contributors.
 */
 package template
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 
+	"github.com/MottainaiCI/lxd-compose/pkg/helpers"
 	log "github.com/MottainaiCI/lxd-compose/pkg/logger"
 	specs "github.com/MottainaiCI/lxd-compose/pkg/specs"
+
+	"golang.org/x/sync/semaphore"
 )
 
 type CompilerOpts struct {
 	Sources        []string
 	GroupsEnabled  []string
 	GroupsDisabled []string
+	Concurrency    int
 }
 
 func (o *CompilerOpts) IsGroupEnabled(g string) bool {
@@ -263,30 +254,98 @@ func CompileNodeFiles(node specs.LxdCNode, compiler LxdCTemplateCompiler, opts C
 		baseDir = filepath.Join(envBaseAbs, node.SourceDir)
 	}
 
-	for idx, s := range targets {
+	waitGroup := &sync.WaitGroup{}
+	sem := semaphore.NewWeighted(int64(opts.Concurrency))
+	ctx := context.TODO()
+	var ch chan helpers.ChannelError = make(
+		chan helpers.ChannelError,
+		opts.Concurrency,
+	)
+
+	for _, s := range targets {
 		sourceFile = filepath.Join(baseDir, s.Source)
 		if filepath.IsAbs(s.Destination) {
 			destFile = s.Destination
 		} else {
 			destFile = filepath.Join(baseDir, s.Destination)
 		}
-
 		logger.DebugC(
 			logger.Aurora.Italic(
 				logger.Aurora.BrightCyan(
 					fmt.Sprintf(">>> [%s] Compiling %s -> %s :coffee:",
 						node.GetName(), sourceFile, destFile))))
 
-		err := compiler.Compile(sourceFile, destFile)
-		if err != nil {
-			return err
-		}
+		waitGroup.Add(1)
+		go compileRouting(compiler, ch, sem, waitGroup,
+			sourceFile, destFile, &ctx)
+	}
 
-		logger.InfoC(
-			logger.Aurora.BrightCyan(
-				fmt.Sprintf(">>> [%s] - [%2d/%2d] %s :check_mark:",
-					node.GetName(), idx+1, len(targets), destFile)))
+	nTargets := len(targets)
+	fail := false
+	for i, s := range targets {
+		sourceFile = filepath.Join(baseDir, s.Source)
+		if filepath.IsAbs(s.Destination) {
+			destFile = s.Destination
+		} else {
+			destFile = filepath.Join(baseDir, s.Destination)
+		}
+		logger.DebugC(
+			logger.Aurora.Italic(
+				logger.Aurora.BrightCyan(
+					fmt.Sprintf(">>> [%s] Waiting %s -> %s :coffee:",
+						node.GetName(), sourceFile, destFile))))
+		resp := <-ch
+		if resp.Error != nil {
+			logger.Error(
+				logger.Aurora.BrightCyan(
+					fmt.Sprintf(">>> [%s] - [%2d/%2d] %s - %s :cross_mark:",
+						node.GetName(), i+1, nTargets, destFile, resp.Error.Error())))
+			fail = true
+		} else {
+			logger.InfoC(
+				logger.Aurora.BrightCyan(
+					fmt.Sprintf(">>> [%s] - [%2d/%2d] %s :check_mark:",
+						node.GetName(), i+1, nTargets, destFile)))
+		}
+	}
+
+	waitGroup.Wait()
+
+	if fail {
+		return fmt.Errorf("errors on compile template files")
 	}
 
 	return nil
+}
+
+func compileRouting(compiler LxdCTemplateCompiler,
+	channel chan helpers.ChannelError,
+	sem *semaphore.Weighted, waitGroup *sync.WaitGroup,
+	sourceFile, destFile string, ctx *context.Context) {
+
+	defer waitGroup.Done()
+	err := sem.Acquire(*ctx, 1)
+	if err != nil {
+		channel <- helpers.ChannelError{
+			Error:   fmt.Errorf("error on acquire semaphore: %s", err.Error()),
+			Closure: destFile,
+		}
+		return
+	}
+	defer sem.Release(1)
+
+	err = compiler.Compile(sourceFile, destFile)
+	if err != nil {
+		channel <- helpers.ChannelError{
+			Error:   err,
+			Closure: destFile,
+		}
+		return
+	}
+
+	channel <- helpers.ChannelError{
+		Error:   nil,
+		Closure: destFile,
+	}
+	return
 }
