@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"go.yaml.in/yaml/v2"
 )
 
@@ -33,18 +34,31 @@ func RenderTable(format string, header []string, data [][]string, raw any) error
 	switch format {
 	case TableFormatTable:
 		table := getBaseTable(header, data)
-		table.SetRowLine(true)
+		table.Options(tablewriter.WithRendition(tw.Rendition{
+			Settings: tw.Settings{
+				Separators: tw.Separators{
+					BetweenRows: tw.On,
+				},
+			},
+		}))
 		table.Render()
+
 	case TableFormatCompact:
 		table := getBaseTable(header, data)
-		table.SetColumnSeparator("")
-		table.SetHeaderLine(false)
-		table.SetBorder(false)
+
+		table.Options(tablewriter.WithRendition(tw.Rendition{
+			Borders: tw.BorderNone,
+			Settings: tw.Settings{
+				Lines:      tw.LinesNone,
+				Separators: tw.SeparatorsNone,
+			},
+		}))
 		table.Render()
+
 	case TableFormatSQLResult:
 		table := getBaseTable(header, data)
-		table.SetAutoFormatHeaders(false)
 		table.Render()
+
 	case TableFormatCSV:
 		w := csv.NewWriter(os.Stdout)
 		err := w.WriteAll(data)
@@ -80,11 +94,13 @@ func RenderTable(format string, header []string, data [][]string, raw any) error
 }
 
 func getBaseTable(header []string, data [][]string) *tablewriter.Table {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetAutoWrapText(false)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetHeader(header)
-	table.AppendBulk(data)
+	table := tablewriter.NewTable(
+		os.Stdout,
+		tablewriter.WithRowAlignment(tw.AlignLeft),
+		tablewriter.WithRowAutoWrap(tw.WrapNone),
+		tablewriter.WithHeaderAutoFormat(tw.Off))
+	table.Header(header)
+	table.Bulk(data)
 	return table
 }
 
