@@ -61,8 +61,13 @@ func (e *LxdExecutor) RemoveProfilesFromInstance(name string, profiles []string)
 		}
 	}
 
+	// It's better pass the existing Config and Devices for the communication
+	// with LXD <6
+
 	iput := &lxd_api.InstancePut{
 		Profiles: newProfilesList,
+		Config:   idata.Config,
+		Devices:  idata.Devices,
 	}
 
 	err = e.UpdateInstance(name, iput, etag)
@@ -97,8 +102,12 @@ func (e *LxdExecutor) AddProfiles2Instance(name string, profiles []string) error
 	}
 
 	if update2do {
+		// It's better pass the existing Config and Devices for the communication
+		// with LXD <6
 		iput := &lxd_api.InstancePut{
 			Profiles: newProfilesList,
+			Config:   idata.Config,
+			Devices:  idata.Devices,
 		}
 
 		err := e.UpdateInstance(name, iput, etag)
