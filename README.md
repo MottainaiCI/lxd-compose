@@ -17,8 +17,8 @@ the tool pretty stable.
 
 From release `v0.33.0` lxd-compose uses by default the Instance API to works with `Incus`.
 From release `v0.39.0` lxd-compose implements two different executors, one based on LXD API and one based on Incus API.
-The attribute `connection_type` is been added with values `incus` or `lxd6` in order explicit the target group server.
-The `connection_type` with value `incus` could be used for LXD <6.0.
+The attribute `connection_type` is been added with values `incus` or `lxd-6` in order explicit the target group server.
+The `connection_type` with value `lxd-6` could be used for LXD <6.0.
 
 At the moment, we doesn't support VMs but we will add support to virtual-machine soon.
 
