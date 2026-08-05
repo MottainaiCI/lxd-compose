@@ -20,18 +20,18 @@ func (e *LxdExecutor) Setup() error {
 
 	configDir, err := e.GetLxcDefaultConfDir()
 	if err != nil {
-		return errors.New("Error on retrieve default LXD/Incus config directory: " + err.Error())
+		return errors.New("Error on retrieve default LXD config directory: " + err.Error())
 	}
 
 	if e.ConfigDir == "" {
 		e.ConfigDir = configDir
 	}
 	configPath := path.Join(e.ConfigDir, "/config.yml")
-	e.Emitter.DebugLog(false, "Using LXD/Incus config file", configPath)
+	e.Emitter.DebugLog(false, "Using LXD config file", configPath)
 
 	e.LxdConfig, err = lxd_config.LoadConfig(configPath)
 	if err != nil {
-		return errors.New("Error on load LXD/Incus config: " + err.Error())
+		return errors.New("Error on load LXD config: " + err.Error())
 	}
 
 	if len(e.Endpoint) > 0 {
