@@ -240,8 +240,8 @@ projects:
     groups:
       - name: "group1"
         description: "Description1"
-        connection_type: "lxd6"
-        #connection_type: "incus"
+        #connection_type: "lxd-6"
+        connection_type: "incus"
 
         # Define the LXD Remote to use and where
         # create the environment.
